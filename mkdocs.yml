@@ -1,6 +1,6 @@
-site_name: QM/MM - best practices
-site_url: https://hpc2n.github.io/course-qmmm
-site_description: Material for the course QM/MM - best practices
+site_name: ML/MD course
+site_url: https://pojeda.github.io/course-mlmd/
+site_description: Material for the course ML/MD 
 site_dir: site.build
 theme:
   name: readthedocs
