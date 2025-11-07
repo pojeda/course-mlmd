@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://pojeda.github.io/course-mlmd/day4/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Generative Models - ML/MD course</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_markdown_exec_pyodide.css" rel="stylesheet" />
+        <link href="../assets/_markdown_exec_ansi.css" rel="stylesheet" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+        <link href="../css/extra.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Generative Models";
+        var mkdocs_page_input_path = "day4.md";
+        var mkdocs_page_url = "/course-mlmd/day4/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../images/hpc2n-qmmm.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../day0/">Introduction</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Day 1</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day1/">ML for Molecular Systems</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Day 2</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day2/">Neural Networks</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Day 3</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day3/">Graph Neural Networks</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Day 4</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Generative Models</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#learning__objectives">Learning Objectives</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#1__vaes__and__gans__for__molecular__generation">1. VAEs and GANs for Molecular Generation</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#variational__autoencoders__vaes">Variational Autoencoders (VAEs)</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#architecture">Architecture</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#loss__function">Loss Function</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#molecular__representations">Molecular Representations</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#advantages">Advantages</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#challenges">Challenges</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#generative__adversarial__networks__gans">Generative Adversarial Networks (GANs)</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#architecture_1">Architecture</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#training__process">Training Process</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#molecular__gans__variants">Molecular GANs Variants</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#advantages_1">Advantages</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#challenges_1">Challenges</a>
+    </li>
+        </ul>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2__autoregressive__models__rnns__transformers">2. Autoregressive Models (RNNs, Transformers)</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#recurrent__neural__networks__rnns">Recurrent Neural Networks (RNNs)</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#architecture_2">Architecture</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#training">Training</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#generation">Generation</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#transfer__learning">Transfer Learning</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#transformers__for__molecular__generation">Transformers for Molecular Generation</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#architecture_3">Architecture</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#advantages__over__rnns">Advantages Over RNNs</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#molecular__transformer__applications">Molecular Transformer Applications</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#notable__models">Notable Models</a>
+    </li>
+        </ul>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#3__diffusion__models">3. Diffusion Models</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#principles">Principles</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#training_1">Training</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#generation_1">Generation</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#molecular__diffusion__models">Molecular Diffusion Models</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#advantages_2">Advantages</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#challenges_2">Challenges</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#4__reinforcement__learning__for__optimization">4. Reinforcement Learning for Optimization</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#framework">Framework</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#policy__optimization">Policy Optimization</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#reinforce__algorithm">REINFORCE Algorithm</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#proximal__policy__optimization__ppo">Proximal Policy Optimization (PPO)</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#reward__functions">Reward Functions</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#transfer__learning_1">Transfer Learning</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#applications">Applications</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#challenges_3">Challenges</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#5__conditional__generation">5. Conditional Generation</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#conditioning__strategies">Conditioning Strategies</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#explicit__conditioning">Explicit Conditioning</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#cross-attention__conditioning">Cross-Attention Conditioning</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#classifier__guidance">Classifier Guidance</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#types__of__conditions">Types of Conditions</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#conditional__vae__architecture">Conditional VAE Architecture</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#multi-conditional__generation">Multi-Conditional Generation</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#controllable__generation__workflow">Controllable Generation Workflow</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#6__practical__building__a__conditional__vae">6. Practical: Building a Conditional VAE</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#dataset__preparation">Dataset Preparation</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#model__architecture">Model Architecture</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#training__loop">Training Loop</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#evaluation__and__analysis">Evaluation and Analysis</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#hyperparameter__tuning">Hyperparameter Tuning</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#summary">Summary</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#additional__resources">Additional Resources</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#papers">Papers</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#libraries__and__tools">Libraries and Tools</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#datasets">Datasets</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#exercises">Exercises</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Day 5</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day5/">Advanced Models</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="" href="../summary.md">Summary</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">ML/MD course</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Day 4</li>
+      <li class="breadcrumb-item active">Generative Models</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="day__4__generative__models__for__molecular__design">Day 4: Generative Models for Molecular Design<a class="headerlink" href="#day__4__generative__models__for__molecular__design" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>Generative models have revolutionized computational drug discovery and molecular design by enabling the creation of novel molecular structures with desired properties. This session explores state-of-the-art generative approaches and their application to molecular generation.</p>
+<h2 id="learning__objectives">Learning Objectives<a class="headerlink" href="#learning__objectives" title="Permanent link">&para;</a></h2>
+<p>By the end of this session, you will be able to:
+- Understand the principles behind various generative model architectures
+- Apply VAEs and GANs to molecular generation tasks
+- Implement autoregressive models for sequential molecular design
+- Utilize diffusion models for high-quality molecule generation
+- Integrate reinforcement learning for property optimization
+- Develop conditional generation systems for targeted molecular design
+- Build and train a conditional VAE for molecular generation</p>
+<hr />
+<h2 id="1__vaes__and__gans__for__molecular__generation">1. VAEs and GANs for Molecular Generation<a class="headerlink" href="#1__vaes__and__gans__for__molecular__generation" title="Permanent link">&para;</a></h2>
+<h3 id="variational__autoencoders__vaes">Variational Autoencoders (VAEs)<a class="headerlink" href="#variational__autoencoders__vaes" title="Permanent link">&para;</a></h3>
+<p>Variational Autoencoders learn a continuous latent representation of molecules, enabling smooth interpolation and sampling of chemical space.</p>
+<h4 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h4>
+<p>The VAE consists of two main components:</p>
+<p><strong>Encoder</strong>: Maps molecules to a probabilistic latent space
+- Input: SMILES string or molecular graph
+- Output: Mean (μ) and log-variance (log σ²) of latent distribution
+- Typically uses RNN/GRU/LSTM or Graph Neural Networks</p>
+<p><strong>Decoder</strong>: Reconstructs molecules from latent representations
+- Input: Sampled latent vector z ~ N(μ, σ²)
+- Output: Reconstructed molecular representation
+- Generates SMILES character-by-character or reconstructs graph</p>
+<h4 id="loss__function">Loss Function<a class="headerlink" href="#loss__function" title="Permanent link">&para;</a></h4>
+<p>The VAE optimizes two objectives:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>L_VAE = L_reconstruction + β × L_KL
+</span></code></pre></div>
+<ul>
+<li><strong>Reconstruction Loss</strong>: Ensures accurate molecule reconstruction (e.g., cross-entropy for SMILES)</li>
+<li><strong>KL Divergence</strong>: Regularizes latent space to follow standard normal distribution N(0, I)</li>
+<li><strong>β parameter</strong>: Controls the trade-off between reconstruction quality and latent space regularity</li>
+</ul>
+<h4 id="molecular__representations">Molecular Representations<a class="headerlink" href="#molecular__representations" title="Permanent link">&para;</a></h4>
+<p>Common representations for VAE-based molecular generation:</p>
+<ol>
+<li><strong>SMILES-based</strong>: Character-level sequence modeling</li>
+<li><strong>Graph-based</strong>: Node and edge features with graph autoencoders</li>
+<li><strong>Fingerprint-based</strong>: Fixed-length binary or count vectors</li>
+<li><strong>3D conformations</strong>: Atomic coordinates and features</li>
+</ol>
+<h4 id="advantages">Advantages<a class="headerlink" href="#advantages" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Continuous latent space enables interpolation between molecules</li>
+<li>Sampling generates diverse molecular structures</li>
+<li>Can be trained unsupervised on large molecular databases</li>
+</ul>
+<h4 id="challenges">Challenges<a class="headerlink" href="#challenges" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Reconstruction of valid molecules can be difficult</li>
+<li>Mode collapse in complex chemical spaces</li>
+<li>Balancing reconstruction quality and latent space organization</li>
+</ul>
+<h3 id="generative__adversarial__networks__gans">Generative Adversarial Networks (GANs)<a class="headerlink" href="#generative__adversarial__networks__gans" title="Permanent link">&para;</a></h3>
+<p>GANs consist of two competing neural networks that learn to generate realistic molecular structures.</p>
+<h4 id="architecture_1">Architecture<a class="headerlink" href="#architecture_1" title="Permanent link">&para;</a></h4>
+<p><strong>Generator (G)</strong>: Creates fake molecules from random noise
+- Input: Random noise vector z ~ N(0, I)
+- Output: Generated molecular representation (SMILES, graph, etc.)
+- Learns to fool the discriminator</p>
+<p><strong>Discriminator (D)</strong>: Distinguishes real molecules from generated ones
+- Input: Molecular representation (real or generated)
+- Output: Probability that input is real
+- Learns to identify fake molecules</p>
+<h4 id="training__process">Training Process<a class="headerlink" href="#training__process" title="Permanent link">&para;</a></h4>
+<p>The networks play a minimax game:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>min_G max_D V(D, G) = E[log D(x)] + E[log(1 - D(G(z)))]
+</span></code></pre></div>
+<p>Training alternates between:
+1. Update discriminator to better distinguish real from fake
+2. Update generator to better fool discriminator</p>
+<h4 id="molecular__gans__variants">Molecular GANs Variants<a class="headerlink" href="#molecular__gans__variants" title="Permanent link">&para;</a></h4>
+<p><strong>MolGAN</strong>: Graph-based GAN for molecular generation
+- Generates molecular graphs directly
+- Uses permutation-invariant discriminator
+- Includes reward network for property optimization</p>
+<p><strong>Objective-Reinforced GAN (ORGAN)</strong>: Combines GAN with RL
+- Adds policy gradient for optimizing molecular properties
+- Generator receives rewards for desired properties
+- Balances diversity with property optimization</p>
+<h4 id="advantages_1">Advantages<a class="headerlink" href="#advantages_1" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Can generate highly realistic molecular distributions</li>
+<li>No explicit likelihood computation needed</li>
+<li>Flexible in incorporating domain knowledge</li>
+</ul>
+<h4 id="challenges_1">Challenges<a class="headerlink" href="#challenges_1" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Training instability and mode collapse</li>
+<li>Difficulty ensuring chemical validity</li>
+<li>Requires careful hyperparameter tuning</li>
+</ul>
+<hr />
+<h2 id="2__autoregressive__models__rnns__transformers">2. Autoregressive Models (RNNs, Transformers)<a class="headerlink" href="#2__autoregressive__models__rnns__transformers" title="Permanent link">&para;</a></h2>
+<p>Autoregressive models generate molecules sequentially, one token at a time, based on previously generated tokens.</p>
+<h3 id="recurrent__neural__networks__rnns">Recurrent Neural Networks (RNNs)<a class="headerlink" href="#recurrent__neural__networks__rnns" title="Permanent link">&para;</a></h3>
+<h4 id="architecture_2">Architecture<a class="headerlink" href="#architecture_2" title="Permanent link">&para;</a></h4>
+<p>RNNs process SMILES strings character-by-character:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>h_t = f(h_{t-1}, x_t)
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>p(x_t | x_1, ..., x_{t-1}) = softmax(W_h h_t + b)
+</span></code></pre></div>
+<p><strong>LSTM/GRU variants</strong> address vanishing gradient problems and capture long-range dependencies in molecular structures.</p>
+<h4 id="training">Training<a class="headerlink" href="#training" title="Permanent link">&para;</a></h4>
+<p>Models are trained on large databases of molecules using teacher forcing:
+- Input: SMILES prefixes (e.g., &ldquo;CC(=O)&rdquo;)
+- Target: Next character (e.g., &ldquo;O&rdquo;)
+- Loss: Cross-entropy between predicted and actual next character</p>
+<h4 id="generation">Generation<a class="headerlink" href="#generation" title="Permanent link">&para;</a></h4>
+<p>Sample molecules by iteratively predicting the next character:
+1. Start with begin token
+2. Sample next character from probability distribution
+3. Append to sequence and repeat
+4. Stop at end token or max length</p>
+<h4 id="transfer__learning">Transfer Learning<a class="headerlink" href="#transfer__learning" title="Permanent link">&para;</a></h4>
+<p>Pre-trained RNN language models can be fine-tuned for specific molecular design tasks:
+- Pre-train on large molecular databases (ChEMBL, ZINC)
+- Fine-tune on smaller target datasets with desired properties
+- Enables generation of molecules similar to training distribution</p>
+<h3 id="transformers__for__molecular__generation">Transformers for Molecular Generation<a class="headerlink" href="#transformers__for__molecular__generation" title="Permanent link">&para;</a></h3>
+<p>Transformers leverage self-attention mechanisms for improved sequence modeling.</p>
+<h4 id="architecture_3">Architecture<a class="headerlink" href="#architecture_3" title="Permanent link">&para;</a></h4>
+<p><strong>Self-Attention</strong>: Allows model to attend to all positions simultaneously</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Attention(Q, K, V) = softmax(QK^T / √d_k)V
+</span></code></pre></div>
+<p><strong>Multi-Head Attention</strong>: Parallel attention mechanisms capture different relationships</p>
+<p><strong>Positional Encoding</strong>: Injects sequence order information</p>
+<h4 id="advantages__over__rnns">Advantages Over RNNs<a class="headerlink" href="#advantages__over__rnns" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Parallel processing enables faster training</li>
+<li>Better capture of long-range dependencies</li>
+<li>More effective at learning complex molecular patterns</li>
+</ul>
+<h4 id="molecular__transformer__applications">Molecular Transformer Applications<a class="headerlink" href="#molecular__transformer__applications" title="Permanent link">&para;</a></h4>
+<p><strong>SMILES Generation</strong>: Character-level transformer language models
+- Pre-trained on millions of molecules
+- Fine-tuned for specific chemical spaces</p>
+<p><strong>Reaction Prediction</strong>: Transform reactants to products
+- Trained on reaction datasets (USPTO)
+- Can predict reaction outcomes and suggest synthesis routes</p>
+<p><strong>Molecular Translation</strong>: Convert between representations
+- SMILES to IUPAC names
+- 2D to 3D structure prediction
+- Retrosynthesis planning</p>
+<h4 id="notable__models">Notable Models<a class="headerlink" href="#notable__models" title="Permanent link">&para;</a></h4>
+<p><strong>ChemBERTa</strong>: Transformer pre-trained on SMILES
+- Masked language modeling on molecular data
+- Transfer learning for downstream tasks</p>
+<p><strong>MolGPT</strong>: GPT-based architecture for molecules
+- Autoregressive generation of SMILES
+- Can be conditioned on desired properties</p>
+<hr />
+<h2 id="3__diffusion__models">3. Diffusion Models<a class="headerlink" href="#3__diffusion__models" title="Permanent link">&para;</a></h2>
+<p>Diffusion models represent a recent paradigm shift in generative modeling, achieving state-of-the-art results across multiple domains including molecular generation.</p>
+<h3 id="principles">Principles<a class="headerlink" href="#principles" title="Permanent link">&para;</a></h3>
+<p>Diffusion models learn to reverse a gradual noising process:</p>
+<p><strong>Forward Process</strong>: Progressively add Gaussian noise to data
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>q(x_t | x_{t-1}) = N(x_t; √(1-β_t)x_{t-1}, β_t I)
+</span></code></pre></div></p>
+<p><strong>Reverse Process</strong>: Learn to denoise and recover original data
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>p_θ(x_{t-1} | x_t) = N(x_{t-1}; μ_θ(x_t, t), Σ_θ(x_t, t))
+</span></code></pre></div></p>
+<h3 id="training_1">Training<a class="headerlink" href="#training_1" title="Permanent link">&para;</a></h3>
+<p>Train a neural network to predict the noise at each timestep:
+1. Sample molecule x₀ from dataset
+2. Sample timestep t and noise ε ~ N(0, I)
+3. Create noisy version x_t
+4. Train network to predict ε from x_t and t
+5. Loss: MSE between predicted and actual noise</p>
+<h3 id="generation_1">Generation<a class="headerlink" href="#generation_1" title="Permanent link">&para;</a></h3>
+<p>Generate molecules by iterative denoising:
+1. Start with pure noise x_T ~ N(0, I)
+2. Iteratively denoise: x_{t-1} = denoise(x_t, t)
+3. Final sample x₀ is generated molecule</p>
+<h3 id="molecular__diffusion__models">Molecular Diffusion Models<a class="headerlink" href="#molecular__diffusion__models" title="Permanent link">&para;</a></h3>
+<p><strong>Continuous Representations</strong>: Operate in latent space or coordinate space
+- <strong>E(n) Equivariant Diffusion</strong>: Generates 3D molecular conformations
+- Respects rotational and translational symmetries
+- Directly outputs atomic positions</p>
+<p><strong>Discrete Representations</strong>: Adapt diffusion to categorical data
+- <strong>Discrete Diffusion</strong>: For SMILES or graph generation
+- Multinomial diffusion over molecular tokens
+- Transition matrices for adding/removing atoms and bonds</p>
+<p><strong>Conditional Diffusion</strong>: Guide generation towards desired properties
+- Add property information at each denoising step
+- Classifier guidance or classifier-free guidance
+- Control molecular properties during generation</p>
+<h3 id="advantages_2">Advantages<a class="headerlink" href="#advantages_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>High-quality, diverse samples</li>
+<li>Stable training compared to GANs</li>
+<li>Flexible conditioning mechanisms</li>
+<li>Can generate both 2D and 3D molecular structures</li>
+</ul>
+<h3 id="challenges_2">Challenges<a class="headerlink" href="#challenges_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Slower generation compared to one-shot methods</li>
+<li>Computational cost of iterative sampling</li>
+<li>Ensuring chemical validity in discrete spaces</li>
+</ul>
+<hr />
+<h2 id="4__reinforcement__learning__for__optimization">4. Reinforcement Learning for Optimization<a class="headerlink" href="#4__reinforcement__learning__for__optimization" title="Permanent link">&para;</a></h2>
+<p>Reinforcement learning enables goal-directed molecular generation by optimizing molecules for specific properties.</p>
+<h3 id="framework">Framework<a class="headerlink" href="#framework" title="Permanent link">&para;</a></h3>
+<p>Treat molecular generation as a sequential decision-making problem:</p>
+<p><strong>Agent</strong>: Generative model (policy)
+<strong>Environment</strong>: Chemical space
+<strong>State</strong>: Current partial molecule
+<strong>Action</strong>: Add/modify atom or bond
+<strong>Reward</strong>: Molecular property score (e.g., drug-likeness, binding affinity)</p>
+<h3 id="policy__optimization">Policy Optimization<a class="headerlink" href="#policy__optimization" title="Permanent link">&para;</a></h3>
+<h4 id="reinforce__algorithm">REINFORCE Algorithm<a class="headerlink" href="#reinforce__algorithm" title="Permanent link">&para;</a></h4>
+<p>Update policy to maximize expected reward:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>∇_θ J(θ) = E[∑_t R_t ∇_θ log π_θ(a_t | s_t)]
+</span></code></pre></div>
+<p><strong>Baseline subtraction</strong> reduces variance:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>∇_θ J(θ) = E[∑_t (R_t - b) ∇_θ log π_θ(a_t | s_t)]
+</span></code></pre></div></p>
+<h4 id="proximal__policy__optimization__ppo">Proximal Policy Optimization (PPO)<a class="headerlink" href="#proximal__policy__optimization__ppo" title="Permanent link">&para;</a></h4>
+<p>Constrains policy updates for stable training:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>L(θ) = E[min(r_t(θ)Â_t, clip(r_t(θ), 1-ε, 1+ε)Â_t)]
+</span></code></pre></div></p>
+<p>Where r_t(θ) = π_θ(a_t|s_t) / π_θ_old(a_t|s_t)</p>
+<h3 id="reward__functions">Reward Functions<a class="headerlink" href="#reward__functions" title="Permanent link">&para;</a></h3>
+<p>Design reward functions to capture desired properties:</p>
+<p><strong>Single Objective</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>R = f(molecule)
+</span></code></pre></div>
+where f might be:
+- Binding affinity prediction
+- Synthetic accessibility score
+- QED (quantitative estimate of drug-likeness)
+- LogP (lipophilicity)</p>
+<p><strong>Multi-Objective</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>R = w₁f₁(mol) + w₂f₂(mol) + ... + wₙfₙ(mol)
+</span></code></pre></div></p>
+<p><strong>Reward Shaping</strong>:
+- Penalize invalid molecules
+- Reward intermediate steps
+- Balance exploration and exploitation</p>
+<h3 id="transfer__learning_1">Transfer Learning<a class="headerlink" href="#transfer__learning_1" title="Permanent link">&para;</a></h3>
+<p>Pre-train generative model on molecular databases, then fine-tune with RL:</p>
+<ol>
+<li><strong>Pre-training</strong>: Learn general molecular distribution</li>
+<li><strong>RL Fine-tuning</strong>: Optimize for specific properties</li>
+<li><strong>Constrained Optimization</strong>: Maintain molecular validity while optimizing</li>
+</ol>
+<h3 id="applications">Applications<a class="headerlink" href="#applications" title="Permanent link">&para;</a></h3>
+<p><strong>De Novo Drug Design</strong>: Generate molecules with:
+- High predicted binding affinity to target protein
+- Good ADMET properties
+- Synthetic accessibility</p>
+<p><strong>Lead Optimization</strong>: Modify existing molecules to:
+- Improve potency
+- Reduce toxicity
+- Optimize pharmacokinetics</p>
+<p><strong>Multi-Parameter Optimization (MPO)</strong>: Balance multiple objectives
+- Efficacy vs. safety
+- Potency vs. selectivity
+- Activity vs. synthetic accessibility</p>
+<h3 id="challenges_3">Challenges<a class="headerlink" href="#challenges_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Reward function design and balancing</li>
+<li>Sparse and delayed rewards</li>
+<li>Maintaining molecular diversity</li>
+<li>Mode collapse to few high-reward molecules</li>
+</ul>
+<hr />
+<h2 id="5__conditional__generation">5. Conditional Generation<a class="headerlink" href="#5__conditional__generation" title="Permanent link">&para;</a></h2>
+<p>Conditional generation enables control over generated molecules by incorporating desired properties or constraints into the generation process.</p>
+<h3 id="conditioning__strategies">Conditioning Strategies<a class="headerlink" href="#conditioning__strategies" title="Permanent link">&para;</a></h3>
+<h4 id="explicit__conditioning">Explicit Conditioning<a class="headerlink" href="#explicit__conditioning" title="Permanent link">&para;</a></h4>
+<p>Concatenate property information with latent vector:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>z_cond = [z, c]
+</span></code></pre></div>
+where c represents condition (e.g., property value, class label)</p>
+<h4 id="cross-attention__conditioning">Cross-Attention Conditioning<a class="headerlink" href="#cross-attention__conditioning" title="Permanent link">&para;</a></h4>
+<p>Use attention mechanisms to integrate conditions:
+- Query: Latent molecular representation
+- Key/Value: Condition embeddings
+- Allows flexible, learned integration of conditions</p>
+<h4 id="classifier__guidance">Classifier Guidance<a class="headerlink" href="#classifier__guidance" title="Permanent link">&para;</a></h4>
+<p>Steer generation using property prediction model:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>∇_x log p(x|c) ≈ ∇_x log p(x) + λ∇_x log p(c|x)
+</span></code></pre></div></p>
+<p>Guide generation towards higher predicted property values.</p>
+<h3 id="types__of__conditions">Types of Conditions<a class="headerlink" href="#types__of__conditions" title="Permanent link">&para;</a></h3>
+<p><strong>Scalar Properties</strong>:
+- Molecular weight
+- LogP
+- TPSA (topological polar surface area)
+- QED score</p>
+<p><strong>Categorical Properties</strong>:
+- Compound class (kinase inhibitor, GPCR ligand, etc.)
+- Scaffold type
+- Functional groups present</p>
+<p><strong>Structural Constraints</strong>:
+- Required substructures (pharmacophores)
+- Forbidden substructures (toxic moieties)
+- Scaffold constraints</p>
+<p><strong>Target-Based</strong>:
+- Protein target (e.g., &ldquo;generate EGFR inhibitor&rdquo;)
+- Binding site information
+- Target protein sequence/structure</p>
+<h3 id="conditional__vae__architecture">Conditional VAE Architecture<a class="headerlink" href="#conditional__vae__architecture" title="Permanent link">&para;</a></h3>
+<p>Modify standard VAE to accept conditions:</p>
+<p><strong>Encoder</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>q_φ(z | x, c) = N(μ_φ(x, c), σ_φ(x, c))
+</span></code></pre></div></p>
+<p><strong>Decoder</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>p_θ(x | z, c)
+</span></code></pre></div></p>
+<p><strong>Prior</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>p(z | c) = N(μ_prior(c), σ_prior(c))
+</span></code></pre></div></p>
+<h3 id="multi-conditional__generation">Multi-Conditional Generation<a class="headerlink" href="#multi-conditional__generation" title="Permanent link">&para;</a></h3>
+<p>Generate molecules satisfying multiple constraints simultaneously:
+- Combine multiple property conditions
+- Use hierarchical conditioning
+- Balance competing objectives</p>
+<h3 id="controllable__generation__workflow">Controllable Generation Workflow<a class="headerlink" href="#controllable__generation__workflow" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Train conditional model</strong> on labeled molecular dataset</li>
+<li><strong>Specify desired properties</strong> for new molecule</li>
+<li><strong>Generate candidates</strong> with specified properties</li>
+<li><strong>Validate and filter</strong> generated molecules</li>
+<li><strong>Iterate</strong> by adjusting conditions</li>
+</ol>
+<hr />
+<h2 id="6__practical__building__a__conditional__vae">6. Practical: Building a Conditional VAE<a class="headerlink" href="#6__practical__building__a__conditional__vae" title="Permanent link">&para;</a></h2>
+<p>This practical exercise guides you through implementing a conditional VAE for molecular generation.</p>
+<h3 id="dataset__preparation">Dataset Preparation<a class="headerlink" href="#dataset__preparation" title="Permanent link">&para;</a></h3>
+<p>We&rsquo;ll use a subset of molecules with associated properties:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">rdkit.Chem</span><span class="w"> </span><span class="kn">import</span> <span class="n">Descriptors</span><span class="p">,</span> <span class="n">QED</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">DataLoader</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="c1"># Load molecular data</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">prepare_dataset</span><span class="p">(</span><span class="n">smiles_file</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">120</span><span class="p">):</span>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepare SMILES dataset with properties&quot;&quot;&quot;</span>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">smiles_file</span><span class="p">)</span>
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>
+</span><span id="__span-16-13"><a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>    <span class="c1"># Calculate properties</span>
+</span><span id="__span-16-14"><a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a>    <span class="n">properties</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-16-15"><a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a>    <span class="n">valid_smiles</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-16-16"><a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a>
+</span><span id="__span-16-17"><a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a>    <span class="k">for</span> <span class="n">smiles</span> <span class="ow">in</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;smiles&#39;</span><span class="p">]:</span>
+</span><span id="__span-16-18"><a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a>        <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+</span><span id="__span-16-19"><a id="__codelineno-16-19" name="__codelineno-16-19" href="#__codelineno-16-19"></a>        <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-16-20"><a id="__codelineno-16-20" name="__codelineno-16-20" href="#__codelineno-16-20"></a>            <span class="n">props</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-16-21"><a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a>                <span class="s1">&#39;logp&#39;</span><span class="p">:</span> <span class="n">Descriptors</span><span class="o">.</span><span class="n">MolLogP</span><span class="p">(</span><span class="n">mol</span><span class="p">),</span>
+</span><span id="__span-16-22"><a id="__codelineno-16-22" name="__codelineno-16-22" href="#__codelineno-16-22"></a>                <span class="s1">&#39;mw&#39;</span><span class="p">:</span> <span class="n">Descriptors</span><span class="o">.</span><span class="n">MolWt</span><span class="p">(</span><span class="n">mol</span><span class="p">),</span>
+</span><span id="__span-16-23"><a id="__codelineno-16-23" name="__codelineno-16-23" href="#__codelineno-16-23"></a>                <span class="s1">&#39;qed&#39;</span><span class="p">:</span> <span class="n">QED</span><span class="o">.</span><span class="n">qed</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+</span><span id="__span-16-24"><a id="__codelineno-16-24" name="__codelineno-16-24" href="#__codelineno-16-24"></a>            <span class="p">}</span>
+</span><span id="__span-16-25"><a id="__codelineno-16-25" name="__codelineno-16-25" href="#__codelineno-16-25"></a>            <span class="n">properties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">props</span><span class="p">)</span>
+</span><span id="__span-16-26"><a id="__codelineno-16-26" name="__codelineno-16-26" href="#__codelineno-16-26"></a>            <span class="n">valid_smiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+</span><span id="__span-16-27"><a id="__codelineno-16-27" name="__codelineno-16-27" href="#__codelineno-16-27"></a>
+</span><span id="__span-16-28"><a id="__codelineno-16-28" name="__codelineno-16-28" href="#__codelineno-16-28"></a>    <span class="c1"># Normalize properties</span>
+</span><span id="__span-16-29"><a id="__codelineno-16-29" name="__codelineno-16-29" href="#__codelineno-16-29"></a>    <span class="n">props_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">properties</span><span class="p">)</span>
+</span><span id="__span-16-30"><a id="__codelineno-16-30" name="__codelineno-16-30" href="#__codelineno-16-30"></a>    <span class="n">props_normalized</span> <span class="o">=</span> <span class="p">(</span><span class="n">props_df</span> <span class="o">-</span> <span class="n">props_df</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">/</span> <span class="n">props_df</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+</span><span id="__span-16-31"><a id="__codelineno-16-31" name="__codelineno-16-31" href="#__codelineno-16-31"></a>
+</span><span id="__span-16-32"><a id="__codelineno-16-32" name="__codelineno-16-32" href="#__codelineno-16-32"></a>    <span class="k">return</span> <span class="n">valid_smiles</span><span class="p">,</span> <span class="n">props_normalized</span>
+</span><span id="__span-16-33"><a id="__codelineno-16-33" name="__codelineno-16-33" href="#__codelineno-16-33"></a>
+</span><span id="__span-16-34"><a id="__codelineno-16-34" name="__codelineno-16-34" href="#__codelineno-16-34"></a><span class="c1"># Create vocabulary</span>
+</span><span id="__span-16-35"><a id="__codelineno-16-35" name="__codelineno-16-35" href="#__codelineno-16-35"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_vocabulary</span><span class="p">(</span><span class="n">smiles_list</span><span class="p">):</span>
+</span><span id="__span-16-36"><a id="__codelineno-16-36" name="__codelineno-16-36" href="#__codelineno-16-36"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create character vocabulary from SMILES&quot;&quot;&quot;</span>
+</span><span id="__span-16-37"><a id="__codelineno-16-37" name="__codelineno-16-37" href="#__codelineno-16-37"></a>    <span class="n">chars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+</span><span id="__span-16-38"><a id="__codelineno-16-38" name="__codelineno-16-38" href="#__codelineno-16-38"></a>    <span class="k">for</span> <span class="n">smiles</span> <span class="ow">in</span> <span class="n">smiles_list</span><span class="p">:</span>
+</span><span id="__span-16-39"><a id="__codelineno-16-39" name="__codelineno-16-39" href="#__codelineno-16-39"></a>        <span class="n">chars</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+</span><span id="__span-16-40"><a id="__codelineno-16-40" name="__codelineno-16-40" href="#__codelineno-16-40"></a>
+</span><span id="__span-16-41"><a id="__codelineno-16-41" name="__codelineno-16-41" href="#__codelineno-16-41"></a>    <span class="n">chars</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">chars</span><span class="p">))</span>
+</span><span id="__span-16-42"><a id="__codelineno-16-42" name="__codelineno-16-42" href="#__codelineno-16-42"></a>    <span class="n">char_to_idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chars</span><span class="p">)}</span>
+</span><span id="__span-16-43"><a id="__codelineno-16-43" name="__codelineno-16-43" href="#__codelineno-16-43"></a>    <span class="n">char_to_idx</span><span class="p">[</span><span class="s1">&#39;&lt;PAD&gt;&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-16-44"><a id="__codelineno-16-44" name="__codelineno-16-44" href="#__codelineno-16-44"></a>    <span class="n">char_to_idx</span><span class="p">[</span><span class="s1">&#39;&lt;START&gt;&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">char_to_idx</span><span class="p">)</span>
+</span><span id="__span-16-45"><a id="__codelineno-16-45" name="__codelineno-16-45" href="#__codelineno-16-45"></a>    <span class="n">char_to_idx</span><span class="p">[</span><span class="s1">&#39;&lt;END&gt;&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">char_to_idx</span><span class="p">)</span>
+</span><span id="__span-16-46"><a id="__codelineno-16-46" name="__codelineno-16-46" href="#__codelineno-16-46"></a>
+</span><span id="__span-16-47"><a id="__codelineno-16-47" name="__codelineno-16-47" href="#__codelineno-16-47"></a>    <span class="n">idx_to_char</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">char_to_idx</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span><span id="__span-16-48"><a id="__codelineno-16-48" name="__codelineno-16-48" href="#__codelineno-16-48"></a>
+</span><span id="__span-16-49"><a id="__codelineno-16-49" name="__codelineno-16-49" href="#__codelineno-16-49"></a>    <span class="k">return</span> <span class="n">char_to_idx</span><span class="p">,</span> <span class="n">idx_to_char</span>
+</span><span id="__span-16-50"><a id="__codelineno-16-50" name="__codelineno-16-50" href="#__codelineno-16-50"></a>
+</span><span id="__span-16-51"><a id="__codelineno-16-51" name="__codelineno-16-51" href="#__codelineno-16-51"></a><span class="k">class</span><span class="w"> </span><span class="nc">MolecularDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+</span><span id="__span-16-52"><a id="__codelineno-16-52" name="__codelineno-16-52" href="#__codelineno-16-52"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;PyTorch dataset for molecular SMILES&quot;&quot;&quot;</span>
+</span><span id="__span-16-53"><a id="__codelineno-16-53" name="__codelineno-16-53" href="#__codelineno-16-53"></a>
+</span><span id="__span-16-54"><a id="__codelineno-16-54" name="__codelineno-16-54" href="#__codelineno-16-54"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smiles_list</span><span class="p">,</span> <span class="n">properties</span><span class="p">,</span> <span class="n">char_to_idx</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">120</span><span class="p">):</span>
+</span><span id="__span-16-55"><a id="__codelineno-16-55" name="__codelineno-16-55" href="#__codelineno-16-55"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">smiles_list</span> <span class="o">=</span> <span class="n">smiles_list</span>
+</span><span id="__span-16-56"><a id="__codelineno-16-56" name="__codelineno-16-56" href="#__codelineno-16-56"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="n">properties</span>
+</span><span id="__span-16-57"><a id="__codelineno-16-57" name="__codelineno-16-57" href="#__codelineno-16-57"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">char_to_idx</span> <span class="o">=</span> <span class="n">char_to_idx</span>
+</span><span id="__span-16-58"><a id="__codelineno-16-58" name="__codelineno-16-58" href="#__codelineno-16-58"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span> <span class="o">=</span> <span class="n">max_length</span>
+</span><span id="__span-16-59"><a id="__codelineno-16-59" name="__codelineno-16-59" href="#__codelineno-16-59"></a>
+</span><span id="__span-16-60"><a id="__codelineno-16-60" name="__codelineno-16-60" href="#__codelineno-16-60"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-16-61"><a id="__codelineno-16-61" name="__codelineno-16-61" href="#__codelineno-16-61"></a>        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">smiles_list</span><span class="p">)</span>
+</span><span id="__span-16-62"><a id="__codelineno-16-62" name="__codelineno-16-62" href="#__codelineno-16-62"></a>
+</span><span id="__span-16-63"><a id="__codelineno-16-63" name="__codelineno-16-63" href="#__codelineno-16-63"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+</span><span id="__span-16-64"><a id="__codelineno-16-64" name="__codelineno-16-64" href="#__codelineno-16-64"></a>        <span class="n">smiles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">smiles_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+</span><span id="__span-16-65"><a id="__codelineno-16-65" name="__codelineno-16-65" href="#__codelineno-16-65"></a>        <span class="n">props</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+</span><span id="__span-16-66"><a id="__codelineno-16-66" name="__codelineno-16-66" href="#__codelineno-16-66"></a>
+</span><span id="__span-16-67"><a id="__codelineno-16-67" name="__codelineno-16-67" href="#__codelineno-16-67"></a>        <span class="c1"># Encode SMILES</span>
+</span><span id="__span-16-68"><a id="__codelineno-16-68" name="__codelineno-16-68" href="#__codelineno-16-68"></a>        <span class="n">encoded</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">char_to_idx</span><span class="p">[</span><span class="s1">&#39;&lt;START&gt;&#39;</span><span class="p">]]</span>
+</span><span id="__span-16-69"><a id="__codelineno-16-69" name="__codelineno-16-69" href="#__codelineno-16-69"></a>        <span class="n">encoded</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">char_to_idx</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">smiles</span><span class="p">]</span>
+</span><span id="__span-16-70"><a id="__codelineno-16-70" name="__codelineno-16-70" href="#__codelineno-16-70"></a>        <span class="n">encoded</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">char_to_idx</span><span class="p">[</span><span class="s1">&#39;&lt;END&gt;&#39;</span><span class="p">]]</span>
+</span><span id="__span-16-71"><a id="__codelineno-16-71" name="__codelineno-16-71" href="#__codelineno-16-71"></a>
+</span><span id="__span-16-72"><a id="__codelineno-16-72" name="__codelineno-16-72" href="#__codelineno-16-72"></a>        <span class="c1"># Pad sequence</span>
+</span><span id="__span-16-73"><a id="__codelineno-16-73" name="__codelineno-16-73" href="#__codelineno-16-73"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="p">:</span>
+</span><span id="__span-16-74"><a id="__codelineno-16-74" name="__codelineno-16-74" href="#__codelineno-16-74"></a>            <span class="n">encoded</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">char_to_idx</span><span class="p">[</span><span class="s1">&#39;&lt;PAD&gt;&#39;</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_length</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">encoded</span><span class="p">))</span>
+</span><span id="__span-16-75"><a id="__codelineno-16-75" name="__codelineno-16-75" href="#__codelineno-16-75"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-16-76"><a id="__codelineno-16-76" name="__codelineno-16-76" href="#__codelineno-16-76"></a>            <span class="n">encoded</span> <span class="o">=</span> <span class="n">encoded</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="p">]</span>
+</span><span id="__span-16-77"><a id="__codelineno-16-77" name="__codelineno-16-77" href="#__codelineno-16-77"></a>
+</span><span id="__span-16-78"><a id="__codelineno-16-78" name="__codelineno-16-78" href="#__codelineno-16-78"></a>        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">props</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="model__architecture">Model Architecture<a class="headerlink" href="#model__architecture" title="Permanent link">&para;</a></h3>
+<p>Implement the conditional VAE components:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">ConditionalEncoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Encoder: SMILES + properties -&gt; latent distribution&quot;&quot;&quot;</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">,</span> <span class="n">num_properties</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">embed_dim</span> <span class="o">+</span> <span class="n">num_properties</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> 
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>                           <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>
+</span><span id="__span-17-14"><a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>        <span class="c1"># Latent parameters</span>
+</span><span id="__span-17-15"><a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">fc_mu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">)</span>
+</span><span id="__span-17-16"><a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">fc_logvar</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">)</span>
+</span><span id="__span-17-17"><a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a>
+</span><span id="__span-17-18"><a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">properties</span><span class="p">):</span>
+</span><span id="__span-17-19"><a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a>        <span class="c1"># Embed SMILES</span>
+</span><span id="__span-17-20"><a id="__codelineno-17-20" name="__codelineno-17-20" href="#__codelineno-17-20"></a>        <span class="n">embedded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># [batch, seq_len, embed_dim]</span>
+</span><span id="__span-17-21"><a id="__codelineno-17-21" name="__codelineno-17-21" href="#__codelineno-17-21"></a>
+</span><span id="__span-17-22"><a id="__codelineno-17-22" name="__codelineno-17-22" href="#__codelineno-17-22"></a>        <span class="c1"># Concatenate properties to each timestep</span>
+</span><span id="__span-17-23"><a id="__codelineno-17-23" name="__codelineno-17-23" href="#__codelineno-17-23"></a>        <span class="n">batch_size</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+</span><span id="__span-17-24"><a id="__codelineno-17-24" name="__codelineno-17-24" href="#__codelineno-17-24"></a>        <span class="n">props_expanded</span> <span class="o">=</span> <span class="n">properties</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-17-25"><a id="__codelineno-17-25" name="__codelineno-17-25" href="#__codelineno-17-25"></a>        <span class="n">lstm_input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">embedded</span><span class="p">,</span> <span class="n">props_expanded</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-17-26"><a id="__codelineno-17-26" name="__codelineno-17-26" href="#__codelineno-17-26"></a>
+</span><span id="__span-17-27"><a id="__codelineno-17-27" name="__codelineno-17-27" href="#__codelineno-17-27"></a>        <span class="c1"># LSTM encoding</span>
+</span><span id="__span-17-28"><a id="__codelineno-17-28" name="__codelineno-17-28" href="#__codelineno-17-28"></a>        <span class="n">_</span><span class="p">,</span> <span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">(</span><span class="n">lstm_input</span><span class="p">)</span>
+</span><span id="__span-17-29"><a id="__codelineno-17-29" name="__codelineno-17-29" href="#__codelineno-17-29"></a>
+</span><span id="__span-17-30"><a id="__codelineno-17-30" name="__codelineno-17-30" href="#__codelineno-17-30"></a>        <span class="c1"># Combine forward and backward hidden states</span>
+</span><span id="__span-17-31"><a id="__codelineno-17-31" name="__codelineno-17-31" href="#__codelineno-17-31"></a>        <span class="n">hidden</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">hidden</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">hidden</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-17-32"><a id="__codelineno-17-32" name="__codelineno-17-32" href="#__codelineno-17-32"></a>
+</span><span id="__span-17-33"><a id="__codelineno-17-33" name="__codelineno-17-33" href="#__codelineno-17-33"></a>        <span class="c1"># Latent distribution parameters</span>
+</span><span id="__span-17-34"><a id="__codelineno-17-34" name="__codelineno-17-34" href="#__codelineno-17-34"></a>        <span class="n">mu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_mu</span><span class="p">(</span><span class="n">hidden</span><span class="p">)</span>
+</span><span id="__span-17-35"><a id="__codelineno-17-35" name="__codelineno-17-35" href="#__codelineno-17-35"></a>        <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_logvar</span><span class="p">(</span><span class="n">hidden</span><span class="p">)</span>
+</span><span id="__span-17-36"><a id="__codelineno-17-36" name="__codelineno-17-36" href="#__codelineno-17-36"></a>
+</span><span id="__span-17-37"><a id="__codelineno-17-37" name="__codelineno-17-37" href="#__codelineno-17-37"></a>        <span class="k">return</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span>
+</span><span id="__span-17-38"><a id="__codelineno-17-38" name="__codelineno-17-38" href="#__codelineno-17-38"></a>
+</span><span id="__span-17-39"><a id="__codelineno-17-39" name="__codelineno-17-39" href="#__codelineno-17-39"></a><span class="k">class</span><span class="w"> </span><span class="nc">ConditionalDecoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span><span id="__span-17-40"><a id="__codelineno-17-40" name="__codelineno-17-40" href="#__codelineno-17-40"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decoder: latent + properties -&gt; SMILES&quot;&quot;&quot;</span>
+</span><span id="__span-17-41"><a id="__codelineno-17-41" name="__codelineno-17-41" href="#__codelineno-17-41"></a>
+</span><span id="__span-17-42"><a id="__codelineno-17-42" name="__codelineno-17-42" href="#__codelineno-17-42"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">,</span> <span class="n">num_properties</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+</span><span id="__span-17-43"><a id="__codelineno-17-43" name="__codelineno-17-43" href="#__codelineno-17-43"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span><span id="__span-17-44"><a id="__codelineno-17-44" name="__codelineno-17-44" href="#__codelineno-17-44"></a>
+</span><span id="__span-17-45"><a id="__codelineno-17-45" name="__codelineno-17-45" href="#__codelineno-17-45"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-17-46"><a id="__codelineno-17-46" name="__codelineno-17-46" href="#__codelineno-17-46"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">embed_dim</span> <span class="o">+</span> <span class="n">num_properties</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> 
+</span><span id="__span-17-47"><a id="__codelineno-17-47" name="__codelineno-17-47" href="#__codelineno-17-47"></a>                           <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-17-48"><a id="__codelineno-17-48" name="__codelineno-17-48" href="#__codelineno-17-48"></a>
+</span><span id="__span-17-49"><a id="__codelineno-17-49" name="__codelineno-17-49" href="#__codelineno-17-49"></a>        <span class="c1"># Project latent to initial hidden state</span>
+</span><span id="__span-17-50"><a id="__codelineno-17-50" name="__codelineno-17-50" href="#__codelineno-17-50"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">latent_to_hidden</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">latent_dim</span> <span class="o">+</span> <span class="n">num_properties</span><span class="p">,</span> <span class="n">hidden_dim</span> <span class="o">*</span> <span class="n">num_layers</span><span class="p">)</span>
+</span><span id="__span-17-51"><a id="__codelineno-17-51" name="__codelineno-17-51" href="#__codelineno-17-51"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">latent_to_cell</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">latent_dim</span> <span class="o">+</span> <span class="n">num_properties</span><span class="p">,</span> <span class="n">hidden_dim</span> <span class="o">*</span> <span class="n">num_layers</span><span class="p">)</span>
+</span><span id="__span-17-52"><a id="__codelineno-17-52" name="__codelineno-17-52" href="#__codelineno-17-52"></a>
+</span><span id="__span-17-53"><a id="__codelineno-17-53" name="__codelineno-17-53" href="#__codelineno-17-53"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
+</span><span id="__span-17-54"><a id="__codelineno-17-54" name="__codelineno-17-54" href="#__codelineno-17-54"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">=</span> <span class="n">num_layers</span>
+</span><span id="__span-17-55"><a id="__codelineno-17-55" name="__codelineno-17-55" href="#__codelineno-17-55"></a>
+</span><span id="__span-17-56"><a id="__codelineno-17-56" name="__codelineno-17-56" href="#__codelineno-17-56"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">properties</span><span class="p">,</span> <span class="n">target_seq</span><span class="p">):</span>
+</span><span id="__span-17-57"><a id="__codelineno-17-57" name="__codelineno-17-57" href="#__codelineno-17-57"></a>        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-17-58"><a id="__codelineno-17-58" name="__codelineno-17-58" href="#__codelineno-17-58"></a>
+</span><span id="__span-17-59"><a id="__codelineno-17-59" name="__codelineno-17-59" href="#__codelineno-17-59"></a>        <span class="c1"># Combine latent and properties</span>
+</span><span id="__span-17-60"><a id="__codelineno-17-60" name="__codelineno-17-60" href="#__codelineno-17-60"></a>        <span class="n">z_cond</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">z</span><span class="p">,</span> <span class="n">properties</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-17-61"><a id="__codelineno-17-61" name="__codelineno-17-61" href="#__codelineno-17-61"></a>
+</span><span id="__span-17-62"><a id="__codelineno-17-62" name="__codelineno-17-62" href="#__codelineno-17-62"></a>        <span class="c1"># Initialize hidden and cell states</span>
+</span><span id="__span-17-63"><a id="__codelineno-17-63" name="__codelineno-17-63" href="#__codelineno-17-63"></a>        <span class="n">h0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_to_hidden</span><span class="p">(</span><span class="n">z_cond</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+</span><span id="__span-17-64"><a id="__codelineno-17-64" name="__codelineno-17-64" href="#__codelineno-17-64"></a>        <span class="n">c0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_to_cell</span><span class="p">(</span><span class="n">z_cond</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+</span><span id="__span-17-65"><a id="__codelineno-17-65" name="__codelineno-17-65" href="#__codelineno-17-65"></a>
+</span><span id="__span-17-66"><a id="__codelineno-17-66" name="__codelineno-17-66" href="#__codelineno-17-66"></a>        <span class="c1"># Embed target sequence</span>
+</span><span id="__span-17-67"><a id="__codelineno-17-67" name="__codelineno-17-67" href="#__codelineno-17-67"></a>        <span class="n">embedded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">target_seq</span><span class="p">)</span>
+</span><span id="__span-17-68"><a id="__codelineno-17-68" name="__codelineno-17-68" href="#__codelineno-17-68"></a>
+</span><span id="__span-17-69"><a id="__codelineno-17-69" name="__codelineno-17-69" href="#__codelineno-17-69"></a>        <span class="c1"># Add properties to each timestep</span>
+</span><span id="__span-17-70"><a id="__codelineno-17-70" name="__codelineno-17-70" href="#__codelineno-17-70"></a>        <span class="n">seq_len</span> <span class="o">=</span> <span class="n">target_seq</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-17-71"><a id="__codelineno-17-71" name="__codelineno-17-71" href="#__codelineno-17-71"></a>        <span class="n">props_expanded</span> <span class="o">=</span> <span class="n">properties</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-17-72"><a id="__codelineno-17-72" name="__codelineno-17-72" href="#__codelineno-17-72"></a>        <span class="n">lstm_input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">embedded</span><span class="p">,</span> <span class="n">props_expanded</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-17-73"><a id="__codelineno-17-73" name="__codelineno-17-73" href="#__codelineno-17-73"></a>
+</span><span id="__span-17-74"><a id="__codelineno-17-74" name="__codelineno-17-74" href="#__codelineno-17-74"></a>        <span class="c1"># LSTM decoding</span>
+</span><span id="__span-17-75"><a id="__codelineno-17-75" name="__codelineno-17-75" href="#__codelineno-17-75"></a>        <span class="n">output</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">(</span><span class="n">lstm_input</span><span class="p">,</span> <span class="p">(</span><span class="n">h0</span><span class="p">,</span> <span class="n">c0</span><span class="p">))</span>
+</span><span id="__span-17-76"><a id="__codelineno-17-76" name="__codelineno-17-76" href="#__codelineno-17-76"></a>
+</span><span id="__span-17-77"><a id="__codelineno-17-77" name="__codelineno-17-77" href="#__codelineno-17-77"></a>        <span class="c1"># Project to vocabulary</span>
+</span><span id="__span-17-78"><a id="__codelineno-17-78" name="__codelineno-17-78" href="#__codelineno-17-78"></a>        <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+</span><span id="__span-17-79"><a id="__codelineno-17-79" name="__codelineno-17-79" href="#__codelineno-17-79"></a>
+</span><span id="__span-17-80"><a id="__codelineno-17-80" name="__codelineno-17-80" href="#__codelineno-17-80"></a>        <span class="k">return</span> <span class="n">logits</span>
+</span><span id="__span-17-81"><a id="__codelineno-17-81" name="__codelineno-17-81" href="#__codelineno-17-81"></a>
+</span><span id="__span-17-82"><a id="__codelineno-17-82" name="__codelineno-17-82" href="#__codelineno-17-82"></a><span class="k">class</span><span class="w"> </span><span class="nc">ConditionalVAE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span><span id="__span-17-83"><a id="__codelineno-17-83" name="__codelineno-17-83" href="#__codelineno-17-83"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Complete Conditional VAE for molecular generation&quot;&quot;&quot;</span>
+</span><span id="__span-17-84"><a id="__codelineno-17-84" name="__codelineno-17-84" href="#__codelineno-17-84"></a>
+</span><span id="__span-17-85"><a id="__codelineno-17-85" name="__codelineno-17-85" href="#__codelineno-17-85"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> 
+</span><span id="__span-17-86"><a id="__codelineno-17-86" name="__codelineno-17-86" href="#__codelineno-17-86"></a>                 <span class="n">latent_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">num_properties</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+</span><span id="__span-17-87"><a id="__codelineno-17-87" name="__codelineno-17-87" href="#__codelineno-17-87"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span><span id="__span-17-88"><a id="__codelineno-17-88" name="__codelineno-17-88" href="#__codelineno-17-88"></a>
+</span><span id="__span-17-89"><a id="__codelineno-17-89" name="__codelineno-17-89" href="#__codelineno-17-89"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">ConditionalEncoder</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> 
+</span><span id="__span-17-90"><a id="__codelineno-17-90" name="__codelineno-17-90" href="#__codelineno-17-90"></a>                                          <span class="n">latent_dim</span><span class="p">,</span> <span class="n">num_properties</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">)</span>
+</span><span id="__span-17-91"><a id="__codelineno-17-91" name="__codelineno-17-91" href="#__codelineno-17-91"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">ConditionalDecoder</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> 
+</span><span id="__span-17-92"><a id="__codelineno-17-92" name="__codelineno-17-92" href="#__codelineno-17-92"></a>                                          <span class="n">latent_dim</span><span class="p">,</span> <span class="n">num_properties</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">)</span>
+</span><span id="__span-17-93"><a id="__codelineno-17-93" name="__codelineno-17-93" href="#__codelineno-17-93"></a>
+</span><span id="__span-17-94"><a id="__codelineno-17-94" name="__codelineno-17-94" href="#__codelineno-17-94"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">latent_dim</span> <span class="o">=</span> <span class="n">latent_dim</span>
+</span><span id="__span-17-95"><a id="__codelineno-17-95" name="__codelineno-17-95" href="#__codelineno-17-95"></a>
+</span><span id="__span-17-96"><a id="__codelineno-17-96" name="__codelineno-17-96" href="#__codelineno-17-96"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reparameterize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
+</span><span id="__span-17-97"><a id="__codelineno-17-97" name="__codelineno-17-97" href="#__codelineno-17-97"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Reparameterization trick&quot;&quot;&quot;</span>
+</span><span id="__span-17-98"><a id="__codelineno-17-98" name="__codelineno-17-98" href="#__codelineno-17-98"></a>        <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>
+</span><span id="__span-17-99"><a id="__codelineno-17-99" name="__codelineno-17-99" href="#__codelineno-17-99"></a>        <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
+</span><span id="__span-17-100"><a id="__codelineno-17-100" name="__codelineno-17-100" href="#__codelineno-17-100"></a>        <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">eps</span> <span class="o">*</span> <span class="n">std</span>
+</span><span id="__span-17-101"><a id="__codelineno-17-101" name="__codelineno-17-101" href="#__codelineno-17-101"></a>
+</span><span id="__span-17-102"><a id="__codelineno-17-102" name="__codelineno-17-102" href="#__codelineno-17-102"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">properties</span><span class="p">):</span>
+</span><span id="__span-17-103"><a id="__codelineno-17-103" name="__codelineno-17-103" href="#__codelineno-17-103"></a>        <span class="c1"># Encode</span>
+</span><span id="__span-17-104"><a id="__codelineno-17-104" name="__codelineno-17-104" href="#__codelineno-17-104"></a>        <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">properties</span><span class="p">)</span>
+</span><span id="__span-17-105"><a id="__codelineno-17-105" name="__codelineno-17-105" href="#__codelineno-17-105"></a>
+</span><span id="__span-17-106"><a id="__codelineno-17-106" name="__codelineno-17-106" href="#__codelineno-17-106"></a>        <span class="c1"># Reparameterize</span>
+</span><span id="__span-17-107"><a id="__codelineno-17-107" name="__codelineno-17-107" href="#__codelineno-17-107"></a>        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span>
+</span><span id="__span-17-108"><a id="__codelineno-17-108" name="__codelineno-17-108" href="#__codelineno-17-108"></a>
+</span><span id="__span-17-109"><a id="__codelineno-17-109" name="__codelineno-17-109" href="#__codelineno-17-109"></a>        <span class="c1"># Decode (teacher forcing)</span>
+</span><span id="__span-17-110"><a id="__codelineno-17-110" name="__codelineno-17-110" href="#__codelineno-17-110"></a>        <span class="c1"># Input: all tokens except last, Target: all tokens except first</span>
+</span><span id="__span-17-111"><a id="__codelineno-17-111" name="__codelineno-17-111" href="#__codelineno-17-111"></a>        <span class="n">decoder_input</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span><span id="__span-17-112"><a id="__codelineno-17-112" name="__codelineno-17-112" href="#__codelineno-17-112"></a>        <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">properties</span><span class="p">,</span> <span class="n">decoder_input</span><span class="p">)</span>
+</span><span id="__span-17-113"><a id="__codelineno-17-113" name="__codelineno-17-113" href="#__codelineno-17-113"></a>
+</span><span id="__span-17-114"><a id="__codelineno-17-114" name="__codelineno-17-114" href="#__codelineno-17-114"></a>        <span class="k">return</span> <span class="n">logits</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span>
+</span><span id="__span-17-115"><a id="__codelineno-17-115" name="__codelineno-17-115" href="#__codelineno-17-115"></a>
+</span><span id="__span-17-116"><a id="__codelineno-17-116" name="__codelineno-17-116" href="#__codelineno-17-116"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">properties</span><span class="p">,</span> <span class="n">char_to_idx</span><span class="p">,</span> <span class="n">idx_to_char</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+</span><span id="__span-17-117"><a id="__codelineno-17-117" name="__codelineno-17-117" href="#__codelineno-17-117"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate SMILES from properties&quot;&quot;&quot;</span>
+</span><span id="__span-17-118"><a id="__codelineno-17-118" name="__codelineno-17-118" href="#__codelineno-17-118"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span><span id="__span-17-119"><a id="__codelineno-17-119" name="__codelineno-17-119" href="#__codelineno-17-119"></a>        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span><span id="__span-17-120"><a id="__codelineno-17-120" name="__codelineno-17-120" href="#__codelineno-17-120"></a>            <span class="n">batch_size</span> <span class="o">=</span> <span class="n">properties</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-17-121"><a id="__codelineno-17-121" name="__codelineno-17-121" href="#__codelineno-17-121"></a>
+</span><span id="__span-17-122"><a id="__codelineno-17-122" name="__codelineno-17-122" href="#__codelineno-17-122"></a>            <span class="c1"># Sample from prior</span>
+</span><span id="__span-17-123"><a id="__codelineno-17-123" name="__codelineno-17-123" href="#__codelineno-17-123"></a>            <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">properties</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span><span id="__span-17-124"><a id="__codelineno-17-124" name="__codelineno-17-124" href="#__codelineno-17-124"></a>
+</span><span id="__span-17-125"><a id="__codelineno-17-125" name="__codelineno-17-125" href="#__codelineno-17-125"></a>            <span class="c1"># Start with &lt;START&gt; token</span>
+</span><span id="__span-17-126"><a id="__codelineno-17-126" name="__codelineno-17-126" href="#__codelineno-17-126"></a>            <span class="n">generated</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">char_to_idx</span><span class="p">[</span><span class="s1">&#39;&lt;START&gt;&#39;</span><span class="p">]]]</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">properties</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span><span id="__span-17-127"><a id="__codelineno-17-127" name="__codelineno-17-127" href="#__codelineno-17-127"></a>
+</span><span id="__span-17-128"><a id="__codelineno-17-128" name="__codelineno-17-128" href="#__codelineno-17-128"></a>            <span class="c1"># Generate sequence</span>
+</span><span id="__span-17-129"><a id="__codelineno-17-129" name="__codelineno-17-129" href="#__codelineno-17-129"></a>            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+</span><span id="__span-17-130"><a id="__codelineno-17-130" name="__codelineno-17-130" href="#__codelineno-17-130"></a>                <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">properties</span><span class="p">,</span> <span class="n">generated</span><span class="p">)</span>
+</span><span id="__span-17-131"><a id="__codelineno-17-131" name="__codelineno-17-131" href="#__codelineno-17-131"></a>
+</span><span id="__span-17-132"><a id="__codelineno-17-132" name="__codelineno-17-132" href="#__codelineno-17-132"></a>                <span class="c1"># Get last token logits</span>
+</span><span id="__span-17-133"><a id="__codelineno-17-133" name="__codelineno-17-133" href="#__codelineno-17-133"></a>                <span class="n">next_token_logits</span> <span class="o">=</span> <span class="n">logits</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="n">temperature</span>
+</span><span id="__span-17-134"><a id="__codelineno-17-134" name="__codelineno-17-134" href="#__codelineno-17-134"></a>                <span class="n">probs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">next_token_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-17-135"><a id="__codelineno-17-135" name="__codelineno-17-135" href="#__codelineno-17-135"></a>
+</span><span id="__span-17-136"><a id="__codelineno-17-136" name="__codelineno-17-136" href="#__codelineno-17-136"></a>                <span class="c1"># Sample next token</span>
+</span><span id="__span-17-137"><a id="__codelineno-17-137" name="__codelineno-17-137" href="#__codelineno-17-137"></a>                <span class="n">next_token</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-17-138"><a id="__codelineno-17-138" name="__codelineno-17-138" href="#__codelineno-17-138"></a>
+</span><span id="__span-17-139"><a id="__codelineno-17-139" name="__codelineno-17-139" href="#__codelineno-17-139"></a>                <span class="c1"># Append to sequence</span>
+</span><span id="__span-17-140"><a id="__codelineno-17-140" name="__codelineno-17-140" href="#__codelineno-17-140"></a>                <span class="n">generated</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">generated</span><span class="p">,</span> <span class="n">next_token</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-17-141"><a id="__codelineno-17-141" name="__codelineno-17-141" href="#__codelineno-17-141"></a>
+</span><span id="__span-17-142"><a id="__codelineno-17-142" name="__codelineno-17-142" href="#__codelineno-17-142"></a>                <span class="c1"># Stop if all sequences generated &lt;END&gt;</span>
+</span><span id="__span-17-143"><a id="__codelineno-17-143" name="__codelineno-17-143" href="#__codelineno-17-143"></a>                <span class="k">if</span> <span class="p">(</span><span class="n">next_token</span> <span class="o">==</span> <span class="n">char_to_idx</span><span class="p">[</span><span class="s1">&#39;&lt;END&gt;&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+</span><span id="__span-17-144"><a id="__codelineno-17-144" name="__codelineno-17-144" href="#__codelineno-17-144"></a>                    <span class="k">break</span>
+</span><span id="__span-17-145"><a id="__codelineno-17-145" name="__codelineno-17-145" href="#__codelineno-17-145"></a>
+</span><span id="__span-17-146"><a id="__codelineno-17-146" name="__codelineno-17-146" href="#__codelineno-17-146"></a>            <span class="c1"># Convert to SMILES</span>
+</span><span id="__span-17-147"><a id="__codelineno-17-147" name="__codelineno-17-147" href="#__codelineno-17-147"></a>            <span class="n">smiles_list</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-17-148"><a id="__codelineno-17-148" name="__codelineno-17-148" href="#__codelineno-17-148"></a>            <span class="k">for</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">generated</span><span class="p">:</span>
+</span><span id="__span-17-149"><a id="__codelineno-17-149" name="__codelineno-17-149" href="#__codelineno-17-149"></a>                <span class="n">chars</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx_to_char</span><span class="p">[</span><span class="n">idx</span><span class="o">.</span><span class="n">item</span><span class="p">()]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">]</span>
+</span><span id="__span-17-150"><a id="__codelineno-17-150" name="__codelineno-17-150" href="#__codelineno-17-150"></a>                <span class="c1"># Stop at &lt;END&gt; token</span>
+</span><span id="__span-17-151"><a id="__codelineno-17-151" name="__codelineno-17-151" href="#__codelineno-17-151"></a>                <span class="k">if</span> <span class="s1">&#39;&lt;END&gt;&#39;</span> <span class="ow">in</span> <span class="n">chars</span><span class="p">:</span>
+</span><span id="__span-17-152"><a id="__codelineno-17-152" name="__codelineno-17-152" href="#__codelineno-17-152"></a>                    <span class="n">chars</span> <span class="o">=</span> <span class="n">chars</span><span class="p">[:</span><span class="n">chars</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;&lt;END&gt;&#39;</span><span class="p">)]</span>
+</span><span id="__span-17-153"><a id="__codelineno-17-153" name="__codelineno-17-153" href="#__codelineno-17-153"></a>                <span class="n">smiles</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chars</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;&lt;START&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;PAD&gt;&#39;</span><span class="p">]])</span>
+</span><span id="__span-17-154"><a id="__codelineno-17-154" name="__codelineno-17-154" href="#__codelineno-17-154"></a>                <span class="n">smiles_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+</span><span id="__span-17-155"><a id="__codelineno-17-155" name="__codelineno-17-155" href="#__codelineno-17-155"></a>
+</span><span id="__span-17-156"><a id="__codelineno-17-156" name="__codelineno-17-156" href="#__codelineno-17-156"></a>            <span class="k">return</span> <span class="n">smiles_list</span>
+</span></code></pre></div>
+<h3 id="training__loop">Training Loop<a class="headerlink" href="#training__loop" title="Permanent link">&para;</a></h3>
+<p>Train the conditional VAE with reconstruction and KL divergence losses:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">vae_loss</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="sd">    VAE loss = Reconstruction loss + β * KL divergence</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    <span class="c1"># Reconstruction loss (cross-entropy)</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>    <span class="n">recon_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">logits</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span> 
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>                                   <span class="n">target</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> 
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>                                   <span class="n">ignore_index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Ignore padding</span>
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>    <span class="c1"># KL divergence</span>
+</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>    <span class="n">kl_loss</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">logvar</span> <span class="o">-</span> <span class="n">mu</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">logvar</span><span class="o">.</span><span class="n">exp</span><span class="p">())</span> <span class="o">/</span> <span class="n">mu</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-18-12"><a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>
+</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a>    <span class="k">return</span> <span class="n">recon_loss</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">kl_loss</span><span class="p">,</span> <span class="n">recon_loss</span><span class="p">,</span> <span class="n">kl_loss</span>
+</span><span id="__span-18-14"><a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>
+</span><span id="__span-18-15"><a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">train_cvae</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cuda&#39;</span><span class="p">):</span>
+</span><span id="__span-18-16"><a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Train conditional VAE&quot;&quot;&quot;</span>
+</span><span id="__span-18-17"><a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a>    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span><span id="__span-18-18"><a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a>    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</span><span id="__span-18-19"><a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a>
+</span><span id="__span-18-20"><a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a>    <span class="n">history</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;total_loss&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;recon_loss&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;kl_loss&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+</span><span id="__span-18-21"><a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a>
+</span><span id="__span-18-22"><a id="__codelineno-18-22" name="__codelineno-18-22" href="#__codelineno-18-22"></a>    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
+</span><span id="__span-18-23"><a id="__codelineno-18-23" name="__codelineno-18-23" href="#__codelineno-18-23"></a>        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span><span id="__span-18-24"><a id="__codelineno-18-24" name="__codelineno-18-24" href="#__codelineno-18-24"></a>        <span class="n">epoch_losses</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;total&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;recon&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;kl&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+</span><span id="__span-18-25"><a id="__codelineno-18-25" name="__codelineno-18-25" href="#__codelineno-18-25"></a>
+</span><span id="__span-18-26"><a id="__codelineno-18-26" name="__codelineno-18-26" href="#__codelineno-18-26"></a>        <span class="k">for</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="p">(</span><span class="n">smiles_encoded</span><span class="p">,</span> <span class="n">properties</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">train_loader</span><span class="p">):</span>
+</span><span id="__span-18-27"><a id="__codelineno-18-27" name="__codelineno-18-27" href="#__codelineno-18-27"></a>            <span class="n">smiles_encoded</span> <span class="o">=</span> <span class="n">smiles_encoded</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span><span id="__span-18-28"><a id="__codelineno-18-28" name="__codelineno-18-28" href="#__codelineno-18-28"></a>            <span class="n">properties</span> <span class="o">=</span> <span class="n">properties</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span><span id="__span-18-29"><a id="__codelineno-18-29" name="__codelineno-18-29" href="#__codelineno-18-29"></a>
+</span><span id="__span-18-30"><a id="__codelineno-18-30" name="__codelineno-18-30" href="#__codelineno-18-30"></a>            <span class="c1"># Forward pass</span>
+</span><span id="__span-18-31"><a id="__codelineno-18-31" name="__codelineno-18-31" href="#__codelineno-18-31"></a>            <span class="n">logits</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">smiles_encoded</span><span class="p">,</span> <span class="n">properties</span><span class="p">)</span>
+</span><span id="__span-18-32"><a id="__codelineno-18-32" name="__codelineno-18-32" href="#__codelineno-18-32"></a>
+</span><span id="__span-18-33"><a id="__codelineno-18-33" name="__codelineno-18-33" href="#__codelineno-18-33"></a>            <span class="c1"># Compute loss</span>
+</span><span id="__span-18-34"><a id="__codelineno-18-34" name="__codelineno-18-34" href="#__codelineno-18-34"></a>            <span class="n">target</span> <span class="o">=</span> <span class="n">smiles_encoded</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>  <span class="c1"># Shift by 1 for target</span>
+</span><span id="__span-18-35"><a id="__codelineno-18-35" name="__codelineno-18-35" href="#__codelineno-18-35"></a>            <span class="n">total_loss</span><span class="p">,</span> <span class="n">recon_loss</span><span class="p">,</span> <span class="n">kl_loss</span> <span class="o">=</span> <span class="n">vae_loss</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span>
+</span><span id="__span-18-36"><a id="__codelineno-18-36" name="__codelineno-18-36" href="#__codelineno-18-36"></a>
+</span><span id="__span-18-37"><a id="__codelineno-18-37" name="__codelineno-18-37" href="#__codelineno-18-37"></a>            <span class="c1"># Backward pass</span>
+</span><span id="__span-18-38"><a id="__codelineno-18-38" name="__codelineno-18-38" href="#__codelineno-18-38"></a>            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span><span id="__span-18-39"><a id="__codelineno-18-39" name="__codelineno-18-39" href="#__codelineno-18-39"></a>            <span class="n">total_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span><span id="__span-18-40"><a id="__codelineno-18-40" name="__codelineno-18-40" href="#__codelineno-18-40"></a>            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
+</span><span id="__span-18-41"><a id="__codelineno-18-41" name="__codelineno-18-41" href="#__codelineno-18-41"></a>            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span><span id="__span-18-42"><a id="__codelineno-18-42" name="__codelineno-18-42" href="#__codelineno-18-42"></a>
+</span><span id="__span-18-43"><a id="__codelineno-18-43" name="__codelineno-18-43" href="#__codelineno-18-43"></a>            <span class="c1"># Track losses</span>
+</span><span id="__span-18-44"><a id="__codelineno-18-44" name="__codelineno-18-44" href="#__codelineno-18-44"></a>            <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;total&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">total_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span><span id="__span-18-45"><a id="__codelineno-18-45" name="__codelineno-18-45" href="#__codelineno-18-45"></a>            <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;recon&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">recon_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span><span id="__span-18-46"><a id="__codelineno-18-46" name="__codelineno-18-46" href="#__codelineno-18-46"></a>            <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">kl_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span><span id="__span-18-47"><a id="__codelineno-18-47" name="__codelineno-18-47" href="#__codelineno-18-47"></a>
+</span><span id="__span-18-48"><a id="__codelineno-18-48" name="__codelineno-18-48" href="#__codelineno-18-48"></a>        <span class="c1"># Average losses</span>
+</span><span id="__span-18-49"><a id="__codelineno-18-49" name="__codelineno-18-49" href="#__codelineno-18-49"></a>        <span class="n">num_batches</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>
+</span><span id="__span-18-50"><a id="__codelineno-18-50" name="__codelineno-18-50" href="#__codelineno-18-50"></a>        <span class="n">avg_total</span> <span class="o">=</span> <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;total&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">num_batches</span>
+</span><span id="__span-18-51"><a id="__codelineno-18-51" name="__codelineno-18-51" href="#__codelineno-18-51"></a>        <span class="n">avg_recon</span> <span class="o">=</span> <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;recon&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">num_batches</span>
+</span><span id="__span-18-52"><a id="__codelineno-18-52" name="__codelineno-18-52" href="#__codelineno-18-52"></a>        <span class="n">avg_kl</span> <span class="o">=</span> <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;kl&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">num_batches</span>
+</span><span id="__span-18-53"><a id="__codelineno-18-53" name="__codelineno-18-53" href="#__codelineno-18-53"></a>
+</span><span id="__span-18-54"><a id="__codelineno-18-54" name="__codelineno-18-54" href="#__codelineno-18-54"></a>        <span class="n">history</span><span class="p">[</span><span class="s1">&#39;total_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">avg_total</span><span class="p">)</span>
+</span><span id="__span-18-55"><a id="__codelineno-18-55" name="__codelineno-18-55" href="#__codelineno-18-55"></a>        <span class="n">history</span><span class="p">[</span><span class="s1">&#39;recon_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">avg_recon</span><span class="p">)</span>
+</span><span id="__span-18-56"><a id="__codelineno-18-56" name="__codelineno-18-56" href="#__codelineno-18-56"></a>        <span class="n">history</span><span class="p">[</span><span class="s1">&#39;kl_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">avg_kl</span><span class="p">)</span>
+</span><span id="__span-18-57"><a id="__codelineno-18-57" name="__codelineno-18-57" href="#__codelineno-18-57"></a>
+</span><span id="__span-18-58"><a id="__codelineno-18-58" name="__codelineno-18-58" href="#__codelineno-18-58"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">num_epochs</span><span class="si">}</span><span class="s2"> - &quot;</span>
+</span><span id="__span-18-59"><a id="__codelineno-18-59" name="__codelineno-18-59" href="#__codelineno-18-59"></a>              <span class="sa">f</span><span class="s2">&quot;Loss: </span><span class="si">{</span><span class="n">avg_total</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> (Recon: </span><span class="si">{</span><span class="n">avg_recon</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, KL: </span><span class="si">{</span><span class="n">avg_kl</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+</span><span id="__span-18-60"><a id="__codelineno-18-60" name="__codelineno-18-60" href="#__codelineno-18-60"></a>
+</span><span id="__span-18-61"><a id="__codelineno-18-61" name="__codelineno-18-61" href="#__codelineno-18-61"></a>    <span class="k">return</span> <span class="n">history</span>
+</span><span id="__span-18-62"><a id="__codelineno-18-62" name="__codelineno-18-62" href="#__codelineno-18-62"></a>
+</span><span id="__span-18-63"><a id="__codelineno-18-63" name="__codelineno-18-63" href="#__codelineno-18-63"></a><span class="c1"># Example usage</span>
+</span><span id="__span-18-64"><a id="__codelineno-18-64" name="__codelineno-18-64" href="#__codelineno-18-64"></a><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+</span><span id="__span-18-65"><a id="__codelineno-18-65" name="__codelineno-18-65" href="#__codelineno-18-65"></a>    <span class="c1"># Prepare data</span>
+</span><span id="__span-18-66"><a id="__codelineno-18-66" name="__codelineno-18-66" href="#__codelineno-18-66"></a>    <span class="n">smiles_list</span><span class="p">,</span> <span class="n">properties</span> <span class="o">=</span> <span class="n">prepare_dataset</span><span class="p">(</span><span class="s1">&#39;molecules.csv&#39;</span><span class="p">)</span>
+</span><span id="__span-18-67"><a id="__codelineno-18-67" name="__codelineno-18-67" href="#__codelineno-18-67"></a>    <span class="n">char_to_idx</span><span class="p">,</span> <span class="n">idx_to_char</span> <span class="o">=</span> <span class="n">create_vocabulary</span><span class="p">(</span><span class="n">smiles_list</span><span class="p">)</span>
+</span><span id="__span-18-68"><a id="__codelineno-18-68" name="__codelineno-18-68" href="#__codelineno-18-68"></a>
+</span><span id="__span-18-69"><a id="__codelineno-18-69" name="__codelineno-18-69" href="#__codelineno-18-69"></a>    <span class="n">dataset</span> <span class="o">=</span> <span class="n">MolecularDataset</span><span class="p">(</span><span class="n">smiles_list</span><span class="p">,</span> <span class="n">properties</span><span class="p">,</span> <span class="n">char_to_idx</span><span class="p">)</span>
+</span><span id="__span-18-70"><a id="__codelineno-18-70" name="__codelineno-18-70" href="#__codelineno-18-70"></a>    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-18-71"><a id="__codelineno-18-71" name="__codelineno-18-71" href="#__codelineno-18-71"></a>
+</span><span id="__span-18-72"><a id="__codelineno-18-72" name="__codelineno-18-72" href="#__codelineno-18-72"></a>    <span class="c1"># Initialize model</span>
+</span><span id="__span-18-73"><a id="__codelineno-18-73" name="__codelineno-18-73" href="#__codelineno-18-73"></a>    <span class="n">vocab_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">char_to_idx</span><span class="p">)</span>
+</span><span id="__span-18-74"><a id="__codelineno-18-74" name="__codelineno-18-74" href="#__codelineno-18-74"></a>    <span class="n">model</span> <span class="o">=</span> <span class="n">ConditionalVAE</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">num_properties</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</span><span id="__span-18-75"><a id="__codelineno-18-75" name="__codelineno-18-75" href="#__codelineno-18-75"></a>
+</span><span id="__span-18-76"><a id="__codelineno-18-76" name="__codelineno-18-76" href="#__codelineno-18-76"></a>    <span class="c1"># Train</span>
+</span><span id="__span-18-77"><a id="__codelineno-18-77" name="__codelineno-18-77" href="#__codelineno-18-77"></a>    <span class="n">history</span> <span class="o">=</span> <span class="n">train_cvae</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</span><span id="__span-18-78"><a id="__codelineno-18-78" name="__codelineno-18-78" href="#__codelineno-18-78"></a>
+</span><span id="__span-18-79"><a id="__codelineno-18-79" name="__codelineno-18-79" href="#__codelineno-18-79"></a>    <span class="c1"># Generate molecules with desired properties</span>
+</span><span id="__span-18-80"><a id="__codelineno-18-80" name="__codelineno-18-80" href="#__codelineno-18-80"></a>    <span class="c1"># Example: Generate molecules with specific LogP, MW, QED</span>
+</span><span id="__span-18-81"><a id="__codelineno-18-81" name="__codelineno-18-81" href="#__codelineno-18-81"></a>    <span class="n">target_props</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">]])</span>  <span class="c1"># Normalized values</span>
+</span><span id="__span-18-82"><a id="__codelineno-18-82" name="__codelineno-18-82" href="#__codelineno-18-82"></a>    <span class="n">generated_smiles</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">target_props</span><span class="p">,</span> <span class="n">char_to_idx</span><span class="p">,</span> <span class="n">idx_to_char</span><span class="p">)</span>
+</span><span id="__span-18-83"><a id="__codelineno-18-83" name="__codelineno-18-83" href="#__codelineno-18-83"></a>
+</span><span id="__span-18-84"><a id="__codelineno-18-84" name="__codelineno-18-84" href="#__codelineno-18-84"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Generated SMILES:&quot;</span><span class="p">)</span>
+</span><span id="__span-18-85"><a id="__codelineno-18-85" name="__codelineno-18-85" href="#__codelineno-18-85"></a>    <span class="k">for</span> <span class="n">smiles</span> <span class="ow">in</span> <span class="n">generated_smiles</span><span class="p">:</span>
+</span><span id="__span-18-86"><a id="__codelineno-18-86" name="__codelineno-18-86" href="#__codelineno-18-86"></a>        <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+</span><span id="__span-18-87"><a id="__codelineno-18-87" name="__codelineno-18-87" href="#__codelineno-18-87"></a>        <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-18-88"><a id="__codelineno-18-88" name="__codelineno-18-88" href="#__codelineno-18-88"></a>            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">smiles</span><span class="si">}</span><span class="s2"> - Valid molecule&quot;</span><span class="p">)</span>
+</span><span id="__span-18-89"><a id="__codelineno-18-89" name="__codelineno-18-89" href="#__codelineno-18-89"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-18-90"><a id="__codelineno-18-90" name="__codelineno-18-90" href="#__codelineno-18-90"></a>            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">smiles</span><span class="si">}</span><span class="s2"> - Invalid&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="evaluation__and__analysis">Evaluation and Analysis<a class="headerlink" href="#evaluation__and__analysis" title="Permanent link">&para;</a></h3>
+<p>Evaluate the conditional VAE&rsquo;s performance:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_generation_quality</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">,</span> <span class="n">char_to_idx</span><span class="p">,</span> <span class="n">idx_to_char</span><span class="p">,</span> <span class="n">num_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Evaluate generation quality metrics&quot;&quot;&quot;</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>        <span class="s1">&#39;validity&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>        <span class="s1">&#39;uniqueness&#39;</span><span class="p">:</span> <span class="nb">set</span><span class="p">(),</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>        <span class="s1">&#39;reconstruction_accuracy&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>        <span class="s1">&#39;property_correlation&#39;</span><span class="p">:</span> <span class="p">[]</span>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>    <span class="p">}</span>
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>
+</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>        <span class="c1"># Test reconstruction</span>
+</span><span id="__span-19-14"><a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>        <span class="n">total_correct</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-19-15"><a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a>        <span class="n">total_tokens</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-19-16"><a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>
+</span><span id="__span-19-17"><a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>        <span class="k">for</span> <span class="n">smiles_encoded</span><span class="p">,</span> <span class="n">properties</span> <span class="ow">in</span> <span class="n">test_loader</span><span class="p">:</span>
+</span><span id="__span-19-18"><a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a>            <span class="n">logits</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">smiles_encoded</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> 
+</span><span id="__span-19-19"><a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a>                                       <span class="n">properties</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
+</span><span id="__span-19-20"><a id="__codelineno-19-20" name="__codelineno-19-20" href="#__codelineno-19-20"></a>
+</span><span id="__span-19-21"><a id="__codelineno-19-21" name="__codelineno-19-21" href="#__codelineno-19-21"></a>            <span class="c1"># Calculate accuracy</span>
+</span><span id="__span-19-22"><a id="__codelineno-19-22" name="__codelineno-19-22" href="#__codelineno-19-22"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-19-23"><a id="__codelineno-19-23" name="__codelineno-19-23" href="#__codelineno-19-23"></a>            <span class="n">target</span> <span class="o">=</span> <span class="n">smiles_encoded</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span><span id="__span-19-24"><a id="__codelineno-19-24" name="__codelineno-19-24" href="#__codelineno-19-24"></a>            <span class="n">correct</span> <span class="o">=</span> <span class="p">(</span><span class="n">predictions</span> <span class="o">==</span> <span class="n">target</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">target</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Exclude padding</span>
+</span><span id="__span-19-25"><a id="__codelineno-19-25" name="__codelineno-19-25" href="#__codelineno-19-25"></a>            <span class="n">total_correct</span> <span class="o">+=</span> <span class="n">correct</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span><span id="__span-19-26"><a id="__codelineno-19-26" name="__codelineno-19-26" href="#__codelineno-19-26"></a>            <span class="n">total_tokens</span> <span class="o">+=</span> <span class="p">(</span><span class="n">target</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span><span id="__span-19-27"><a id="__codelineno-19-27" name="__codelineno-19-27" href="#__codelineno-19-27"></a>
+</span><span id="__span-19-28"><a id="__codelineno-19-28" name="__codelineno-19-28" href="#__codelineno-19-28"></a>        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;reconstruction_accuracy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">total_correct</span> <span class="o">/</span> <span class="n">total_tokens</span>
+</span><span id="__span-19-29"><a id="__codelineno-19-29" name="__codelineno-19-29" href="#__codelineno-19-29"></a>
+</span><span id="__span-19-30"><a id="__codelineno-19-30" name="__codelineno-19-30" href="#__codelineno-19-30"></a>        <span class="c1"># Test generation</span>
+</span><span id="__span-19-31"><a id="__codelineno-19-31" name="__codelineno-19-31" href="#__codelineno-19-31"></a>        <span class="n">property_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">num_samples</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>  <span class="c1"># Sample random properties</span>
+</span><span id="__span-19-32"><a id="__codelineno-19-32" name="__codelineno-19-32" href="#__codelineno-19-32"></a>        <span class="n">generated_smiles</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">property_values</span><span class="p">,</span> <span class="n">char_to_idx</span><span class="p">,</span> <span class="n">idx_to_char</span><span class="p">)</span>
+</span><span id="__span-19-33"><a id="__codelineno-19-33" name="__codelineno-19-33" href="#__codelineno-19-33"></a>
+</span><span id="__span-19-34"><a id="__codelineno-19-34" name="__codelineno-19-34" href="#__codelineno-19-34"></a>        <span class="k">for</span> <span class="n">smiles</span> <span class="ow">in</span> <span class="n">generated_smiles</span><span class="p">:</span>
+</span><span id="__span-19-35"><a id="__codelineno-19-35" name="__codelineno-19-35" href="#__codelineno-19-35"></a>            <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+</span><span id="__span-19-36"><a id="__codelineno-19-36" name="__codelineno-19-36" href="#__codelineno-19-36"></a>            <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-19-37"><a id="__codelineno-19-37" name="__codelineno-19-37" href="#__codelineno-19-37"></a>                <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;validity&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span id="__span-19-38"><a id="__codelineno-19-38" name="__codelineno-19-38" href="#__codelineno-19-38"></a>                <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;uniqueness&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+</span><span id="__span-19-39"><a id="__codelineno-19-39" name="__codelineno-19-39" href="#__codelineno-19-39"></a>
+</span><span id="__span-19-40"><a id="__codelineno-19-40" name="__codelineno-19-40" href="#__codelineno-19-40"></a>        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;validity&#39;</span><span class="p">]</span> <span class="o">/=</span> <span class="n">num_samples</span>
+</span><span id="__span-19-41"><a id="__codelineno-19-41" name="__codelineno-19-41" href="#__codelineno-19-41"></a>        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;uniqueness&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;uniqueness&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">num_samples</span>
+</span><span id="__span-19-42"><a id="__codelineno-19-42" name="__codelineno-19-42" href="#__codelineno-19-42"></a>
+</span><span id="__span-19-43"><a id="__codelineno-19-43" name="__codelineno-19-43" href="#__codelineno-19-43"></a>    <span class="k">return</span> <span class="n">metrics</span>
+</span><span id="__span-19-44"><a id="__codelineno-19-44" name="__codelineno-19-44" href="#__codelineno-19-44"></a>
+</span><span id="__span-19-45"><a id="__codelineno-19-45" name="__codelineno-19-45" href="#__codelineno-19-45"></a><span class="k">def</span><span class="w"> </span><span class="nf">visualize_latent_space</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">,</span> <span class="n">properties_df</span><span class="p">):</span>
+</span><span id="__span-19-46"><a id="__codelineno-19-46" name="__codelineno-19-46" href="#__codelineno-19-46"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize latent space with t-SNE&quot;&quot;&quot;</span>
+</span><span id="__span-19-47"><a id="__codelineno-19-47" name="__codelineno-19-47" href="#__codelineno-19-47"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.manifold</span><span class="w"> </span><span class="kn">import</span> <span class="n">TSNE</span>
+</span><span id="__span-19-48"><a id="__codelineno-19-48" name="__codelineno-19-48" href="#__codelineno-19-48"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</span><span id="__span-19-49"><a id="__codelineno-19-49" name="__codelineno-19-49" href="#__codelineno-19-49"></a>
+</span><span id="__span-19-50"><a id="__codelineno-19-50" name="__codelineno-19-50" href="#__codelineno-19-50"></a>    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span><span id="__span-19-51"><a id="__codelineno-19-51" name="__codelineno-19-51" href="#__codelineno-19-51"></a>    <span class="n">latent_vectors</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-19-52"><a id="__codelineno-19-52" name="__codelineno-19-52" href="#__codelineno-19-52"></a>    <span class="n">property_values</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-19-53"><a id="__codelineno-19-53" name="__codelineno-19-53" href="#__codelineno-19-53"></a>
+</span><span id="__span-19-54"><a id="__codelineno-19-54" name="__codelineno-19-54" href="#__codelineno-19-54"></a>    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span><span id="__span-19-55"><a id="__codelineno-19-55" name="__codelineno-19-55" href="#__codelineno-19-55"></a>        <span class="k">for</span> <span class="n">smiles_encoded</span><span class="p">,</span> <span class="n">properties</span> <span class="ow">in</span> <span class="n">data_loader</span><span class="p">:</span>
+</span><span id="__span-19-56"><a id="__codelineno-19-56" name="__codelineno-19-56" href="#__codelineno-19-56"></a>            <span class="n">mu</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">smiles_encoded</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> 
+</span><span id="__span-19-57"><a id="__codelineno-19-57" name="__codelineno-19-57" href="#__codelineno-19-57"></a>                                 <span class="n">properties</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
+</span><span id="__span-19-58"><a id="__codelineno-19-58" name="__codelineno-19-58" href="#__codelineno-19-58"></a>            <span class="n">latent_vectors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mu</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+</span><span id="__span-19-59"><a id="__codelineno-19-59" name="__codelineno-19-59" href="#__codelineno-19-59"></a>            <span class="n">property_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">properties</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+</span><span id="__span-19-60"><a id="__codelineno-19-60" name="__codelineno-19-60" href="#__codelineno-19-60"></a>
+</span><span id="__span-19-61"><a id="__codelineno-19-61" name="__codelineno-19-61" href="#__codelineno-19-61"></a>    <span class="n">latent_vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">latent_vectors</span><span class="p">)</span>
+</span><span id="__span-19-62"><a id="__codelineno-19-62" name="__codelineno-19-62" href="#__codelineno-19-62"></a>    <span class="n">property_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">property_values</span><span class="p">)</span>
+</span><span id="__span-19-63"><a id="__codelineno-19-63" name="__codelineno-19-63" href="#__codelineno-19-63"></a>
+</span><span id="__span-19-64"><a id="__codelineno-19-64" name="__codelineno-19-64" href="#__codelineno-19-64"></a>    <span class="c1"># Apply t-SNE</span>
+</span><span id="__span-19-65"><a id="__codelineno-19-65" name="__codelineno-19-65" href="#__codelineno-19-65"></a>    <span class="n">tsne</span> <span class="o">=</span> <span class="n">TSNE</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+</span><span id="__span-19-66"><a id="__codelineno-19-66" name="__codelineno-19-66" href="#__codelineno-19-66"></a>    <span class="n">latent_2d</span> <span class="o">=</span> <span class="n">tsne</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">latent_vectors</span><span class="p">)</span>
+</span><span id="__span-19-67"><a id="__codelineno-19-67" name="__codelineno-19-67" href="#__codelineno-19-67"></a>
+</span><span id="__span-19-68"><a id="__codelineno-19-68" name="__codelineno-19-68" href="#__codelineno-19-68"></a>    <span class="c1"># Plot colored by property (e.g., LogP)</span>
+</span><span id="__span-19-69"><a id="__codelineno-19-69" name="__codelineno-19-69" href="#__codelineno-19-69"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+</span><span id="__span-19-70"><a id="__codelineno-19-70" name="__codelineno-19-70" href="#__codelineno-19-70"></a>    <span class="n">scatter</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">latent_2d</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">latent_2d</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> 
+</span><span id="__span-19-71"><a id="__codelineno-19-71" name="__codelineno-19-71" href="#__codelineno-19-71"></a>                         <span class="n">c</span><span class="o">=</span><span class="n">property_values</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;viridis&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+</span><span id="__span-19-72"><a id="__codelineno-19-72" name="__codelineno-19-72" href="#__codelineno-19-72"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">scatter</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;LogP&#39;</span><span class="p">)</span>
+</span><span id="__span-19-73"><a id="__codelineno-19-73" name="__codelineno-19-73" href="#__codelineno-19-73"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;t-SNE 1&#39;</span><span class="p">)</span>
+</span><span id="__span-19-74"><a id="__codelineno-19-74" name="__codelineno-19-74" href="#__codelineno-19-74"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;t-SNE 2&#39;</span><span class="p">)</span>
+</span><span id="__span-19-75"><a id="__codelineno-19-75" name="__codelineno-19-75" href="#__codelineno-19-75"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Latent Space Visualization&#39;</span><span class="p">)</span>
+</span><span id="__span-19-76"><a id="__codelineno-19-76" name="__codelineno-19-76" href="#__codelineno-19-76"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span><span id="__span-19-77"><a id="__codelineno-19-77" name="__codelineno-19-77" href="#__codelineno-19-77"></a>
+</span><span id="__span-19-78"><a id="__codelineno-19-78" name="__codelineno-19-78" href="#__codelineno-19-78"></a><span class="k">def</span><span class="w"> </span><span class="nf">interpolate_molecules</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">smiles1</span><span class="p">,</span> <span class="n">smiles2</span><span class="p">,</span> <span class="n">properties</span><span class="p">,</span> 
+</span><span id="__span-19-79"><a id="__codelineno-19-79" name="__codelineno-19-79" href="#__codelineno-19-79"></a>                         <span class="n">char_to_idx</span><span class="p">,</span> <span class="n">idx_to_char</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="__span-19-80"><a id="__codelineno-19-80" name="__codelineno-19-80" href="#__codelineno-19-80"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Interpolate between two molecules in latent space&quot;&quot;&quot;</span>
+</span><span id="__span-19-81"><a id="__codelineno-19-81" name="__codelineno-19-81" href="#__codelineno-19-81"></a>    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span><span id="__span-19-82"><a id="__codelineno-19-82" name="__codelineno-19-82" href="#__codelineno-19-82"></a>
+</span><span id="__span-19-83"><a id="__codelineno-19-83" name="__codelineno-19-83" href="#__codelineno-19-83"></a>    <span class="c1"># Encode both molecules</span>
+</span><span id="__span-19-84"><a id="__codelineno-19-84" name="__codelineno-19-84" href="#__codelineno-19-84"></a>    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span><span id="__span-19-85"><a id="__codelineno-19-85" name="__codelineno-19-85" href="#__codelineno-19-85"></a>        <span class="n">encoded1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">char_to_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">smiles1</span><span class="p">]])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span><span id="__span-19-86"><a id="__codelineno-19-86" name="__codelineno-19-86" href="#__codelineno-19-86"></a>        <span class="n">encoded2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">char_to_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">smiles2</span><span class="p">]])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span><span id="__span-19-87"><a id="__codelineno-19-87" name="__codelineno-19-87" href="#__codelineno-19-87"></a>        <span class="n">props</span> <span class="o">=</span> <span class="n">properties</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span><span id="__span-19-88"><a id="__codelineno-19-88" name="__codelineno-19-88" href="#__codelineno-19-88"></a>
+</span><span id="__span-19-89"><a id="__codelineno-19-89" name="__codelineno-19-89" href="#__codelineno-19-89"></a>        <span class="n">mu1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">encoded1</span><span class="p">,</span> <span class="n">props</span><span class="p">)</span>
+</span><span id="__span-19-90"><a id="__codelineno-19-90" name="__codelineno-19-90" href="#__codelineno-19-90"></a>        <span class="n">mu2</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">encoded2</span><span class="p">,</span> <span class="n">props</span><span class="p">)</span>
+</span><span id="__span-19-91"><a id="__codelineno-19-91" name="__codelineno-19-91" href="#__codelineno-19-91"></a>
+</span><span id="__span-19-92"><a id="__codelineno-19-92" name="__codelineno-19-92" href="#__codelineno-19-92"></a>        <span class="c1"># Interpolate</span>
+</span><span id="__span-19-93"><a id="__codelineno-19-93" name="__codelineno-19-93" href="#__codelineno-19-93"></a>        <span class="n">interpolated</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-19-94"><a id="__codelineno-19-94" name="__codelineno-19-94" href="#__codelineno-19-94"></a>        <span class="k">for</span> <span class="n">alpha</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">steps</span><span class="p">):</span>
+</span><span id="__span-19-95"><a id="__codelineno-19-95" name="__codelineno-19-95" href="#__codelineno-19-95"></a>            <span class="n">z_interp</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">mu1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">mu2</span>
+</span><span id="__span-19-96"><a id="__codelineno-19-96" name="__codelineno-19-96" href="#__codelineno-19-96"></a>            <span class="n">smiles</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">generate_from_latent</span><span class="p">(</span><span class="n">z_interp</span><span class="p">,</span> <span class="n">props</span><span class="p">,</span> 
+</span><span id="__span-19-97"><a id="__codelineno-19-97" name="__codelineno-19-97" href="#__codelineno-19-97"></a>                                                        <span class="n">char_to_idx</span><span class="p">,</span> <span class="n">idx_to_char</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-19-98"><a id="__codelineno-19-98" name="__codelineno-19-98" href="#__codelineno-19-98"></a>            <span class="n">interpolated</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+</span><span id="__span-19-99"><a id="__codelineno-19-99" name="__codelineno-19-99" href="#__codelineno-19-99"></a>
+</span><span id="__span-19-100"><a id="__codelineno-19-100" name="__codelineno-19-100" href="#__codelineno-19-100"></a>    <span class="k">return</span> <span class="n">interpolated</span>
+</span></code></pre></div>
+<h3 id="hyperparameter__tuning">Hyperparameter Tuning<a class="headerlink" href="#hyperparameter__tuning" title="Permanent link">&para;</a></h3>
+<p>Key hyperparameters to tune:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="n">hyperparameters</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>    <span class="s1">&#39;embed_dim&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">256</span><span class="p">],</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>    <span class="s1">&#39;hidden_dim&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">512</span><span class="p">],</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>    <span class="s1">&#39;latent_dim&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">],</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>    <span class="s1">&#39;num_layers&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>    <span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>  <span class="c1"># KL weight</span>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>    <span class="s1">&#39;learning_rate&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">,</span> <span class="mf">1e-2</span><span class="p">],</span>
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>    <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">],</span>
+</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>    <span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">]</span>  <span class="c1"># For generation</span>
+</span><span id="__span-20-10"><a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Suggested β annealing schedule for better training:
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_beta</span><span class="p">(</span><span class="n">epoch</span><span class="p">,</span> <span class="n">warmup_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Gradually increase KL weight&quot;&quot;&quot;</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>    <span class="k">if</span> <span class="n">epoch</span> <span class="o">&lt;</span> <span class="n">warmup_epochs</span><span class="p">:</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>        <span class="k">return</span> <span class="n">max_beta</span> <span class="o">*</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">/</span> <span class="n">warmup_epochs</span><span class="p">)</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>    <span class="k">return</span> <span class="n">max_beta</span>
+</span></code></pre></div></p>
+<hr />
+<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
+<p>In this session, we explored various generative modeling approaches for molecular design:</p>
+<p><strong>VAEs and GANs</strong> provide complementary approaches to learning molecular distributions, with VAEs offering interpretable latent spaces and GANs enabling high-quality generation through adversarial training.</p>
+<p><strong>Autoregressive models</strong> (RNNs and Transformers) generate molecules sequentially, leveraging powerful language modeling techniques adapted for chemical structures.</p>
+<p><strong>Diffusion models</strong> represent the state-of-the-art in many generation tasks, offering stable training and high-quality, diverse molecular samples.</p>
+<p><strong>Reinforcement learning</strong> enables goal-directed optimization, steering generation towards molecules with desired properties through reward-based training.</p>
+<p><strong>Conditional generation</strong> provides fine-grained control over molecular properties, enabling targeted design for specific applications.</p>
+<p>The practical implementation demonstrates how these concepts come together in a working system, from data preparation through model training to generation and evaluation.</p>
+<hr />
+<h2 id="additional__resources">Additional Resources<a class="headerlink" href="#additional__resources" title="Permanent link">&para;</a></h2>
+<h3 id="papers">Papers<a class="headerlink" href="#papers" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>VAEs</strong>: &ldquo;Automatic Chemical Design Using a Data-Driven Continuous Representation of Molecules&rdquo; (Gómez-Bombarelli et al., 2018)</li>
+<li><strong>GANs</strong>: &ldquo;MolGAN: An implicit generative model for small molecular graphs&rdquo; (De Cao &amp; Kipf, 2018)</li>
+<li><strong>Transformers</strong>: &ldquo;Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction&rdquo; (Schwaller et al., 2019)</li>
+<li><strong>Diffusion</strong>: &ldquo;Equivariant Diffusion for Molecule Generation in 3D&rdquo; (Hoogeboom et al., 2022)</li>
+<li><strong>RL</strong>: &ldquo;Optimization of Molecules via Deep Reinforcement Learning&rdquo; (Zhou et al., 2019)</li>
+</ul>
+<h3 id="libraries__and__tools">Libraries and Tools<a class="headerlink" href="#libraries__and__tools" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>RDKit</strong>: Cheminformatics toolkit for molecular manipulation</li>
+<li><strong>PyTorch Geometric</strong>: Graph neural network library</li>
+<li><strong>Transformers (Hugging Face)</strong>: Pre-trained transformer models</li>
+<li><strong>GuacaMol</strong>: Benchmarking platform for generative models</li>
+<li><strong>MOSES</strong>: Molecular sets for evaluation</li>
+</ul>
+<h3 id="datasets">Datasets<a class="headerlink" href="#datasets" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>ZINC</strong>: 230M commercially available compounds</li>
+<li><strong>ChEMBL</strong>: Bioactive molecules with drug-like properties</li>
+<li><strong>QM9</strong>: 134k molecules with quantum properties</li>
+<li><strong>USPTO</strong>: Chemical reaction dataset for synthesis planning</li>
+</ul>
+<hr />
+<h2 id="exercises">Exercises<a class="headerlink" href="#exercises" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>Extend the conditional VAE</strong> to include additional properties (e.g., number of rotatable bonds, number of aromatic rings)</p>
+</li>
+<li>
+<p><strong>Implement sampling strategies</strong>: Compare greedy decoding, beam search, and nucleus sampling for molecule generation</p>
+</li>
+<li>
+<p><strong>Add validity constraints</strong>: Modify the decoder to enforce SMILES grammar rules and improve validity rate</p>
+</li>
+<li>
+<p><strong>Multi-objective conditioning</strong>: Train a model to generate molecules satisfying multiple property constraints simultaneously</p>
+</li>
+<li>
+<p><strong>Latent space arithmetic</strong>: Explore property modification by manipulating latent representations (e.g., z_new = z_base + δz_property)</p>
+</li>
+<li>
+<p><strong>Benchmark your model</strong>: Evaluate on standard metrics (validity, uniqueness, novelty, FCD, KL divergence) and compare with baselines</p>
+</li>
+<li>
+<p><strong>Incorporate 3D structure</strong>: Extend the model to condition on or generate 3D molecular conformations</p>
+</li>
+<li>
+<p><strong>Active learning loop</strong>: Implement an iterative generation and selection process where predicted properties guide the next generation round</p>
+</li>
+</ol>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../day3/" class="btn btn-neutral float-left" title="Graph Neural Networks"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../day5/" class="btn btn-neutral float-right" title="Advanced Models">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../day3/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../day5/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../assets/_markdown_exec_pyodide.js"></script>
+      <script src="../search/main.js"></script>
+      <script src="../js/open_in_new_tab.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://pojeda.github.io/course-mlmd/day5/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Advanced Models - ML/MD course</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_markdown_exec_pyodide.css" rel="stylesheet" />
+        <link href="../assets/_markdown_exec_ansi.css" rel="stylesheet" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+        <link href="../css/extra.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Advanced Models";
+        var mkdocs_page_input_path = "day5.md";
+        var mkdocs_page_url = "/course-mlmd/day5/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../images/hpc2n-qmmm.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../day0/">Introduction</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Day 1</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day1/">ML for Molecular Systems</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Day 2</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day2/">Neural Networks</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Day 3</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day3/">Graph Neural Networks</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Day 4</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day4/">Generative Models</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Day 5</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Advanced Models</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#1__reaction__prediction__and__retrosynthesis">1. Reaction Prediction and Retrosynthesis</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#11__forward__reaction__prediction">1.1 Forward Reaction Prediction</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#12__retrosynthetic__planning">1.2 Retrosynthetic Planning</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2__protein-ligand__docking">2. Protein-Ligand Docking</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#21__traditional__docking__methods">2.1 Traditional Docking Methods</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#22__ml-enhanced__docking">2.2 ML-Enhanced Docking</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#23__binding__affinity__prediction">2.3 Binding Affinity Prediction</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#3__molecular__dynamics__with__ml">3. Molecular Dynamics with ML</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#31__ml__force__fields">3.1 ML Force Fields</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#32__enhanced__sampling__with__ml">3.2 Enhanced Sampling with ML</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#33__coarse-grained__modeling">3.3 Coarse-Grained Modeling</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#4__quantum__chemistry__acceleration">4. Quantum Chemistry Acceleration</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#41__ml__as__qm__surrogates">4.1 ML as QM Surrogates</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#42__delta__learning">4.2 Delta Learning</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#43__active__learning__for__qm">4.3 Active Learning for QM</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#5__end-to-end__drug__discovery__workflows">5. End-to-End Drug Discovery Workflows</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#51__pipeline__architecture">5.1 Pipeline Architecture</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#52__multi-objective__optimization">5.2 Multi-Objective Optimization</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#53__integration__with__laboratory__automation">5.3 Integration with Laboratory Automation</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#6__model__deployment__and__production">6. Model Deployment and Production</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#61__deployment__strategies">6.1 Deployment Strategies</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#62__model__monitoring__and__maintenance">6.2 Model Monitoring and Maintenance</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#63__reproducibility__and__version__control">6.3 Reproducibility and Version Control</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#64__regulatory__considerations">6.4 Regulatory Considerations</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#7__future__directions">7. Future Directions</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#71__foundation__models__for__molecules">7.1 Foundation Models for Molecules</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#72__autonomous__laboratories">7.2 Autonomous Laboratories</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#73__quantum__machine__learning">7.3 Quantum Machine Learning</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#74__multimodal__learning">7.4 Multimodal Learning</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#75__explainable__ai__for__chemistry">7.5 Explainable AI for Chemistry</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#practical__exercises">Practical Exercises</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#exercise__1__retrosynthesis__planning">Exercise 1: Retrosynthesis Planning</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#exercise__2__ml-enhanced__docking">Exercise 2: ML-Enhanced Docking</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#exercise__3__md__with__ml__force__fields">Exercise 3: MD with ML Force Fields</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#exercise__4__drug__discovery__pipeline">Exercise 4: Drug Discovery Pipeline</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#exercise__5__model__deployment">Exercise 5: Model Deployment</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#additional__resources">Additional Resources</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#research__papers">Research Papers</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#software__tools">Software Tools</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#databases">Databases</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#online__courses__tutorials">Online Courses &amp; Tutorials</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#summary">Summary</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#next__steps">Next Steps</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="" href="../summary.md">Summary</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">ML/MD course</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Day 5</li>
+      <li class="breadcrumb-item active">Advanced Models</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="day__5__advanced__applications__and__practical__integration">Day 5: Advanced Applications and Practical Integration<a class="headerlink" href="#day__5__advanced__applications__and__practical__integration" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>Day 5 focuses on applying machine learning to real-world molecular and drug discovery challenges. This session bridges the gap between theoretical knowledge and practical implementation, covering state-of-the-art applications in computational chemistry, drug discovery, and emerging technologies.</p>
+<p><strong>Learning Objectives:</strong>
+- Apply ML models to reaction prediction and retrosynthetic planning
+- Implement protein-ligand docking workflows with ML enhancement
+- Integrate molecular dynamics simulations with machine learning
+- Accelerate quantum chemistry calculations using ML surrogates
+- Design end-to-end drug discovery pipelines
+- Deploy ML models for production use
+- Explore cutting-edge developments in molecular AI</p>
+<hr />
+<h2 id="1__reaction__prediction__and__retrosynthesis">1. Reaction Prediction and Retrosynthesis<a class="headerlink" href="#1__reaction__prediction__and__retrosynthesis" title="Permanent link">&para;</a></h2>
+<h3 id="11__forward__reaction__prediction">1.1 Forward Reaction Prediction<a class="headerlink" href="#11__forward__reaction__prediction" title="Permanent link">&para;</a></h3>
+<p>Forward reaction prediction involves predicting the products of a chemical reaction given reactants and conditions.</p>
+<p><strong>Key Concepts:</strong>
+- <strong>Reaction SMILES</strong>: Encoding reactions as <code>reactants&gt;&gt;products</code>
+- <strong>Template-based methods</strong>: Using reaction templates extracted from databases
+- <strong>Template-free methods</strong>: Sequence-to-sequence models treating reactions as translation tasks
+- <strong>Graph-based methods</strong>: Operating directly on molecular graphs</p>
+<p><strong>Popular Models:</strong>
+- <strong>Molecular Transformer</strong>: Attention-based sequence models for reaction prediction
+- <strong>Graph2SMILES</strong>: Graph neural networks with SMILES generation
+- <strong>LocalRetro</strong>: Template-free retrosynthesis using local reaction patterns</p>
+<p><strong>Implementation Example:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">rxnfp.transformer_fingerprints</span><span class="w"> </span><span class="kn">import</span> <span class="n">RXNBERTFingerprintGenerator</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Initialize reaction fingerprint generator</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">rxnfp_generator</span> <span class="o">=</span> <span class="n">RXNBERTFingerprintGenerator</span><span class="p">()</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Define a reaction</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">reaction_smiles</span> <span class="o">=</span> <span class="s2">&quot;CC(=O)O.CCO&gt;&gt;CC(=O)OCC.O&quot;</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Generate reaction fingerprint</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">fingerprint</span> <span class="o">=</span> <span class="n">rxnfp_generator</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="n">reaction_smiles</span><span class="p">)</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># Use for similarity search or downstream prediction</span>
+</span></code></pre></div>
+<h3 id="12__retrosynthetic__planning">1.2 Retrosynthetic Planning<a class="headerlink" href="#12__retrosynthetic__planning" title="Permanent link">&para;</a></h3>
+<p>Retrosynthesis involves working backwards from a target molecule to identify synthetic routes using available starting materials.</p>
+<p><strong>Approaches:</strong>
+- <strong>Single-step retrosynthesis</strong>: Predicting immediate precursors
+- <strong>Multi-step planning</strong>: Building full synthetic trees
+- <strong>Search algorithms</strong>: Monte Carlo Tree Search (MCTS), best-first search
+- <strong>Cost optimization</strong>: Balancing route complexity, yield, and availability</p>
+<p><strong>Tools and Frameworks:</strong>
+- <strong>AiZynthFinder</strong>: Open-source retrosynthesis planning with MCTS
+- <strong>IBM RXN for Chemistry</strong>: Cloud-based reaction prediction platform
+- <strong>Molecule.one</strong>: Commercial retrosynthesis software</p>
+<p><strong>Practical Considerations:</strong>
+- Starting material availability
+- Reaction condition feasibility
+- Stereochemistry preservation
+- Scalability to industrial synthesis</p>
+<hr />
+<h2 id="2__protein-ligand__docking">2. Protein-Ligand Docking<a class="headerlink" href="#2__protein-ligand__docking" title="Permanent link">&para;</a></h2>
+<h3 id="21__traditional__docking__methods">2.1 Traditional Docking Methods<a class="headerlink" href="#21__traditional__docking__methods" title="Permanent link">&para;</a></h3>
+<p>Protein-ligand docking predicts the binding pose and affinity of small molecules to protein targets.</p>
+<p><strong>Classical Approaches:</strong>
+- <strong>AutoDock Vina</strong>: Scoring function-based docking
+- <strong>Glide</strong>: Precision docking with MM-GBSA rescoring
+- <strong>GOLD</strong>: Genetic algorithm-based pose prediction</p>
+<p><strong>Limitations:</strong>
+- Computational expense for large libraries
+- Rigid protein approximation
+- Scoring function accuracy</p>
+<h3 id="22__ml-enhanced__docking">2.2 ML-Enhanced Docking<a class="headerlink" href="#22__ml-enhanced__docking" title="Permanent link">&para;</a></h3>
+<p>Machine learning improves docking through better scoring functions, pose prediction, and virtual screening.</p>
+<p><strong>ML Applications:</strong>
+- <strong>Scoring function refinement</strong>: Neural networks trained on binding affinity data
+- <strong>Pose ranking</strong>: Graph neural networks for pose selection
+- <strong>Virtual screening</strong>: Rapid filtering before expensive calculations
+- <strong>Protein flexibility</strong>: ML-based conformer generation</p>
+<p><strong>Modern Tools:</strong>
+- <strong>DeepDock</strong>: Deep learning for binding pose prediction
+- <strong>Gnina</strong>: CNN-based scoring for AutoDock Vina
+- <strong>EquiBind</strong>: SE(3)-equivariant network for direct pose prediction
+- <strong>DiffDock</strong>: Diffusion models for blind docking</p>
+<p><strong>Implementation Workflow:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gnina</span><span class="w"> </span><span class="kn">import</span> <span class="n">Gnina</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Initialize Gnina</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">docker</span> <span class="o">=</span> <span class="n">Gnina</span><span class="p">()</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Prepare inputs</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">protein_file</span> <span class="o">=</span> <span class="s2">&quot;protein.pdb&quot;</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">ligand_file</span> <span class="o">=</span> <span class="s2">&quot;ligand.sdf&quot;</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># Run docking with CNN scoring</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">results</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">dock</span><span class="p">(</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="n">protein</span><span class="o">=</span><span class="n">protein_file</span><span class="p">,</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="n">ligand</span><span class="o">=</span><span class="n">ligand_file</span><span class="p">,</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">],</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>    <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="n">num_modes</span><span class="o">=</span><span class="mi">10</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="p">)</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="c1"># Extract top poses and scores</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="k">for</span> <span class="n">pose</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Score: </span><span class="si">{</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="23__binding__affinity__prediction">2.3 Binding Affinity Prediction<a class="headerlink" href="#23__binding__affinity__prediction" title="Permanent link">&para;</a></h3>
+<p>Beyond docking, ML models predict binding affinity (pKd, pIC50) directly from structure.</p>
+<p><strong>Approaches:</strong>
+- <strong>Structure-based</strong>: Using 3D protein-ligand complexes
+- <strong>Ligand-based</strong>: QSAR models using molecular descriptors
+- <strong>Hybrid</strong>: Combining structural and chemical features</p>
+<p><strong>Popular Models:</strong>
+- <strong>DeepDTA</strong>: Deep learning for drug-target affinity
+- <strong>GraphDTA</strong>: Graph neural networks for affinity prediction
+- <strong>KDEEP</strong>: Kernelized deep learning approach</p>
+<hr />
+<h2 id="3__molecular__dynamics__with__ml">3. Molecular Dynamics with ML<a class="headerlink" href="#3__molecular__dynamics__with__ml" title="Permanent link">&para;</a></h2>
+<h3 id="31__ml__force__fields">3.1 ML Force Fields<a class="headerlink" href="#31__ml__force__fields" title="Permanent link">&para;</a></h3>
+<p>Machine learning force fields (MLFFs) provide quantum mechanical accuracy at classical MD speed.</p>
+<p><strong>Key Models:</strong>
+- <strong>ANI</strong>: Accurate neural network potentials for organic molecules
+- <strong>SchNet</strong>: Continuous-filter convolutional networks
+- <strong>PaiNN</strong>: Polarizable atom interaction neural networks
+- <strong>MACE</strong>: Multi-atomic cluster expansion with higher-order interactions</p>
+<p><strong>Advantages:</strong>
+- 100-1000x faster than ab initio MD
+- Quantum accuracy for energies and forces
+- Transferable across chemical space</p>
+<p><strong>Implementation Example:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torchani</span><span class="w"> </span><span class="kn">import</span> <span class="n">ANI2x</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Load ANI-2x model</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">model</span> <span class="o">=</span> <span class="n">ANI2x</span><span class="p">()</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Prepare molecular coordinates</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">species</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>  <span class="c1"># H-C-C-H...</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">coordinates</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[[</span><span class="o">...</span><span class="p">],</span> <span class="p">[</span><span class="o">...</span><span class="p">],</span> <span class="o">...</span><span class="p">]])</span>  <span class="c1"># Angstroms</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># Compute energy and forces</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">energy</span> <span class="o">=</span> <span class="n">model</span><span class="p">((</span><span class="n">species</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">))</span><span class="o">.</span><span class="n">energies</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">forces</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">energy</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">coordinates</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Energy: </span><span class="si">{</span><span class="n">energy</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> Hartree&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="32__enhanced__sampling__with__ml">3.2 Enhanced Sampling with ML<a class="headerlink" href="#32__enhanced__sampling__with__ml" title="Permanent link">&para;</a></h3>
+<p>ML accelerates exploration of conformational space in MD simulations.</p>
+<p><strong>Techniques:</strong>
+- <strong>Collective variable identification</strong>: Autoencoders for reaction coordinates
+- <strong>Biasing potentials</strong>: Neural network-based metadynamics
+- <strong>Trajectory reweighting</strong>: Correcting for ML force field errors
+- <strong>Rare event sampling</strong>: Reinforcement learning for transition path sampling</p>
+<p><strong>Applications:</strong>
+- Protein folding pathways
+- Ligand binding/unbinding kinetics
+- Free energy calculations
+- Conformational transitions</p>
+<h3 id="33__coarse-grained__modeling">3.3 Coarse-Grained Modeling<a class="headerlink" href="#33__coarse-grained__modeling" title="Permanent link">&para;</a></h3>
+<p>ML enables learned coarse-grained (CG) representations for larger spatiotemporal scales.</p>
+<p><strong>Approaches:</strong>
+- <strong>Bottom-up</strong>: Deriving CG models from atomistic simulations
+- <strong>Top-down</strong>: Learning directly from experimental data
+- <strong>Backmapping</strong>: Reconstructing atomistic details from CG</p>
+<hr />
+<h2 id="4__quantum__chemistry__acceleration">4. Quantum Chemistry Acceleration<a class="headerlink" href="#4__quantum__chemistry__acceleration" title="Permanent link">&para;</a></h2>
+<h3 id="41__ml__as__qm__surrogates">4.1 ML as QM Surrogates<a class="headerlink" href="#41__ml__as__qm__surrogates" title="Permanent link">&para;</a></h3>
+<p>Machine learning models replace expensive quantum chemistry calculations.</p>
+<p><strong>Applications:</strong>
+- <strong>Energy prediction</strong>: DFT energy at GNN speed
+- <strong>Property prediction</strong>: HOMO-LUMO gaps, dipole moments, polarizabilities
+- <strong>Wavefunction approximation</strong>: Neural network wavefunctions
+- <strong>Density functional approximation</strong>: Learning exchange-correlation functionals</p>
+<p><strong>Popular Datasets:</strong>
+- <strong>QM9</strong>: 134k small organic molecules with DFT properties
+- <strong>OE62</strong>: Organic reactions with transition state energies
+- <strong>MD17</strong>: Molecular dynamics trajectories for benzene, aspirin, etc.
+- <strong>GEOM</strong>: 37M conformers with GFN2-xTB energies</p>
+<h3 id="42__delta__learning">4.2 Delta Learning<a class="headerlink" href="#42__delta__learning" title="Permanent link">&para;</a></h3>
+<p>Delta learning combines ML with lower-level quantum methods to achieve higher accuracy.</p>
+<p><strong>Concept:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>E_high ≈ E_low + ΔE_ML
+</span></code></pre></div></p>
+<p>Where:
+- <code>E_high</code>: Target high-level method (e.g., CCSD(T))
+- <code>E_low</code>: Fast low-level method (e.g., DFT)
+- <code>ΔE_ML</code>: ML-predicted correction</p>
+<p><strong>Benefits:</strong>
+- Reduces data requirements
+- Improves extrapolation
+- Physically motivated architecture</p>
+<h3 id="43__active__learning__for__qm">4.3 Active Learning for QM<a class="headerlink" href="#43__active__learning__for__qm" title="Permanent link">&para;</a></h3>
+<p>Active learning selects the most informative molecules for expensive QM calculations.</p>
+<p><strong>Workflow:</strong>
+1. Train initial ML model on small dataset
+2. Use uncertainty quantification to identify uncertain predictions
+3. Run QM calculations on uncertain molecules
+4. Retrain model with augmented data
+5. Repeat until convergence</p>
+<p><strong>Uncertainty Methods:</strong>
+- Ensemble disagreement
+- Bayesian neural networks
+- MC dropout
+- Gaussian process regression</p>
+<hr />
+<h2 id="5__end-to-end__drug__discovery__workflows">5. End-to-End Drug Discovery Workflows<a class="headerlink" href="#5__end-to-end__drug__discovery__workflows" title="Permanent link">&para;</a></h2>
+<h3 id="51__pipeline__architecture">5.1 Pipeline Architecture<a class="headerlink" href="#51__pipeline__architecture" title="Permanent link">&para;</a></h3>
+<p>Modern ML-driven drug discovery integrates multiple components into cohesive workflows.</p>
+<p><strong>Typical Pipeline Stages:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Target Identification → Hit Discovery → Lead Optimization → Preclinical → Clinical
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>        ↓                    ↓                 ↓               ↓            ↓
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    ML: Target         ML: Virtual      ML: Property    ML: ADMET    ML: Clinical
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    prediction         screening        optimization    prediction    trial design
+</span></code></pre></div>
+<h3 id="52__multi-objective__optimization">5.2 Multi-Objective Optimization<a class="headerlink" href="#52__multi-objective__optimization" title="Permanent link">&para;</a></h3>
+<p>Drug candidates must satisfy multiple constraints simultaneously.</p>
+<p><strong>Objectives:</strong>
+- <strong>Potency</strong>: High binding affinity to target
+- <strong>Selectivity</strong>: Low off-target binding
+- <strong>ADMET</strong>: Good absorption, distribution, metabolism, excretion, toxicity
+- <strong>Synthesizability</strong>: Feasible synthetic routes
+- <strong>Physicochemical properties</strong>: Drug-likeness (Lipinski&rsquo;s rules)</p>
+<p><strong>Optimization Approaches:</strong>
+- <strong>Pareto optimization</strong>: Finding non-dominated solutions
+- <strong>Weighted scalarization</strong>: Combining objectives into single score
+- <strong>Constraint satisfaction</strong>: Hard constraints + objective optimization
+- <strong>Multi-task learning</strong>: Joint prediction of all properties</p>
+<p><strong>Tools:</strong>
+- <strong>GuacaMol</strong>: Benchmarking for molecular design
+- <strong>MOSES</strong>: Molecular sets for generative models
+- <strong>Therapeutics Data Commons (TDC)</strong>: Unified ML tasks for drug discovery</p>
+<h3 id="53__integration__with__laboratory__automation">5.3 Integration with Laboratory Automation<a class="headerlink" href="#53__integration__with__laboratory__automation" title="Permanent link">&para;</a></h3>
+<p>Closing the loop between computational prediction and experimental validation.</p>
+<p><strong>Design-Make-Test-Analyze (DMTA) Cycles:</strong>
+- <strong>Design</strong>: ML generates candidate molecules
+- <strong>Make</strong>: Automated synthesis or compound ordering
+- <strong>Test</strong>: High-throughput screening (HTS)
+- <strong>Analyze</strong>: ML learns from results, iterates design</p>
+<p><strong>Infrastructure:</strong>
+- Robotic synthesis platforms
+- Automated assay systems
+- LIMS (Laboratory Information Management Systems)
+- Real-time data feedback</p>
+<hr />
+<h2 id="6__model__deployment__and__production">6. Model Deployment and Production<a class="headerlink" href="#6__model__deployment__and__production" title="Permanent link">&para;</a></h2>
+<h3 id="61__deployment__strategies">6.1 Deployment Strategies<a class="headerlink" href="#61__deployment__strategies" title="Permanent link">&para;</a></h3>
+<p>Moving ML models from research to production environments.</p>
+<p><strong>Deployment Options:</strong>
+- <strong>REST APIs</strong>: Flask, FastAPI for web services
+- <strong>Containerization</strong>: Docker for reproducible environments
+- <strong>Cloud platforms</strong>: AWS SageMaker, Google Cloud AI Platform
+- <strong>Edge deployment</strong>: ONNX for mobile/embedded devices</p>
+<p><strong>Example FastAPI Deployment:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">()</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># Load pre-trained model</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;model.pt&quot;</span><span class="p">)</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">MoleculeInput</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="nd">@app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/predict&quot;</span><span class="p">)</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">predict_property</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">MoleculeInput</span><span class="p">):</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="c1"># Convert SMILES to features</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="n">features</span> <span class="o">=</span> <span class="n">smiles_to_features</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">smiles</span><span class="p">)</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="c1"># Make prediction</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>        <span class="n">prediction</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;prediction&quot;</span><span class="p">:</span> <span class="n">prediction</span><span class="o">.</span><span class="n">item</span><span class="p">()}</span>
+</span></code></pre></div>
+<h3 id="62__model__monitoring__and__maintenance">6.2 Model Monitoring and Maintenance<a class="headerlink" href="#62__model__monitoring__and__maintenance" title="Permanent link">&para;</a></h3>
+<p>Ensuring model performance in production.</p>
+<p><strong>Key Considerations:</strong>
+- <strong>Data drift</strong>: Detecting distribution shifts in input data
+- <strong>Concept drift</strong>: Changes in input-output relationships
+- <strong>Performance monitoring</strong>: Tracking prediction accuracy over time
+- <strong>Retraining triggers</strong>: Automated model updates
+- <strong>A/B testing</strong>: Comparing model versions</p>
+<p><strong>Monitoring Tools:</strong>
+- Evidently AI
+- Fiddler
+- Arize AI
+- Weights &amp; Biases</p>
+<h3 id="63__reproducibility__and__version__control">6.3 Reproducibility and Version Control<a class="headerlink" href="#63__reproducibility__and__version__control" title="Permanent link">&para;</a></h3>
+<p>Best practices for ML in production.</p>
+<p><strong>Essential Components:</strong>
+- <strong>Code version control</strong>: Git, GitHub
+- <strong>Data versioning</strong>: DVC, LakeFS
+- <strong>Model versioning</strong>: MLflow, Weights &amp; Biases
+- <strong>Environment management</strong>: Conda, Docker
+- <strong>Experiment tracking</strong>: MLflow, Neptune.ai</p>
+<p><strong>MLflow Example:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">mlflow</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">mlflow.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">infer_signature</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Start MLflow run</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">with</span> <span class="n">mlflow</span><span class="o">.</span><span class="n">start_run</span><span class="p">():</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="c1"># Train model</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">model</span> <span class="o">=</span> <span class="n">train_model</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="c1"># Log parameters</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">mlflow</span><span class="o">.</span><span class="n">log_params</span><span class="p">({</span><span class="s2">&quot;learning_rate&quot;</span><span class="p">:</span> <span class="mf">0.001</span><span class="p">,</span> <span class="s2">&quot;epochs&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">})</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="c1"># Log metrics</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="n">mlflow</span><span class="o">.</span><span class="n">log_metrics</span><span class="p">({</span><span class="s2">&quot;mae&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;r2&quot;</span><span class="p">:</span> <span class="mf">0.85</span><span class="p">})</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="c1"># Log model</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="n">signature</span> <span class="o">=</span> <span class="n">infer_signature</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">predictions</span><span class="p">)</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>    <span class="n">mlflow</span><span class="o">.</span><span class="n">sklearn</span><span class="o">.</span><span class="n">log_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="n">signature</span><span class="o">=</span><span class="n">signature</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="64__regulatory__considerations">6.4 Regulatory Considerations<a class="headerlink" href="#64__regulatory__considerations" title="Permanent link">&para;</a></h3>
+<p>ML models for drug discovery face regulatory scrutiny.</p>
+<p><strong>FDA Guidance:</strong>
+- Model transparency and interpretability
+- Validation on diverse datasets
+- Handling of edge cases and uncertainty
+- Audit trails and documentation
+- Bias detection and mitigation</p>
+<p><strong>Good Machine Learning Practice (GMLP):</strong>
+- Data quality assurance
+- Model validation and testing
+- Risk management
+- Continuous monitoring
+- Stakeholder engagement</p>
+<hr />
+<h2 id="7__future__directions">7. Future Directions<a class="headerlink" href="#7__future__directions" title="Permanent link">&para;</a></h2>
+<h3 id="71__foundation__models__for__molecules">7.1 Foundation Models for Molecules<a class="headerlink" href="#71__foundation__models__for__molecules" title="Permanent link">&para;</a></h3>
+<p>Large-scale pre-trained models that can be fine-tuned for various downstream tasks.</p>
+<p><strong>Current Developments:</strong>
+- <strong>MolBERT</strong>: BERT-like pre-training on SMILES
+- <strong>ChemBERTa</strong>: RoBERTa for chemical language
+- <strong>MolFormer</strong>: Transformer with 1B parameters trained on 1.1B molecules
+- <strong>UniMol</strong>: 3D molecular pre-training with geometric information
+- <strong>Galactica</strong>: General-purpose scientific language model including chemistry</p>
+<p><strong>Advantages:</strong>
+- Transfer learning across tasks
+- Few-shot learning capabilities
+- Emergent understanding of chemical principles
+- Democratization of ML in chemistry</p>
+<p><strong>Challenges:</strong>
+- Computational cost of training
+- Data curation at scale
+- Evaluation benchmarks
+- Interpretability of large models</p>
+<h3 id="72__autonomous__laboratories">7.2 Autonomous Laboratories<a class="headerlink" href="#72__autonomous__laboratories" title="Permanent link">&para;</a></h3>
+<p>Self-driving labs combine ML, robotics, and automation for autonomous experimentation.</p>
+<p><strong>Components:</strong>
+- <strong>Robotic synthesis</strong>: Automated chemical synthesis platforms
+- <strong>High-throughput characterization</strong>: Rapid property measurement
+- <strong>ML planning</strong>: Bayesian optimization, active learning
+- <strong>Closed-loop control</strong>: Real-time experiment adaptation</p>
+<p><strong>Examples:</strong>
+- <strong>Chemspeed</strong>: Automated synthesis and screening
+- <strong>Emerald Cloud Lab</strong>: Remote-access automated lab
+- <strong>IBM RoboRXN</strong>: Autonomous synthesis planning and execution
+- <strong>Material acceleration platforms</strong>: Rapid materials discovery</p>
+<p><strong>Impact:</strong>
+- 10-100x acceleration of discovery
+- 24/7 operation
+- Exploration of unconventional chemistry
+- Reduced human bias</p>
+<h3 id="73__quantum__machine__learning">7.3 Quantum Machine Learning<a class="headerlink" href="#73__quantum__machine__learning" title="Permanent link">&para;</a></h3>
+<p>Intersection of quantum computing and ML for molecular science.</p>
+<p><strong>Quantum Advantages:</strong>
+- <strong>Quantum simulation</strong>: Efficient simulation of quantum systems
+- <strong>Variational algorithms</strong>: VQE for ground state energies
+- <strong>Quantum kernels</strong>: Enhanced feature spaces for ML
+- <strong>Quantum neural networks</strong>: Parameterized quantum circuits</p>
+<p><strong>Near-Term Applications:</strong>
+- <strong>Hybrid classical-quantum algorithms</strong>: Quantum hardware accelerates specific steps
+- <strong>Quantum-enhanced sampling</strong>: Improved exploration of molecular space
+- <strong>Error-mitigated chemistry</strong>: Quantum chemistry despite hardware noise</p>
+<p><strong>Frameworks:</strong>
+- <strong>Qiskit</strong>: IBM&rsquo;s quantum computing SDK
+- <strong>Cirq</strong>: Google&rsquo;s quantum programming framework
+- <strong>PennyLane</strong>: Quantum ML library with autodifferentiation
+- <strong>TensorFlow Quantum</strong>: Integration of quantum computing with TensorFlow</p>
+<p><strong>Example - Variational Quantum Eigensolver:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.algorithms</span><span class="w"> </span><span class="kn">import</span> <span class="n">VQE</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.primitives</span><span class="w"> </span><span class="kn">import</span> <span class="n">Estimator</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.circuit.library</span><span class="w"> </span><span class="kn">import</span> <span class="n">RealAmplitudes</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">qiskit_nature.second_q.drivers</span><span class="w"> </span><span class="kn">import</span> <span class="n">PySCFDriver</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># Define molecular system</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="n">driver</span> <span class="o">=</span> <span class="n">PySCFDriver</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="s2">&quot;H 0 0 0; H 0 0 0.735&quot;</span><span class="p">)</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="n">problem</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># Set up VQE</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="n">ansatz</span> <span class="o">=</span> <span class="n">RealAmplitudes</span><span class="p">(</span><span class="n">num_qubits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">reps</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="n">vqe</span> <span class="o">=</span> <span class="n">VQE</span><span class="p">(</span><span class="n">Estimator</span><span class="p">(),</span> <span class="n">ansatz</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="n">SLSQP</span><span class="p">())</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="c1"># Compute ground state energy</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="n">result</span> <span class="o">=</span> <span class="n">vqe</span><span class="o">.</span><span class="n">compute_minimum_eigenvalue</span><span class="p">(</span><span class="n">problem</span><span class="o">.</span><span class="n">hamiltonian</span><span class="p">)</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Ground state energy: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">eigenvalue</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> Hartree&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="74__multimodal__learning">7.4 Multimodal Learning<a class="headerlink" href="#74__multimodal__learning" title="Permanent link">&para;</a></h3>
+<p>Integrating diverse data types for comprehensive molecular understanding.</p>
+<p><strong>Data Modalities:</strong>
+- <strong>Chemical structure</strong>: SMILES, graphs, 3D conformers
+- <strong>Spectroscopy</strong>: NMR, IR, MS, UV-Vis
+- <strong>Images</strong>: Microscopy, crystallography
+- <strong>Text</strong>: Literature, patents, experimental protocols
+- <strong>Bioactivity</strong>: Screening data, clinical outcomes</p>
+<p><strong>Approaches:</strong>
+- <strong>Cross-modal pre-training</strong>: Learning shared representations
+- <strong>Late fusion</strong>: Combining predictions from separate models
+- <strong>Attention mechanisms</strong>: Learning to weight different modalities
+- <strong>Contrastive learning</strong>: Aligning representations across modalities</p>
+<p><strong>Applications:</strong>
+- Structure elucidation from spectra
+- Literature-guided molecule generation
+- Predicting experimental conditions from desired outcomes
+- Hypothesis generation from multimodal data</p>
+<h3 id="75__explainable__ai__for__chemistry">7.5 Explainable AI for Chemistry<a class="headerlink" href="#75__explainable__ai__for__chemistry" title="Permanent link">&para;</a></h3>
+<p>Making ML predictions interpretable for chemists.</p>
+<p><strong>Techniques:</strong>
+- <strong>Attention visualization</strong>: Highlighting important molecular substructures
+- <strong>SHAP values</strong>: Quantifying feature importance
+- <strong>Counterfactual explanations</strong>: &ldquo;What if&rdquo; molecular modifications
+- <strong>Causal inference</strong>: Distinguishing correlation from causation
+- <strong>Mechanistic modeling</strong>: Hybrid physics-ML models</p>
+<p><strong>Benefits:</strong>
+- Building trust with domain experts
+- Accelerating hypothesis generation
+- Regulatory compliance
+- Identifying model failures
+- Scientific discovery beyond prediction</p>
+<hr />
+<h2 id="practical__exercises">Practical Exercises<a class="headerlink" href="#practical__exercises" title="Permanent link">&para;</a></h2>
+<h3 id="exercise__1__retrosynthesis__planning">Exercise 1: Retrosynthesis Planning<a class="headerlink" href="#exercise__1__retrosynthesis__planning" title="Permanent link">&para;</a></h3>
+<p>Use AiZynthFinder to plan a synthesis route for ibuprofen starting from commercially available materials.</p>
+<h3 id="exercise__2__ml-enhanced__docking">Exercise 2: ML-Enhanced Docking<a class="headerlink" href="#exercise__2__ml-enhanced__docking" title="Permanent link">&para;</a></h3>
+<p>Compare traditional AutoDock Vina with Gnina on a set of protein-ligand complexes and evaluate scoring improvements.</p>
+<h3 id="exercise__3__md__with__ml__force__fields">Exercise 3: MD with ML Force Fields<a class="headerlink" href="#exercise__3__md__with__ml__force__fields" title="Permanent link">&para;</a></h3>
+<p>Run a short MD simulation of alanine dipeptide using both classical AMBER and ANI-2x force fields. Compare trajectories and computational cost.</p>
+<h3 id="exercise__4__drug__discovery__pipeline">Exercise 4: Drug Discovery Pipeline<a class="headerlink" href="#exercise__4__drug__discovery__pipeline" title="Permanent link">&para;</a></h3>
+<p>Build an end-to-end pipeline that: (1) generates molecules with desired properties, (2) predicts ADMET, (3) performs virtual screening, and (4) suggests top candidates.</p>
+<h3 id="exercise__5__model__deployment">Exercise 5: Model Deployment<a class="headerlink" href="#exercise__5__model__deployment" title="Permanent link">&para;</a></h3>
+<p>Deploy a solubility prediction model as a REST API using FastAPI and test it with various SMILES inputs.</p>
+<hr />
+<h2 id="additional__resources">Additional Resources<a class="headerlink" href="#additional__resources" title="Permanent link">&para;</a></h2>
+<h3 id="research__papers">Research Papers<a class="headerlink" href="#research__papers" title="Permanent link">&para;</a></h3>
+<ul>
+<li>&ldquo;Machine learning for molecular and materials science&rdquo; - Nature (2018)</li>
+<li>&ldquo;Retrosynthesis prediction with conditional graph logic network&rdquo; - NeurIPS (2019)</li>
+<li>&ldquo;EquiBind: Geometric deep learning for drug binding structure prediction&rdquo; - ICML (2022)</li>
+<li>&ldquo;Machine learning force fields&rdquo; - Chemical Reviews (2021)</li>
+<li>&ldquo;The rise of diffusion models in drug discovery&rdquo; - Nature Communications (2024)</li>
+</ul>
+<h3 id="software__tools">Software Tools<a class="headerlink" href="#software__tools" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>RDKit</strong>: Cheminformatics toolkit</li>
+<li><strong>DeepChem</strong>: Deep learning for chemistry</li>
+<li><strong>OpenMM</strong>: Molecular dynamics simulation</li>
+<li><strong>TorchDrug</strong>: PyTorch library for drug discovery</li>
+<li><strong>Therapeutics Data Commons</strong>: ML benchmarks for drug discovery</li>
+</ul>
+<h3 id="databases">Databases<a class="headerlink" href="#databases" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>ChEMBL</strong>: Bioactive molecules with drug-like properties</li>
+<li><strong>PubChem</strong>: Chemical information database</li>
+<li><strong>PDB</strong>: Protein Data Bank</li>
+<li><strong>ZINC</strong>: Commercial compounds for virtual screening</li>
+<li><strong>BindingDB</strong>: Binding affinities for protein-ligand complexes</li>
+</ul>
+<h3 id="online__courses__tutorials">Online Courses &amp; Tutorials<a class="headerlink" href="#online__courses__tutorials" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>DeepChem tutorials</strong>: Practical ML for drug discovery</li>
+<li><strong>RDKit tutorials</strong>: Molecular manipulation and analysis</li>
+<li><strong>Papers with Code</strong>: Implementations of recent papers</li>
+<li><strong>MIT Deep Learning for Molecules</strong>: Course materials</li>
+</ul>
+<hr />
+<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
+<p>Day 5 demonstrated how machine learning transforms molecular science from theoretical concepts to practical applications. Key takeaways include:</p>
+<ol>
+<li><strong>Reaction prediction and retrosynthesis</strong> enable automated synthesis planning</li>
+<li><strong>ML-enhanced docking</strong> improves virtual screening efficiency and accuracy</li>
+<li><strong>ML force fields</strong> bring quantum accuracy to molecular dynamics at reduced cost</li>
+<li><strong>Quantum chemistry acceleration</strong> makes high-level calculations accessible</li>
+<li><strong>End-to-end workflows</strong> integrate ML throughout drug discovery pipelines</li>
+<li><strong>Production deployment</strong> requires careful attention to monitoring, versioning, and reproducibility</li>
+<li><strong>Future directions</strong> including foundation models, autonomous labs, and quantum ML promise revolutionary advances</li>
+</ol>
+<p>The integration of these techniques creates powerful tools for accelerating scientific discovery while maintaining rigor and interpretability.</p>
+<hr />
+<h2 id="next__steps">Next Steps<a class="headerlink" href="#next__steps" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Explore hands-on implementations using the provided code examples</li>
+<li>Join online communities (RDKit discussions, DeepChem forums)</li>
+<li>Stay current with literature (preprints on arXiv, ChemRxiv)</li>
+<li>Contribute to open-source molecular ML projects</li>
+<li>Apply these techniques to your own research problems</li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../day4/" class="btn btn-neutral float-left" title="Generative Models"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../day4/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../assets/_markdown_exec_pyodide.js"></script>
+      <script src="../search/main.js"></script>
+      <script src="../js/open_in_new_tab.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
