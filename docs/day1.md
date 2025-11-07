@@ -176,7 +176,9 @@ img = Draw.MolToImage(mol, size=(300, 300))
 plt.imshow(img)
 plt.axis('off')
 plt.title('Aspirin')
-plt.show()
+#plt.show()
+plt.savefig('aspirine.png', dpi=300, bbox_inches='tight')
+plt.close()
 
 # Get canonical SMILES (standardized form)
 canonical_smiles = Chem.MolToSmiles(mol)
@@ -231,30 +233,34 @@ Morgan fingerprints capture circular neighborhoods around each atom.
 3. Hash identifiers to fixed-length bit vector
 
 ```python
+from rdkit import Chem
 from rdkit.Chem import AllChem
+from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 import numpy as np
+import warnings
 
-# Generate Morgan fingerprint
+# Create molecule
 mol = Chem.MolFromSmiles("CCO")
-morgan_fp = AllChem.GetMorganFingerprintAsBitVect(
-    mol,
-    radius=2,      # ECFP4 (diameter = 2*radius = 4)
-    nBits=2048     # Fingerprint length
-)
+
+# NEW METHOD: Using MorganGenerator
+morgan_gen = GetMorganGenerator(radius=2, fpSize=2048)
+
+# Generate fingerprint as bit vector
+morgan_fp = morgan_gen.GetFingerprint(mol)
 
 # Convert to numpy array
 fp_array = np.zeros((2048,))
-AllChem.DataStructs.ConvertToNumpyArray(morgan_fp, fp_array)
+from rdkit import DataStructs
+DataStructs.ConvertToNumpyArray(morgan_fp, fp_array)
+
 print(f"Fingerprint shape: {fp_array.shape}")
 print(f"Number of set bits: {fp_array.sum()}")
 
-# Morgan fingerprint with counts
-morgan_count = AllChem.GetHashedMorganFingerprint(
-    mol,
-    radius=2,
-    nBits=2048
-)
-# Stores how many times each feature appears
+# Morgan fingerprint with counts (count version)
+morgan_gen_count = GetMorganGenerator(radius=2, fpSize=2048, countSimulation=True)
+morgan_count = morgan_gen_count.GetFingerprint(mol)
+
+print(f"Count fingerprint generated")
 ```
 
 **Visualization of Circular Neighborhoods**:
@@ -262,14 +268,16 @@ morgan_count = AllChem.GetHashedMorganFingerprint(
 # Visualize which atoms contribute to which bits
 from rdkit.Chem import Draw
 
+#info = {}
+#fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048, bitInfo=info)
 info = {}
-fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048, bitInfo=info)
+fp_old = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048, bitInfo=info)
 
 # Show atom environments for specific bits
 for bit_id in list(info.keys())[:5]:  # First 5 bits
-    atom_ids = [atom_id for atom_id, radius in info[bit_id]]
-    img = Draw.DrawMorganBit(mol, bit_id, info)
-    # This shows which atoms/bonds contribute to this bit
+    print(f"Bit {bit_id}: {info[bit_id]}")
+    # atom_ids = [atom_id for atom_id, radius in info[bit_id]]
+    # img = Draw.DrawMorganBit(mol, bit_id, info)  # Uncomment if you want to visualize
 ```
 
 **Parameters**:
