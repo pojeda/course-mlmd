@@ -219,6 +219,29 @@ for i in range(5):
   invalid = "C CO"  # Space breaks it
   ```
 
+### 2.2 SELFIES (Self-Referencing Embedded Strings)
+
+SELFIES is an alternative to SMILES that guarantees 100% valid molecules.
+
+```python
+import selfies as sf
+from rdkit import Chem
+
+# Convert SMILES to SELFIES
+smiles = "CCO"
+selfies_str = sf.encoder(smiles)
+print(f"SMILES: {smiles}")
+print(f"SELFIES: {selfies_str}")
+
+# Convert SELFIES back to SMILES
+smiles_back = sf.decoder(selfies_str)
+print(f"Back to SMILES: {smiles_back}")
+
+# Verify it's a valid molecule
+mol = Chem.MolFromSmiles(smiles_back)
+print(f"Valid molecule: {mol is not None}")
+```
+
 ### 2.2 Molecular Fingerprints
 
 Fingerprints are fixed-length binary or count vectors that encode molecular structure.
@@ -695,6 +718,7 @@ def get_edge_features(bond):
 - Requires specialized neural network architectures
 
 ---
+Hasta aca
 
 ## 3. Traditional Machine Learning Methods
 
@@ -1108,7 +1132,291 @@ print(feature_importance_df.head())
 
 ---
 
-## 6. Key Takeaways
+## 6. Example with SELFIES
+
+```python
+import numpy as np
+import selfies as sf
+from rdkit import Chem
+from rdkit.Chem import Descriptors, Crippen
+
+# Convert SELFIES to molecule
+selfies_str = sf.encoder("CC(=O)Oc1ccccc1C(=O)O")  # Aspirin in SELFIES
+print(f"SELFIES representation: {selfies_str}")
+
+smiles = sf.decoder(selfies_str)
+mol = Chem.MolFromSmiles(smiles)
+
+# Molecular weight
+mw = Descriptors.MolWt(mol)
+print(f"Molecular Weight: {mw:.2f} g/mol")
+
+# Lipophilicity (logP - octanol/water partition coefficient)
+logp = Crippen.MolLogP(mol)
+print(f"LogP: {logp:.2f}")
+# LogP > 5: Too lipophilic (Lipinski's Rule of Five)
+
+# Polar Surface Area
+tpsa = Descriptors.TPSA(mol)
+print(f"TPSA: {tpsa:.2f} Ų")
+# TPSA < 140: Likely to cross blood-brain barrier
+
+# Molar Refractivity
+mr = Crippen.MolMR(mol)
+print(f"Molar Refractivity: {mr:.2f}")
+
+####
+
+# Hydrogen bond donors and acceptors
+h_donors = Descriptors.NumHDonors(mol)
+h_acceptors = Descriptors.NumHAcceptors(mol)
+print(f"H-Bond Donors: {h_donors}")
+print(f"H-Bond Acceptors: {h_acceptors}")
+
+# Rotatable bonds (flexibility)
+rot_bonds = Descriptors.NumRotatableBonds(mol)
+print(f"Rotatable Bonds: {rot_bonds}")
+
+# Ring information
+num_rings = Descriptors.RingCount(mol)
+aromatic_rings = Descriptors.NumAromaticRings(mol)
+print(f"Total Rings: {num_rings}, Aromatic: {aromatic_rings}")
+
+# Fraction of sp3 carbons (saturation)
+frac_sp3 = Descriptors.FractionCSP3(mol)
+print(f"Fraction Csp3: {frac_sp3:.2f}")
+
+####
+
+from rdkit.Chem import GraphDescriptors
+
+# Balaban J index (molecular branching)
+balaban = GraphDescriptors.BalabanJ(mol)
+
+# Bertz complexity index
+bertz = GraphDescriptors.BertzCT(mol)
+
+# Chi indices (connectivity)
+chi0 = GraphDescriptors.Chi0(mol)
+chi1 = GraphDescriptors.Chi1(mol)
+
+####
+
+from rdkit.Chem import AllChem, Descriptors3D
+
+# Generate 3D coordinates
+mol_3d = Chem.AddHs(mol)
+AllChem.EmbedMolecule(mol_3d, randomSeed=42)
+AllChem.MMFFOptimizeMolecule(mol_3d)
+
+# 3D descriptors
+asphericity = Descriptors3D.Asphericity(mol_3d)
+eccentricity = Descriptors3D.Eccentricity(mol_3d)
+inertial_shape = Descriptors3D.InertialShapeFactor(mol_3d)
+radius_of_gyration = Descriptors3D.RadiusOfGyration(mol_3d)
+
+print(f"Radius of Gyration: {radius_of_gyration:.2f} Ų")
+
+####
+
+def lipinski_rule_of_five(mol):
+    """
+    Predicts if molecule is drug-like
+    Rules:
+    - MW <= 500
+    - LogP <= 5
+    - H-bond donors <= 5
+    - H-bond acceptors <= 10
+    """
+    mw = Descriptors.MolWt(mol)
+    logp = Crippen.MolLogP(mol)
+    hbd = Descriptors.NumHDonors(mol)
+    hba = Descriptors.NumHAcceptors(mol)
+    
+    violations = 0
+    if mw > 500: violations += 1
+    if logp > 5: violations += 1
+    if hbd > 5: violations += 1
+    if hba > 10: violations += 1
+    
+    return violations <= 1  # Allow 1 violation
+
+is_druglike = lipinski_rule_of_five(mol)
+print(f"Passes Lipinski's Rule: {is_druglike}")
+
+####
+
+from rdkit.Chem import QED
+
+qed_score = QED.qed(mol)
+print(f"QED Score: {qed_score:.3f}")
+# Range: [0, 1], higher is more drug-like
+# Based on 8 molecular properties
+
+####
+
+from rdkit.Chem import RDConfig
+import sys
+sys.path.append(f'{RDConfig.RDContribDir}/SA_Score')
+import sascorer
+
+sa_score = sascorer.calculateScore(mol)
+print(f"SA Score: {sa_score:.2f}")
+# Range: [1, 10]
+# 1: Easy to synthesize
+# 10: Difficult to synthesize
+
+####
+
+def calculate_molecular_descriptors(selfies_str):
+    """
+    Comprehensive descriptor calculation from SELFIES
+    """
+    # Convert SELFIES to SMILES then to molecule
+    smiles = sf.decoder(selfies_str)
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    
+    # Add hydrogens for accurate calculations
+    mol = Chem.AddHs(mol)
+    
+    descriptors = {
+        # Physical
+        'MW': Descriptors.MolWt(mol),
+        'LogP': Crippen.MolLogP(mol),
+        'TPSA': Descriptors.TPSA(mol),
+        'MolMR': Crippen.MolMR(mol),
+        
+        # Structural
+        'NumHDonors': Descriptors.NumHDonors(mol),
+        'NumHAcceptors': Descriptors.NumHAcceptors(mol),
+        'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
+        'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
+        'NumAromaticRings': Descriptors.NumAromaticRings(mol),
+        'NumSaturatedRings': Descriptors.NumSaturatedRings(mol),
+        'NumAliphaticRings': Descriptors.NumAliphaticRings(mol),
+        'RingCount': Descriptors.RingCount(mol),
+        
+        # Complexity
+        'BertzCT': GraphDescriptors.BertzCT(mol),
+        'NumBridgeheadAtoms': Descriptors.NumBridgeheadAtoms(mol),
+        'NumSpiroAtoms': Descriptors.NumSpiroAtoms(mol),
+        
+        # Electronic
+        'LabuteASA': Descriptors.LabuteASA(mol),
+        'PEOE_VSA1': Descriptors.PEOE_VSA1(mol),
+        
+        # Counts
+        'NumCarbon': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 6]),
+        'NumNitrogen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 7]),
+        'NumOxygen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 8]),
+        'NumHalogens': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() in [9, 17, 35, 53]]),
+        
+        # Saturation
+        'FractionCsp3': Descriptors.FractionCSP3(mol),
+        
+        # Drug-likeness
+        'QED': QED.qed(mol),
+    }
+    
+    return descriptors
+
+# Example usage - Convert SMILES to SELFIES first
+smiles_list = ["CCO", "CC(=O)Oc1ccccc1C(=O)O", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"]
+selfies_list = [sf.encoder(s) for s in smiles_list]
+
+print("\nSELFIES representations:")
+for smiles, selfies_str in zip(smiles_list, selfies_list):
+    print(f"SMILES:  {smiles}")
+    print(f"SELFIES: {selfies_str}")
+    print()
+
+import pandas as pd
+
+descriptor_list = [calculate_molecular_descriptors(s) for s in selfies_list]
+df_descriptors = pd.DataFrame(descriptor_list)
+df_descriptors['SELFIES'] = selfies_list
+df_descriptors['SMILES'] = smiles_list  # Optional: keep original SMILES for reference
+
+print(df_descriptors)
+
+####
+
+import networkx as nx
+
+def mol_to_graph(selfies_str):
+    """Convert SELFIES molecule to NetworkX graph"""
+    smiles = sf.decoder(selfies_str)
+    mol = Chem.MolFromSmiles(smiles)
+    
+    # Create graph
+    G = nx.Graph()
+    
+    # Add nodes (atoms)
+    for atom in mol.GetAtoms():
+        G.add_node(
+            atom.GetIdx(),
+            atomic_num=atom.GetAtomicNum(),
+            symbol=atom.GetSymbol(),
+            degree=atom.GetDegree(),
+            formal_charge=atom.GetFormalCharge(),
+            num_h=atom.GetTotalNumHs(),
+            hybridization=str(atom.GetHybridization()),
+            is_aromatic=atom.GetIsAromatic()
+        )
+    
+    # Add edges (bonds)
+    for bond in mol.GetBonds():
+        G.add_edge(
+            bond.GetBeginAtomIdx(),
+            bond.GetEndAtomIdx(),
+            bond_type=str(bond.GetBondType()),
+            is_conjugated=bond.GetIsConjugated(),
+            is_aromatic=bond.GetIsAromatic()
+        )
+    
+    return G
+
+# Example
+selfies_ethanol = sf.encoder("CCO")
+G = mol_to_graph(selfies_ethanol)
+print(f"\nGraph from SELFIES: {selfies_ethanol}")
+print(f"Nodes: {G.number_of_nodes()}")
+print(f"Edges: {G.number_of_edges()}")
+print(f"Node features: {G.nodes[0]}")
+
+
+####
+
+def get_adjacency_matrix(selfies_str, max_atoms=50):
+    """Get adjacency matrix with padding from SELFIES"""
+    smiles = sf.decoder(selfies_str)
+    mol = Chem.MolFromSmiles(smiles)
+    num_atoms = mol.GetNumAtoms()
+    
+    # Initialize matrix
+    adj_matrix = np.zeros((max_atoms, max_atoms))
+    
+    # Fill adjacency matrix
+    for bond in mol.GetBonds():
+        i = bond.GetBeginAtomIdx()
+        j = bond.GetEndAtomIdx()
+        adj_matrix[i, j] = 1
+        adj_matrix[j, i] = 1  # Symmetric
+    
+    return adj_matrix, num_atoms
+
+selfies_ethanol = sf.encoder("CCO")
+adj, n_atoms = get_adjacency_matrix(selfies_ethanol)
+print(f"\nAdjacency matrix from SELFIES: {selfies_ethanol}")
+print(f"Adjacency matrix shape: {adj.shape}")
+print(f"Actual atoms: {n_atoms}")
+```
+
+---
+
+## 7. Key Takeaways
 
 ### Molecular Representations
 - **SMILES**: Compact text representation, requires careful handling
@@ -1140,7 +1448,7 @@ print(feature_importance_df.head())
 
 ---
 
-## 7. Resources and Further Reading
+## 8. Resources and Further Reading
 
 ### Software Libraries
 - **RDKit**: Cheminformatics toolkit - https://www.rdkit.org/
