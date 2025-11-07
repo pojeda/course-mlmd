@@ -296,7 +296,9 @@ for bit_id in list(info.keys())[:5]:  # First 5 bits
 166 predefined structural keys based on common molecular features.
 
 ```python
+from rdkit import Chem
 from rdkit.Chem import MACCSkeys
+import numpy as np
 
 maccs = MACCSkeys.GenMACCSKeys(mol)
 print(f"MACCS keys length: {len(maccs)}")
@@ -325,6 +327,7 @@ maccs_array = np.array(list(maccs.ToBitString()), dtype=int)
 Topological fingerprints based on molecular paths.
 
 ```python
+from rdkit import Chem
 from rdkit.Chem import RDKFingerprint
 
 rdkit_fp = RDKFingerprint(mol, fpSize=2048, maxPath=7)
@@ -419,7 +422,7 @@ aromatic_rings = Descriptors.NumAromaticRings(mol)
 print(f"Total Rings: {num_rings}, Aromatic: {aromatic_rings}")
 
 # Fraction of sp3 carbons (saturation)
-frac_sp3 = Descriptors.FractionCsp3(mol)
+frac_sp3 = Descriptors.FractionCSP3(mol)
 print(f"Fraction Csp3: {frac_sp3:.2f}")
 ```
 
@@ -557,7 +560,7 @@ def calculate_molecular_descriptors(smiles):
         'NumHalogens': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() in [9, 17, 35, 53]]),
         
         # Saturation
-        'FractionCsp3': Descriptors.FractionCsp3(mol),
+        'FractionCsp3': Descriptors.FractionCSP3(mol),
         
         # Drug-likeness
         'QED': QED.qed(mol),
