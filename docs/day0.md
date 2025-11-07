@@ -1115,7 +1115,8 @@ set_seed(42)
 ## 9. Practical Exercise: Complete ML Pipeline
 
 ### Task
-Build a complete machine learning pipeline to predict molecular solubility.
+Build a complete machine learning pipeline to predict molecular solubility. The dataset can be downloaded from:
+J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10.1021/ci034243x)
 
 ### Dataset
 ```python
