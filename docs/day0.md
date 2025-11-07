@@ -1128,10 +1128,12 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import numpy as np
 
-# Load data (example: ESOL dataset)
-data = pd.read_csv('esol.csv')  # Columns: SMILES, logS (solubility)
+# Load data - adjust column name for target variable
+data = pd.read_csv('esol.csv')
+
 print(f"Dataset size: {len(data)}")
 print(data.head())
+print(f"Column names: {data.columns.tolist()}")
 ```
 
 ### Step 1: Feature Engineering
@@ -1169,10 +1171,12 @@ for idx, smiles in enumerate(data['SMILES']):
 
 # Create feature DataFrame
 X = pd.DataFrame(features_list)
-y = data.loc[valid_indices, 'logS'].values
+# Use the correct column name for solubility
+y = data.loc[valid_indices, 'measured log(solubility:mol/L)'].values
 
-print(f"Features shape: {X.shape}")
+print(f"\nFeatures shape: {X.shape}")
 print(f"Targets shape: {y.shape}")
+print(f"Valid molecules: {len(valid_indices)} / {len(data)}")
 ```
 
 ### Step 2: Data Validation and Exploration
@@ -1201,7 +1205,9 @@ correlations.sort_values().plot(kind='barh')
 plt.xlabel('Correlation with Solubility')
 plt.title('Feature Correlations')
 plt.tight_layout()
-plt.show()
+#plt.show()
+plt.savefig('feature_importance.png', dpi=300, bbox_inches='tight')
+plt.close()
 ```
 
 ### Step 3: Train-Test Split
@@ -1265,7 +1271,7 @@ if best_model_name == 'Random Forest':
         'max_depth': [10, 20, 30, None],
         'min_samples_split': [2, 5, 10],
         'min_samples_leaf': [1, 2, 4],
-        'max_features': ['auto', 'sqrt', 0.5]
+        'max_features': ['sqrt', 'log2', 0.5, 1.0, None]  # Changed: removed 'auto', added valid options
     }
     
     random_search = RandomizedSearchCV(
@@ -1340,7 +1346,9 @@ axes[1].set_title(f'Test Set (R² = {test_r2:.3f})')
 axes[1].axis('equal')
 
 plt.tight_layout()
-plt.show()
+#plt.show()
+plt.savefig('predicted_solubility.png', dpi=300, bbox_inches='tight')
+plt.close()
 
 # Feature importance (for tree-based models)
 if hasattr(best_model, 'feature_importances_'):
@@ -1357,7 +1365,9 @@ if hasattr(best_model, 'feature_importances_'):
     plt.xlabel('Importance')
     plt.title('Feature Importance')
     plt.tight_layout()
-    plt.show()
+    #plt.show()
+    plt.savefig('best_feature_importance.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
 # Residual analysis
 residuals = y_test - y_pred_test
@@ -1383,7 +1393,9 @@ stats.probplot(residuals, dist="norm", plot=plt)
 plt.title('Q-Q Plot')
 
 plt.tight_layout()
-plt.show()
+#plt.show()
+plt.savefig('residuals.png', dpi=300, bbox_inches='tight')
+plt.close()
 ```
 
 ### Step 9: Model Persistence
