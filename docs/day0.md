@@ -136,7 +136,12 @@ Common supervised learning tasks include:
     print("Predicted solubility:", prediction[0])
     ```
 
+??? note "Example"
 
+    ```python
+    print("Hello world")
+    ```
+    
 #### Unsupervised Learning
 
 Unsupervised learning focuses on analyzing data without predefined labels or target values. Instead of 
