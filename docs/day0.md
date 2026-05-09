@@ -1,4 +1,4 @@
-# Day 0: Machine Learning and Deep Learning Fundamentals
+# Machine Learning and Deep Learning Fundamentals
 
 ## Welcome to the Course!
 

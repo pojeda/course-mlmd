@@ -141,7 +141,7 @@ plt.hist(samples.numpy(), bins=30)
 plt.xlabel("Value")
 plt.ylabel("Frequency")
 plt.title("Gaussian Distribution")
-
+plt.savefig("gaussian.png", dpi=300, bbox_inches="tight")
 plt.show()
 ```
 
@@ -228,6 +228,16 @@ objects. In chemistry, molecules can naturally be represented as graphs.
 
 ### Example: Adjacency Matrix
 
+Suppose we have a graph with 3 nodes:
+
+```text
+Node 0 --- Node 1
+   \         /
+     Node 2
+```
+
+All nodes are connected to each other.
+
 ```python
 import torch
 
@@ -241,20 +251,66 @@ adjacency = torch.tensor([
 print(adjacency)
 ```
 
+* `1` → nodes are connected
+* `0` → no connection
+
+For example:
+
+```text
+adjacency[0,1] = 1
+```
+
+means:
+
+* Node 0 is connected to Node 1.
+
 ### Graph Node Features
+
+Each row corresponds to one node:
 
 ```python
 import torch
 
 # Example node features
 node_features = torch.tensor([
-    [1.0, 0.0],
-    [0.0, 1.0],
-    [1.0, 1.0]
+    [1.0, 0.0], #node 0
+    [0.0, 1.0], #onde 1
+    [1.0, 1.0]  #node 2
 ])
 
 print(node_features)
 ```
+
+These features could represent:
+
+* atom types,
+* charges,
+* molecular descriptors,
+* or learned embeddings.
+
+
+### Aggregate neighbor information
+
+```python
+# Matrix multiplication:
+# adjacency × node_features
+
+aggregated_features = torch.matmul(
+    adjacency,
+    node_features
+)
+
+print("\nAggregated neighbor features:")
+print(aggregated_features)
+```
+
+The aggregation collects information from neighboring nodes.
+
+For example:
+
+* Node 0 receives information from Nodes 1 and 2,
+* Node 1 receives information from Nodes 0 and 2,
+* etc.
 
 ## 6. Dimensionality Reduction
 
@@ -292,7 +348,7 @@ plt.scatter(X_reduced[:, 0], X_reduced[:, 1])
 plt.xlabel("Principal Component 1")
 plt.ylabel("Principal Component 2")
 plt.title("PCA Projection")
-
+plt.savefig("pca.png", dpi=300, bbox_inches="tight")
 plt.show()
 ```
 
