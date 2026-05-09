@@ -71,18 +71,18 @@ Common supervised learning tasks include:
 ??? note "Example"
 
     ```python
-    # Example: Predicting molecular solubility using linear regression
+    """ Example: Predicting molecular solubility using linear regression """
 
     import numpy as np
     from sklearn.model_selection import train_test_split
     from sklearn.linear_model import LinearRegression
     from sklearn.metrics import mean_squared_error
 
-    # ---------------------------------------------------
-    # Input features (molecular descriptors)
-    # Columns:
-    # [molecular_weight, polar_surface_area, logP]
-    # ---------------------------------------------------
+    """ 
+     Input features (molecular descriptors)
+     Columns:
+     [molecular_weight, polar_surface_area, logP]
+    """ 
 
     X = np.array([
         [180.1, 45.2, 1.2],
@@ -93,28 +93,28 @@ Common supervised learning tasks include:
         [210.0, 50.0, 1.7]
     ])
 
-    # Experimental solubility values
+    """ Experimental solubility values """
     y = np.array([12.5, 8.1, 3.2, 15.0, 6.4, 10.2])
 
-    # ---------------------------------------------------
-    # Split dataset into training and testing sets
-    # ---------------------------------------------------
+    """ 
+     Split dataset into training and testing sets
+    """ 
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
 
-    # ---------------------------------------------------
-    # Create and train the model
-    # ---------------------------------------------------
+    """ 
+     Create and train the model
+    """ 
 
     model = LinearRegression()
 
     model.fit(X_train, y_train)
 
-    # ---------------------------------------------------
-    # Evaluate the model
-    # ---------------------------------------------------
+    """ 
+     Evaluate the model
+    """ 
 
     y_pred = model.predict(X_test)
 
@@ -122,13 +122,13 @@ Common supervised learning tasks include:
 
     print("Mean Squared Error:", mse)
 
-    # ---------------------------------------------------
-    # Predict solubility for a new molecule
-    # Example molecule:
-    # molecular_weight = 240
-    # polar_surface_area = 55
-    # logP = 2.1
-    # ---------------------------------------------------
+    """ 
+     Predict solubility for a new molecule
+     Example molecule:
+     molecular_weight = 240
+     polar_surface_area = 55
+     logP = 2.1
+    """ 
 
     new_molecule = np.array([[240.0, 55.0, 2.1]])
 
