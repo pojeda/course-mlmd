@@ -1157,7 +1157,6 @@ Where:
 * $w_i$ are the model parameters
 * $\lambda$ controls the strength of the regularization penalty
 
-
 ```python
 from sklearn.linear_model import Lasso
 
@@ -1165,7 +1164,20 @@ model = Lasso(alpha=0.1)  # alpha controls regularization strength
 model.fit(X_train, y_train)
 ```
 
-**L2 Regularization (Ridge)**: Penalizes large weights
+**L2 Regularization (Ridge)**: Penalizes large model parameters by adding the squared magnitude of 
+the weights to the loss function. This helps reduce model complexity and improves generalization.
+
+$$
+L(\mathbf{w}) = \text{Loss}(\mathbf{w}) + \lambda \sum_{i=1}^{n} w_i^2
+$$
+
+Where:
+
+* $\text{Loss}(\mathbf{w})$ is the original loss function
+* $w_i$ are the model parameters
+* $\lambda$ controls the strength of the regularization penalty
+
+
 ```python
 from sklearn.linear_model import Ridge
 
@@ -1173,7 +1185,21 @@ model = Ridge(alpha=1.0)
 model.fit(X_train, y_train)
 ```
 
-**Elastic Net**: Combines L1 and L2
+**Elastic Net**: Combines both L1 and L2 regularization, encouraging sparsity while also 
+penalizing large model parameters.
+
+$$
+L(\mathbf{w}) = \text{Loss}(\mathbf{w}) + \lambda_1 \sum_{i=1}^{n} |w_i| + \lambda_2 \sum_{i=1}^{n} w_i^2
+$$
+
+Where:
+
+* $\text{Loss}(\mathbf{w})$ is the original loss function
+* $w_i$ are the model parameters
+* $\lambda_1$ controls the strength of the L1 penalty
+* $\lambda_2$ controls the strength of the L2 penalty
+
+
 ```python
 from sklearn.linear_model import ElasticNet
 
@@ -1183,6 +1209,9 @@ model.fit(X_train, y_train)
 
 #### 3. Cross-Validation
 Use all data for both training and validation:
+
+![CV](../images/cross-validation.png){: style="width: 300px;"}
+
 ```python
 from sklearn.model_selection import cross_val_score
 
