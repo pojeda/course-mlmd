@@ -53,7 +53,7 @@ plugins:
 
 markdown_extensions:
   - toc:
-      toc_depth: 2
+      toc_depth: 1-2
       permalink: true
       permalink_title: Anchor link to this section for reference
   - admonition
