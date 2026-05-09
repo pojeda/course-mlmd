@@ -17,7 +17,6 @@ By the end of Day 0, you will be able to:
 * Describe the basic structure and function of neural networks
 * Understand key strategies for model optimization and hyperparameter tuning
 
----
 
 ## 1. What Is Machine Learning?
 
