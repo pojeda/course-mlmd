@@ -1384,7 +1384,317 @@ print(f"Adjacency matrix shape: {adj.shape}")
 print(f"Actual atoms: {n_atoms}")
 ```
 
----
+## 9. Practical Exercise: Complete ML Pipeline
+
+### Task
+Build a complete machine learning pipeline to predict molecular solubility. The dataset can be downloaded from:
+J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10.1021/ci034243x)
+
+### Dataset
+```python
+import pandas as pd
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+import numpy as np
+
+# Load data - adjust column name for target variable
+data = pd.read_csv('esol.csv')
+
+print(f"Dataset size: {len(data)}")
+print(data.head())
+print(f"Column names: {data.columns.tolist()}")
+```
+
+### Step 1: Feature Engineering
+```python
+def calculate_molecular_features(smiles):
+    """Calculate molecular descriptors from SMILES"""
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    
+    features = {
+        'MolWt': Descriptors.MolWt(mol),
+        'LogP': Descriptors.MolLogP(mol),
+        'NumHDonors': Descriptors.NumHDonors(mol),
+        'NumHAcceptors': Descriptors.NumHAcceptors(mol),
+        'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
+        'NumAromaticRings': Descriptors.NumAromaticRings(mol),
+        'TPSA': Descriptors.TPSA(mol),
+        'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
+        'NumRings': Descriptors.RingCount(mol),
+        'NumSaturatedRings': Descriptors.NumSaturatedRings(mol)
+    }
+    
+    return features
+
+# Calculate features for all molecules
+features_list = []
+valid_indices = []
+
+for idx, smiles in enumerate(data['SMILES']):
+    features = calculate_molecular_features(smiles)
+    if features is not None:
+        features_list.append(features)
+        valid_indices.append(idx)
+
+# Create feature DataFrame
+X = pd.DataFrame(features_list)
+# Use the correct column name for solubility
+y = data.loc[valid_indices, 'measured log(solubility:mol/L)'].values
+
+print(f"\nFeatures shape: {X.shape}")
+print(f"Targets shape: {y.shape}")
+print(f"Valid molecules: {len(valid_indices)} / {len(data)}")
+```
+
+### Step 2: Data Validation and Exploration
+```python
+# Check for missing values
+print("\nMissing values:")
+print(X.isnull().sum())
+
+# Check distributions
+print("\nFeature statistics:")
+print(X.describe())
+
+print("\nTarget statistics:")
+print(f"Mean: {y.mean():.3f}")
+print(f"Std: {y.std():.3f}")
+print(f"Min: {y.min():.3f}")
+print(f"Max: {y.max():.3f}")
+
+# Visualize correlations
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.figure(figsize=(10, 8))
+correlations = X.corrwith(pd.Series(y, index=X.index))
+correlations.sort_values().plot(kind='barh')
+plt.xlabel('Correlation with Solubility')
+plt.title('Feature Correlations')
+plt.tight_layout()
+#plt.show()
+plt.savefig('feature_importance.png', dpi=300, bbox_inches='tight')
+plt.close()
+```
+
+### Step 3: Train-Test Split
+```python
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+print(f"\nTraining set size: {len(X_train)}")
+print(f"Test set size: {len(X_test)}")
+```
+
+### Step 4: Preprocessing
+```python
+# Standardize features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+```
+
+### Step 5: Model Training with Cross-Validation
+```python
+# Try different models
+from sklearn.linear_model import Ridge, Lasso
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.svm import SVR
+
+models = {
+    'Ridge': Ridge(alpha=1.0),
+    'Lasso': Lasso(alpha=0.1),
+    'Random Forest': RandomForestRegressor(n_estimators=100, random_state=42),
+    'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
+    'SVR': SVR(kernel='rbf', C=1.0)
+}
+
+# Cross-validation
+print("\nCross-validation results:")
+cv_results = {}
+
+for name, model in models.items():
+    scores = cross_val_score(model, X_train_scaled, y_train, cv=5, 
+                            scoring='r2', n_jobs=-1)
+    cv_results[name] = scores
+    print(f"{name:20s}: R² = {scores.mean():.3f} ± {scores.std():.3f}")
+
+# Select best model
+best_model_name = max(cv_results, key=lambda k: cv_results[k].mean())
+best_model = models[best_model_name]
+print(f"\nBest model: {best_model_name}")
+```
+
+### Step 6: Hyperparameter Tuning
+```python
+from sklearn.model_selection import RandomizedSearchCV
+
+# Tune the best model (Random Forest in this example)
+if best_model_name == 'Random Forest':
+    param_distributions = {
+        'n_estimators': [100, 200, 500],
+        'max_depth': [10, 20, 30, None],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['sqrt', 'log2', 0.5, 1.0, None]  # Changed: removed 'auto', added valid options
+    }
+    
+    random_search = RandomizedSearchCV(
+        RandomForestRegressor(random_state=42),
+        param_distributions,
+        n_iter=20,
+        cv=5,
+        scoring='r2',
+        n_jobs=-1,
+        random_state=42,
+        verbose=1
+    )
+    
+    random_search.fit(X_train_scaled, y_train)
+    
+    print(f"\nBest parameters: {random_search.best_params_}")
+    print(f"Best CV R²: {random_search.best_score_:.3f}")
+    
+    best_model = random_search.best_estimator_
+```
+
+### Step 7: Final Evaluation
+```python
+# Train on full training set
+best_model.fit(X_train_scaled, y_train)
+
+# Predict on test set
+y_pred_train = best_model.predict(X_train_scaled)
+y_pred_test = best_model.predict(X_test_scaled)
+
+# Calculate metrics
+train_r2 = r2_score(y_train, y_pred_train)
+train_rmse = np.sqrt(mean_squared_error(y_train, y_pred_train))
+train_mae = mean_absolute_error(y_train, y_pred_train)
+
+test_r2 = r2_score(y_test, y_pred_test)
+test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test))
+test_mae = mean_absolute_error(y_test, y_pred_test)
+
+print("\nFinal Results:")
+print(f"Training   - R²: {train_r2:.3f}, RMSE: {train_rmse:.3f}, MAE: {train_mae:.3f}")
+print(f"Test       - R²: {test_r2:.3f}, RMSE: {test_rmse:.3f}, MAE: {test_mae:.3f}")
+
+# Check for overfitting
+if train_r2 - test_r2 > 0.1:
+    print("\nWarning: Possible overfitting detected!")
+else:
+    print("\nModel generalizes well!")
+```
+
+### Step 8: Visualization and Analysis
+```python
+# Prediction plots
+fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+
+# Training set
+axes[0].scatter(y_train, y_pred_train, alpha=0.5)
+axes[0].plot([y_train.min(), y_train.max()], 
+             [y_train.min(), y_train.max()], 'r--', lw=2)
+axes[0].set_xlabel('True Solubility')
+axes[0].set_ylabel('Predicted Solubility')
+axes[0].set_title(f'Training Set (R² = {train_r2:.3f})')
+axes[0].axis('equal')
+
+# Test set
+axes[1].scatter(y_test, y_pred_test, alpha=0.5)
+axes[1].plot([y_test.min(), y_test.max()], 
+             [y_test.min(), y_test.max()], 'r--', lw=2)
+axes[1].set_xlabel('True Solubility')
+axes[1].set_ylabel('Predicted Solubility')
+axes[1].set_title(f'Test Set (R² = {test_r2:.3f})')
+axes[1].axis('equal')
+
+plt.tight_layout()
+#plt.show()
+plt.savefig('predicted_solubility.png', dpi=300, bbox_inches='tight')
+plt.close()
+
+# Feature importance (for tree-based models)
+if hasattr(best_model, 'feature_importances_'):
+    importances = pd.DataFrame({
+        'feature': X.columns,
+        'importance': best_model.feature_importances_
+    }).sort_values('importance', ascending=False)
+    
+    print("\nTop 5 Most Important Features:")
+    print(importances.head())
+    
+    plt.figure(figsize=(10, 6))
+    importances.plot(x='feature', y='importance', kind='barh')
+    plt.xlabel('Importance')
+    plt.title('Feature Importance')
+    plt.tight_layout()
+    #plt.show()
+    plt.savefig('best_feature_importance.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+# Residual analysis
+residuals = y_test - y_pred_test
+
+plt.figure(figsize=(12, 4))
+
+plt.subplot(131)
+plt.scatter(y_pred_test, residuals, alpha=0.5)
+plt.axhline(y=0, color='r', linestyle='--')
+plt.xlabel('Predicted Values')
+plt.ylabel('Residuals')
+plt.title('Residual Plot')
+
+plt.subplot(132)
+plt.hist(residuals, bins=30, edgecolor='black')
+plt.xlabel('Residuals')
+plt.ylabel('Frequency')
+plt.title('Residual Distribution')
+
+plt.subplot(133)
+from scipy import stats
+stats.probplot(residuals, dist="norm", plot=plt)
+plt.title('Q-Q Plot')
+
+plt.tight_layout()
+#plt.show()
+plt.savefig('residuals.png', dpi=300, bbox_inches='tight')
+plt.close()
+```
+
+### Step 9: Model Persistence
+```python
+import joblib
+
+# Save model and scaler
+joblib.dump(best_model, 'solubility_model.pkl')
+joblib.dump(scaler, 'solubility_scaler.pkl')
+
+print("\nModel saved successfully!")
+
+# Load and use model
+loaded_model = joblib.load('solubility_model.pkl')
+loaded_scaler = joblib.load('solubility_scaler.pkl')
+
+# Make prediction for new molecule
+new_smiles = "CCO"  # Ethanol
+new_features = calculate_molecular_features(new_smiles)
+new_X = pd.DataFrame([new_features])
+new_X_scaled = loaded_scaler.transform(new_X)
+prediction = loaded_model.predict(new_X_scaled)
+
+print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
+```
+
 
 ## 7. Key Takeaways
 
