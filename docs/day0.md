@@ -67,7 +67,8 @@ Common supervised learning tasks include:
 * **Regression** — predicting continuous numerical quantities, such as binding energies, melting temperatures, or reaction rates
 * **Classification** — assigning data to discrete categories, such as toxic vs. non-toxic compounds or active vs. inactive molecules
 
-??? hint "Example"
+???- "Example"
+
     ```python
     # Example: Predicting molecular solubility using linear regression
 
