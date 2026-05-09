@@ -1492,7 +1492,9 @@ interpretation more intuitive.
 
 $$
 \mathrm{MSE} = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+$$
 
+$$
 \mathrm{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2}
 $$
 
@@ -1523,7 +1525,7 @@ performance. Negative values are also possible and suggest that the model perfor
 predicting the mean of the dataset.
 
 $$
-R^2 = 1 - \frac{\sum_{i=1}^{n} (y_i - \hat{y}*i)^2}{\sum*{i=1}^{n} (y_i - \bar{y})^2}
+R^2 = 1 - \frac{\sum_{i=1}^{n} (y_i - \hat{y}*i)^2}{\sum_{i=1}^{n} (y_i - \bar{y})^2}
 $$
 
 Where:
@@ -1543,7 +1545,7 @@ print(f"R²: {r2:.3f}")
 # R² = 1: Perfect predictions
 # R² = 0: As good as predicting mean
 # R² < 0: Worse than predicting mean
-# Range: (-∞, 1]
+# Range: ($-\infty$, 1]
 ```
 
 #### Visualization
