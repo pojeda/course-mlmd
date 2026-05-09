@@ -1208,9 +1208,20 @@ model.fit(X_train, y_train)
 ```
 
 #### 3. Cross-Validation
-Use all data for both training and validation:
 
-![CV](../images/cross-validation.png){: style="width: 300px;"}
+Cross-validation is a widely used technique for evaluating machine learning models more reliably, 
+especially when the available dataset is limited. Instead of performing a single train-test split, 
+the data is divided into multiple subsets, allowing the model to be trained and validated several 
+times on different portions of the dataset.
+
+In a typical cross-validation workflow, one subset is temporarily used for validation while the 
+remaining subsets are used for training. This process is repeated multiple times so that every 
+data point is eventually used for both training and validation. Cross-validation provides a more 
+robust estimate of model performance and helps reduce the risk of overfitting or biased evaluations 
+caused by a single random split.
+
+
+![CV](../images/cross-validation.png){: style="width: 600px;"}
 
 ```python
 from sklearn.model_selection import cross_val_score
