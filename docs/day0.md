@@ -587,7 +587,7 @@ The **test set** is used only for the final evaluation of the model on unseen da
 
 ### Conceptual Workflow
 
-```text id="u7gj59"
+```text
 Training Set   -> Learn patterns
 Validation Set -> Tune the model
 Test Set       -> Final evaluation
@@ -695,7 +695,7 @@ remain in the same subset.
 
 ### Conceptual Example
 
-```text id="9ev7qo"
+```text
 Random Split:
 Train → Benzene
 Test  → Phenol
@@ -703,7 +703,7 @@ Test  → Phenol
 Very similar molecules appear in both sets
 ```
 
-```text id="6w3w49"
+```text
 Scaffold Split:
 Train → Aromatic compounds
 Test  → Different chemical scaffolds
