@@ -28,7 +28,10 @@ extra_css:
 
 nav:
   - Home: index.md
-  - Introduction: day0.md
+  - Day 1: 
+    - Mathematics for Machine Learning: daym.md
+  - Day 2:
+    - Machine Learning Concepts: day0.md
   - Day 1: 
     - ML for Molecular Systems: day1.md
   - Day 2:
