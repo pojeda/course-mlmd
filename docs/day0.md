@@ -228,106 +228,106 @@ for chemical compounds
 * **Experimental design** — selecting the most informative experiments to accelerate discovery while 
 minimizing cost and computational effort
 
+??? note "Example"
 
-```python
-# Basic Reinforcement Learning Example for Molecular Optimization
+    ```python
+    """ Basic Reinforcement Learning Example for Molecular Optimization """
 
-import random
+    import random
 
-# ---------------------------------------------------
-# Example molecules represented by simple properties
-# Each molecule has:
-# - size
-# - stability
-# - solubility
-# ---------------------------------------------------
+    """ 
+     Example molecules represented by simple properties
+     Each molecule has:
+     - size
+     - stability
+     - solubility
+    """ 
 
-molecule_space = [
-    {"name": "Molecule A", "size": 2, "stability": 5, "solubility": 8},
-    {"name": "Molecule B", "size": 5, "stability": 7, "solubility": 4},
-    {"name": "Molecule C", "size": 3, "stability": 9, "solubility": 6},
-    {"name": "Molecule D", "size": 7, "stability": 4, "solubility": 3},
-    {"name": "Molecule E", "size": 4, "stability": 8, "solubility": 7},
-]
+    molecule_space = [
+        {"name": "Molecule A", "size": 2, "stability": 5, "solubility": 8},
+        {"name": "Molecule B", "size": 5, "stability": 7, "solubility": 4},
+        {"name": "Molecule C", "size": 3, "stability": 9, "solubility": 6},
+        {"name": "Molecule D", "size": 7, "stability": 4, "solubility": 3},
+        {"name": "Molecule E", "size": 4, "stability": 8, "solubility": 7},
+    ]
 
-# ---------------------------------------------------
-# Reward function
-# Goal:
-# Favor molecules with high stability and solubility
-# ---------------------------------------------------
+    """ 
+     Reward function
+     Goal:
+     Favor molecules with high stability and solubility
+    """ 
 
-def evaluate_properties(molecule):
+    def evaluate_properties(molecule):
 
-    reward = (
-        molecule["stability"] +
-        molecule["solubility"]
-    )
-
-    return reward
-
-# ---------------------------------------------------
-# Simple RL agent
-# ---------------------------------------------------
-
-class RandomAgent:
-
-    def select_action(self, state):
-
-        # Randomly choose a new molecule
-        return random.choice(molecule_space)
-
-    def learn(self, state, action, reward):
-
-        print(
-            f"Learning from transition:\n"
-            f"  {state['name']} -> {action['name']}\n"
-            f"  Reward = {reward}\n"
+        reward = (
+            molecule["stability"] +
+            molecule["solubility"]
         )
 
-# ---------------------------------------------------
-# Initialize agent
-# ---------------------------------------------------
+        return reward
 
-agent = RandomAgent()
+    """ 
+     Simple RL agent
+    """ 
 
-num_episodes = 5
+    class RandomAgent:
 
-# ---------------------------------------------------
-# Reinforcement learning loop
-# ---------------------------------------------------
+        def select_action(self, state):
 
-for episode in range(num_episodes):
+            """ Randomly choose a new molecule """
+            return random.choice(molecule_space)
 
-    print(f"\nEpisode {episode + 1}")
+        def learn(self, state, action, reward):
 
-    # Start from a random molecule
-    state = random.choice(molecule_space)
+            print(
+                f"Learning from transition:\n"
+                f"  {state['name']} -> {action['name']}\n"
+                f"  Reward = {reward}\n"
+            )
 
-    done = False
-    step = 0
+    """ 
+     Initialize agent
+    """ 
 
-    while not done:
+    agent = RandomAgent()
 
-        # Agent proposes a molecular modification
-        new_molecule = agent.select_action(state)
+    num_episodes = 5
 
-        # Evaluate molecular properties
-        reward = evaluate_properties(new_molecule)
+    """ 
+     Reinforcement learning loop
+    """ 
 
-        # Agent learns from the reward
-        agent.learn(state, new_molecule, reward)
+    for episode in range(num_episodes):
 
-        # Update current state
-        state = new_molecule
+        print(f"\nEpisode {episode + 1}")
 
-        step += 1
+        "" Start from a random molecule """
+        state = random.choice(molecule_space)
 
-        # Stop after a few optimization steps
-        if step >= 3:
-            done = True
-```
+        done = False
+        step = 0
 
----
+        while not done:
+
+            """ Agent proposes a molecular modification """
+            new_molecule = agent.select_action(state)
+
+            """ Evaluate molecular properties """
+            reward = evaluate_properties(new_molecule)
+
+            """ Agent learns from the reward """
+            agent.learn(state, new_molecule, reward)
+
+            """ Update current state """
+            state = new_molecule
+
+            step += 1
+
+            """ Stop after a few optimization steps """
+            if step >= 3:
+                done = True
+    ```
+
 
 ## 2. The Machine Learning Workflow
 
@@ -368,179 +368,182 @@ Scientific datasets can originate from several different sources, including:
 
 
 #### Data Quality Checks
-```python
-# Fully working example: data preparation + feature engineering
 
-import pandas as pd
-import numpy as np
+??? note "Example"
 
-# ---------------------------------------------------
-# 1. Create a small example dataset
-# ---------------------------------------------------
+    ```python
+    """ example: data preparation + feature engineering """
 
-data = pd.DataFrame({
-    "molecule_name": [
-        "Ethanol",
-        "Acetic acid",
-        "Benzene",
-        "Acetone",
-        "Phenol",
-        "Ethanol",          # duplicate row
-        "Invalid molecule",
-        "Large outlier"
-    ],
-    "smiles": [
-        "CCO",
-        "CC(=O)O",
-        "c1ccccc1",
-        "CC(=O)C",
-        "c1ccccc1O",
-        "CCO",              # duplicate row
-        "not_a_smiles",     # invalid molecule
-        "CCCCCCCCCCCCCCCC"
-    ],
-    "property": [
-        -0.31,
-        -0.17,
-        -2.13,
-        -0.24,
-        -1.46,
-        -0.31,              # duplicate value
-        np.nan,             # missing value
-        50.0                # artificial outlier
+    import pandas as pd
+    import numpy as np
+
+    """ 
+     1. Create a small example dataset
+    """ 
+
+    data = pd.DataFrame({
+        "molecule_name": [
+            "Ethanol",
+            "Acetic acid",
+            "Benzene",
+            "Acetone",
+            "Phenol",
+            "Ethanol",          # duplicate row
+            "Invalid molecule",
+            "Large outlier"
+        ],
+        "smiles": [
+            "CCO",
+            "CC(=O)O",
+            "c1ccccc1",
+            "CC(=O)C",
+            "c1ccccc1O",
+            "CCO",              # duplicate row
+            "not_a_smiles",     # invalid molecule
+            "CCCCCCCCCCCCCCCC"
+        ],
+        "property": [
+            -0.31,
+            -0.17,
+            -2.13,
+            -0.24,
+            -1.46,
+            -0.31,              # duplicate value
+            np.nan,             # missing value
+            50.0                # artificial outlier
+        ]
+    })
+
+    """ Save dataset as CSV """
+    data.to_csv("molecular_data.csv", index=False)
+
+    """ 
+     2. Load data
+    """ 
+
+    data = pd.read_csv("molecular_data.csv")
+
+    print("Original data:")
+    print(data)
+
+    """ 
+     3. Check for missing values
+    """ 
+
+    print("\nMissing values:")
+    print(data.isnull().sum())
+
+    """ 
+     4. Check for duplicates
+    """ 
+
+    print("\nNumber of duplicate rows:")
+    print(data.duplicated().sum())
+
+    """ Remove duplicate rows """
+    data = data.drop_duplicates()
+
+    """ 
+     5. Check distributions
+    """ 
+
+    print("\nSummary statistics:")
+    print(data.describe())
+
+    """ 
+     6. Remove missing values
+    """ 
+
+    data = data.dropna(subset=["smiles", "property"])
+
+    """ 
+     7. Remove outliers using the 3-sigma rule
+    """ 
+
+    z_scores = np.abs(
+        (data["property"] - data["property"].mean()) / data["property"].std()
+    )
+
+    data_clean = data[z_scores < 3].copy()
+
+    print("\nCleaned data:")
+    print(data_clean)
+
+    """ 
+     8. Feature engineering with RDKit
+    """ 
+
+    from rdkit import Chem
+    from rdkit.Chem import Descriptors
+
+    def calculate_features(smiles):
+        """
+        Convert a molecule represented by a SMILES string
+        into numerical molecular descriptors.
+        """
+
+        mol = Chem.MolFromSmiles(smiles)
+
+        """ Handle invalid molecules """
+        if mol is None:
+            return None
+
+        features = {
+            "molecular_weight": Descriptors.MolWt(mol),
+            "logP": Descriptors.MolLogP(mol),
+            "num_h_donors": Descriptors.NumHDonors(mol),
+            "num_h_acceptors": Descriptors.NumHAcceptors(mol),
+            "tpsa": Descriptors.TPSA(mol),
+            "num_rotatable_bonds": Descriptors.NumRotatableBonds(mol),
+            "num_aromatic_rings": Descriptors.NumAromaticRings(mol)
+        }
+
+        return features
+
+    """ 
+     9. Apply feature engineering to each molecule
+    """ 
+
+    feature_rows = []
+
+    for _, row in data_clean.iterrows():
+        features = calculate_features(row["smiles"])
+
+        if features is not None:
+            features["molecule_name"] = row["molecule_name"]
+            features["smiles"] = row["smiles"]
+            features["property"] = row["property"]
+            feature_rows.append(features)
+
+    features_df = pd.DataFrame(feature_rows)
+
+    """ Reorder columns """
+    features_df = features_df[
+        [
+            "molecule_name",
+            "smiles",
+            "molecular_weight",
+            "logP",
+            "num_h_donors",
+            "num_h_acceptors",
+            "tpsa",
+            "num_rotatable_bonds",
+            "num_aromatic_rings",
+            "property"
+        ]
     ]
-})
 
-# Save dataset as CSV
-data.to_csv("molecular_data.csv", index=False)
+    print("\nFinal feature table:")
+    print(features_df)
 
-# ---------------------------------------------------
-# 2. Load data
-# ---------------------------------------------------
+    """ 
+     10. Save final processed dataset
+    """ 
 
-data = pd.read_csv("molecular_data.csv")
+    features_df.to_csv("molecular_features.csv", index=False)
 
-print("Original data:")
-print(data)
-
-# ---------------------------------------------------
-# 3. Check for missing values
-# ---------------------------------------------------
-
-print("\nMissing values:")
-print(data.isnull().sum())
-
-# ---------------------------------------------------
-# 4. Check for duplicates
-# ---------------------------------------------------
-
-print("\nNumber of duplicate rows:")
-print(data.duplicated().sum())
-
-# Remove duplicate rows
-data = data.drop_duplicates()
-
-# ---------------------------------------------------
-# 5. Check distributions
-# ---------------------------------------------------
-
-print("\nSummary statistics:")
-print(data.describe())
-
-# ---------------------------------------------------
-# 6. Remove missing values
-# ---------------------------------------------------
-
-data = data.dropna(subset=["smiles", "property"])
-
-# ---------------------------------------------------
-# 7. Remove outliers using the 3-sigma rule
-# ---------------------------------------------------
-
-z_scores = np.abs(
-    (data["property"] - data["property"].mean()) / data["property"].std()
-)
-
-data_clean = data[z_scores < 3].copy()
-
-print("\nCleaned data:")
-print(data_clean)
-
-# ---------------------------------------------------
-# 8. Feature engineering with RDKit
-# ---------------------------------------------------
-
-from rdkit import Chem
-from rdkit.Chem import Descriptors
-
-def calculate_features(smiles):
-    """
-    Convert a molecule represented by a SMILES string
-    into numerical molecular descriptors.
-    """
-
-    mol = Chem.MolFromSmiles(smiles)
-
-    # Handle invalid molecules
-    if mol is None:
-        return None
-
-    features = {
-        "molecular_weight": Descriptors.MolWt(mol),
-        "logP": Descriptors.MolLogP(mol),
-        "num_h_donors": Descriptors.NumHDonors(mol),
-        "num_h_acceptors": Descriptors.NumHAcceptors(mol),
-        "tpsa": Descriptors.TPSA(mol),
-        "num_rotatable_bonds": Descriptors.NumRotatableBonds(mol),
-        "num_aromatic_rings": Descriptors.NumAromaticRings(mol)
-    }
-
-    return features
-
-# ---------------------------------------------------
-# 9. Apply feature engineering to each molecule
-# ---------------------------------------------------
-
-feature_rows = []
-
-for _, row in data_clean.iterrows():
-    features = calculate_features(row["smiles"])
-
-    if features is not None:
-        features["molecule_name"] = row["molecule_name"]
-        features["smiles"] = row["smiles"]
-        features["property"] = row["property"]
-        feature_rows.append(features)
-
-features_df = pd.DataFrame(feature_rows)
-
-# Reorder columns
-features_df = features_df[
-    [
-        "molecule_name",
-        "smiles",
-        "molecular_weight",
-        "logP",
-        "num_h_donors",
-        "num_h_acceptors",
-        "tpsa",
-        "num_rotatable_bonds",
-        "num_aromatic_rings",
-        "property"
-    ]
-]
-
-print("\nFinal feature table:")
-print(features_df)
-
-# ---------------------------------------------------
-# 10. Save final processed dataset
-# ---------------------------------------------------
-
-features_df.to_csv("molecular_features.csv", index=False)
-
-print("\nProcessed dataset saved as molecular_features.csv")
-```
+    print("\nProcessed dataset saved as molecular_features.csv")
+    ```
 
 **pandas** is a widely used Python library for data analysis and manipulation. It provides powerful tools for working 
 with structured data such as tables and spreadsheets through objects called DataFrames. In machine learning and scientific 
@@ -592,89 +595,91 @@ Validation Set → Tune the model
 Test Set       → Final evaluation
 ```
 
+??? note "Example"
 
+    ```python
+    """ Basic example: training, validation, and test split """
 
-```python
-# Basic example: training, validation, and test split
+    import numpy as np
+    from sklearn.model_selection import train_test_split
 
-import numpy as np
-from sklearn.model_selection import train_test_split
+    """ 
+     1. Create a small example dataset
+    """ 
 
-# ---------------------------------------------------
-# 1. Create a small example dataset
-# ---------------------------------------------------
+    """
+     X = input features
+     y = target values
+    """
 
-# X = input features
-# y = target values
+    X = np.array([
+        [1.0, 2.0],
+        [2.0, 1.5],
+        [3.0, 3.5],
+        [4.0, 4.5],
+        [5.0, 5.5],
+        [6.0, 6.5],
+        [7.0, 7.5],
+        [8.0, 8.5],
+        [9.0, 9.5],
+        [10.0, 10.5]
+    ])
 
-X = np.array([
-    [1.0, 2.0],
-    [2.0, 1.5],
-    [3.0, 3.5],
-    [4.0, 4.5],
-    [5.0, 5.5],
-    [6.0, 6.5],
-    [7.0, 7.5],
-    [8.0, 8.5],
-    [9.0, 9.5],
-    [10.0, 10.5]
-])
+    y = np.array([1, 1, 2, 2, 3, 3, 4, 4, 5, 5])
 
-y = np.array([1, 1, 2, 2, 3, 3, 4, 4, 5, 5])
+    """ 
+     2. First split: training set and temporary set
+    """ 
 
-# ---------------------------------------------------
-# 2. First split: training set and temporary set
-# ---------------------------------------------------
+    X_train, X_temp, y_train, y_temp = train_test_split(
+        X,
+        y,
+        test_size=0.30,
+        random_state=42
+    )
 
-X_train, X_temp, y_train, y_temp = train_test_split(
-    X,
-    y,
-    test_size=0.30,
-    random_state=42
-)
+    """ 
+     3. Second split: validation set and test set
+    """ 
 
-# ---------------------------------------------------
-# 3. Second split: validation set and test set
-# ---------------------------------------------------
+    X_val, X_test, y_val, y_test = train_test_split(
+        X_temp,
+        y_temp,
+        test_size=0.50,
+        random_state=42
+    )
 
-X_val, X_test, y_val, y_test = train_test_split(
-    X_temp,
-    y_temp,
-    test_size=0.50,
-    random_state=42
-)
+    """ 
+     4. Print the results
+    """ 
 
-# ---------------------------------------------------
-# 4. Print the results
-# ---------------------------------------------------
+    print("Training set:")
+    print("X_train:")
+    print(X_train)
+    print("y_train:")
+    print(y_train)
 
-print("Training set:")
-print("X_train:")
-print(X_train)
-print("y_train:")
-print(y_train)
+    print("\nValidation set:")
+    print("X_val:")
+    print(X_val)
+    print("y_val:")
+    print(y_val)
 
-print("\nValidation set:")
-print("X_val:")
-print(X_val)
-print("y_val:")
-print(y_val)
+    print("\nTest set:")
+    print("X_test:")
+    print(X_test)
+    print("y_test:")
+    print(y_test)
 
-print("\nTest set:")
-print("X_test:")
-print(X_test)
-print("y_test:")
-print(y_test)
+    """ 
+     5. Print the sizes
+    """ 
 
-# ---------------------------------------------------
-# 5. Print the sizes
-# ---------------------------------------------------
-
-print("\nDataset sizes:")
-print("Training set size:", len(X_train))
-print("Validation set size:", len(X_val))
-print("Test set size:", len(X_test))
-```
+    print("\nDataset sizes:")
+    print("Training set size:", len(X_train))
+    print("Validation set size:", len(X_val))
+    print("Test set size:", len(X_test))
+    ```
 
 ### Scaffold-Based Splitting
 
@@ -711,124 +716,128 @@ Test molecules are structurally different
 This strategy is widely used in molecular property prediction, drug discovery, and materials science to 
 better evaluate model generalization to new chemical structures.
 
+??? note "Example"
 
-```python
-# example: scaffold-based train/test split
+    ```python
+    """ example: scaffold-based train/test split """
 
-import numpy as np
-from rdkit import Chem
-from rdkit.Chem.Scaffolds import MurckoScaffold
-from sklearn.model_selection import GroupShuffleSplit
+    import numpy as np
+    from rdkit import Chem
+    from rdkit.Chem.Scaffolds import MurckoScaffold
+    from sklearn.model_selection import GroupShuffleSplit
 
-# ---------------------------------------------------
-# 1. Example molecules (SMILES strings)
-# ---------------------------------------------------
+    """ 
+     1. Example molecules (SMILES strings)
+    """ 
 
-molecules = [
-    "CCO",                  # Ethanol
-    "CCCO",                 # Propanol
-    "c1ccccc1",             # Benzene
-    "c1ccccc1O",            # Phenol
-    "CC(=O)O",              # Acetic acid
-    "CC(=O)OC1=CC=CC=C1C(=O)O",  # Aspirin
-    "CCN(CC)CC",            # Triethylamine
-    "c1ccncc1"              # Pyridine
-]
-
-# Example target property
-# (e.g., solubility or biological activity)
-
-y = np.array([1.2, 1.5, 0.3, 0.4, 2.1, 0.8, 1.7, 0.5])
-
-# ---------------------------------------------------
-# 2. Generate simple numerical features
-# ---------------------------------------------------
-
-X = []
-
-for smiles in molecules:
-
-    mol = Chem.MolFromSmiles(smiles)
-
-    features = [
-        mol.GetNumAtoms(),
-        mol.GetNumBonds(),
-        mol.GetRingInfo().NumRings()
+    molecules = [
+        "CCO",                  # Ethanol
+        "CCCO",                 # Propanol
+        "c1ccccc1",             # Benzene
+        "c1ccccc1O",            # Phenol
+        "CC(=O)O",              # Acetic acid
+        "CC(=O)OC1=CC=CC=C1C(=O)O",  # Aspirin
+        "CCN(CC)CC",            # Triethylamine
+        "c1ccncc1"              # Pyridine
     ]
 
-    X.append(features)
+    """
+     Example target property
+     (e.g., solubility or biological activity)
+    """
 
-X = np.array(X)
+    y = np.array([1.2, 1.5, 0.3, 0.4, 2.1, 0.8, 1.7, 0.5])
 
-# ---------------------------------------------------
-# 3. Define scaffold extraction function
-# ---------------------------------------------------
+    """ 
+     2. Generate simple numerical features
+    """ 
 
-def get_scaffold(smiles):
+    X = []
 
-    mol = Chem.MolFromSmiles(smiles)
+    for smiles in molecules:
 
-    scaffold = MurckoScaffold.MurckoScaffoldSmiles(mol=mol)
+        mol = Chem.MolFromSmiles(smiles)
 
-    return scaffold
+        features = [
+            mol.GetNumAtoms(),
+            mol.GetNumBonds(),
+            mol.GetRingInfo().NumRings()
+        ]
 
-# ---------------------------------------------------
-# 4. Compute molecular scaffolds
-# ---------------------------------------------------
+        X.append(features)
 
-scaffolds = [get_scaffold(smiles) for smiles in molecules]
+    X = np.array(X)
 
-print("Molecular scaffolds:\n")
+    """ 
+     3. Define scaffold extraction function
+    """ 
 
-for mol, scaffold in zip(molecules, scaffolds):
-    print(f"{mol:35s} -> {scaffold}")
+    def get_scaffold(smiles):
 
-# ---------------------------------------------------
-# 5. Perform scaffold-based split
-# ---------------------------------------------------
+        mol = Chem.MolFromSmiles(smiles)
 
-splitter = GroupShuffleSplit(
-    n_splits=1,
-    test_size=0.2,
-    random_state=42
-)
+        scaffold = MurckoScaffold.MurckoScaffoldSmiles(mol=mol)
 
-train_idx, test_idx = next(
-    splitter.split(X, y, groups=scaffolds)
-)
+        return scaffold
 
-# ---------------------------------------------------
-# 6. Create training and test sets
-# ---------------------------------------------------
+    """ 
+     4. Compute molecular scaffolds
+    """ 
 
-X_train, X_test = X[train_idx], X[test_idx]
-y_train, y_test = y[train_idx], y[test_idx]
+    scaffolds = [get_scaffold(smiles) for smiles in molecules]
 
-train_molecules = [molecules[i] for i in train_idx]
-test_molecules = [molecules[i] for i in test_idx]
+    print("Molecular scaffolds:\n")
 
-# ---------------------------------------------------
-# 7. Display results
-# ---------------------------------------------------
+    for mol, scaffold in zip(molecules, scaffolds):
+        print(f"{mol:35s} -> {scaffold}")
 
-print("\nTraining molecules:")
+    """ 
+     5. Perform scaffold-based split
+    """ 
 
-for mol in train_molecules:
-    print(mol)
+    splitter = GroupShuffleSplit(
+        n_splits=1,
+        test_size=0.2,
+        random_state=42
+    )
 
-print("\nTest molecules:")
+    train_idx, test_idx = next(
+        splitter.split(X, y, groups=scaffolds)
+    )
 
-for mol in test_molecules:
-    print(mol)
+    """ 
+     6. Create training and test sets
+    """ 
 
-# ---------------------------------------------------
-# 8. Dataset sizes
-# ---------------------------------------------------
+    X_train, X_test = X[train_idx], X[test_idx]
+    y_train, y_test = y[train_idx], y[test_idx]
 
-print("\nDataset sizes:")
-print("Training set size:", len(X_train))
-print("Test set size:", len(X_test))
-```
+    train_molecules = [molecules[i] for i in train_idx]
+    test_molecules = [molecules[i] for i in test_idx]
+
+    """ 
+     7. Display results
+    """ 
+
+    print("\nTraining molecules:")
+
+    for mol in train_molecules:
+        print(mol)
+
+    print("\nTest molecules:")
+
+    for mol in test_molecules:
+        print(mol)
+
+    """ 
+     8. Dataset sizes
+    """ 
+
+    print("\nDataset sizes:")
+    print("Training set size:", len(X_train))
+    print("Test set size:", len(X_test))
+    ```
+
 --------------------------------------------------------
 ## 3. Overfitting and Underfitting
 
