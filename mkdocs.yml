@@ -74,6 +74,6 @@ markdown_extensions:
   - md_in_html
   - tables
   - toc:
+      toc_depth: 3
       permalink: true
-      separator: "__"
-
+      permalink_title: Anchor link to this section for reference
