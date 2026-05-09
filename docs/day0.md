@@ -868,61 +868,69 @@ better evaluate model generalization to new chemical structures.
 ??? note "Example"
 
     ```python
-    # Fully working example:
-    # Underfitting vs Good Fit vs Overfitting
+    
+    """ Underfitting vs Good Fit vs Overfitting """
 
     import numpy as np
     import matplotlib.pyplot as plt
 
-    # ---------------------------------------------------
-    # 1. Generate synthetic dataset
-    # ---------------------------------------------------
+    """ 
+     1. Generate synthetic dataset
+    """ 
 
-    # Reproducibility
+    """ Reproducibility """
     np.random.seed(42)
 
-    # Input variable
+    """ Input variable """
     X = np.linspace(0, 10, 50)
 
-    # True underlying relationship
-    # Quadratic function + random noise
+    """
+     True underlying relationship
+     Quadratic function + random noise
+    """
     y = 0.5 * X**2 - 2 * X + 3 + np.random.normal(0, 4, 50)
 
-    # ---------------------------------------------------
-    # 2. Train polynomial models
-    # ---------------------------------------------------
+    """ 
+     2. Train polynomial models
+    """ 
 
-    # Underfitting model:
-    # Degree 1 polynomial (linear model)
+    """ 
+     Underfitting model:
+     Degree 1 polynomial (linear model) 
+    """
     underfit_model = np.poly1d(
         np.polyfit(X, y, 1)
     )
-
-    # Good fit model:
-    # Degree 2 polynomial (matches true relationship)
+    
+    """
+     Good fit model:
+     Degree 2 polynomial (matches true relationship)
+    """
     good_model = np.poly1d(
         np.polyfit(X, y, 2)
     )
 
-    # Overfitting model:
-    # Very high-degree polynomial
+    """
+     Overfitting model:
+     Very high-degree polynomial
+    """
     overfit_model = np.poly1d(
         np.polyfit(X, y, 15)
     )
 
-    # ---------------------------------------------------
-    # 3. Create smooth plotting grid
-    # ---------------------------------------------------
+    """ 
+     3. Create smooth plotting grid
+    """ 
 
     X_plot = np.linspace(0, 10, 500)
 
-    # ---------------------------------------------------
-    # 4. Visualize results
-    # ---------------------------------------------------
+    """ 
+     4. Visualize results
+    """ 
 
     plt.figure(figsize=(10, 6))
 
-    # Original data points
+    """ Original data points """
     plt.scatter(
         X,
         y,
@@ -930,7 +938,7 @@ better evaluate model generalization to new chemical structures.
         label="Training Data"
     )
 
-    # Underfitting curve
+    """ Underfitting curve """
     plt.plot(
         X_plot,
         underfit_model(X_plot),
@@ -939,7 +947,7 @@ better evaluate model generalization to new chemical structures.
         label="Underfitting (Degree 1)"
     )
 
-    # Good fit curve
+    """ Good fit curve """
     plt.plot(
         X_plot,
         good_model(X_plot),
@@ -947,7 +955,7 @@ better evaluate model generalization to new chemical structures.
         label="Good Fit (Degree 2)"
     )
 
-    # Overfitting curve
+    """ Overfitting curve """
     plt.plot(
         X_plot,
         overfit_model(X_plot),
@@ -956,9 +964,9 @@ better evaluate model generalization to new chemical structures.
         label="Overfitting (Degree 15)"
     )
 
-    # ---------------------------------------------------
-    # 5. Labels and formatting
-    # ---------------------------------------------------
+    """ 
+     5. Labels and formatting
+    """ 
 
     plt.xlabel("Input Feature")
     plt.ylabel("Target Value")
