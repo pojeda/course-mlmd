@@ -1,9 +1,11 @@
-# 1. Linear Algebra
+# Mathematics for Machine Learning
+
+## 1. Linear Algebra
 
 Linear algebra forms the mathematical foundation of machine learning. Data, model parameters, neural 
 network activations, and transformations are typically represented using vectors and matrices.
 
-## Topics
+### Topics
 
 - Scalars, vectors, and matrices
 - Matrix multiplication
@@ -12,7 +14,7 @@ network activations, and transformations are typically represented using vectors
 - Eigenvalues and eigenvectors
 - Tensor operations
 
-## Example: Vector Operations in PyTorch
+### Example: Vector Operations in PyTorch
 
 ```python
 import torch
@@ -32,7 +34,7 @@ norm_x = torch.norm(x)
 print("Norm of x:", norm_x)
 ```
 
-## Matrix Multiplication Example
+### Matrix Multiplication Example
 
 ```python
 import torch
@@ -53,12 +55,12 @@ print(C)
 ```
 
 
-# 2. Optimization
+## 2. Optimization
 
 Optimization is the process of finding model parameters that minimize a loss function. Most 
 machine learning algorithms rely on optimization techniques such as gradient descent.
 
-## Topics
+### Topics
 
 - Functions and derivatives
 - Gradients
@@ -67,7 +69,7 @@ machine learning algorithms rely on optimization techniques such as gradient des
 - Learning rates
 - Loss minimization
 
-## Gradient Descent Concept
+### Gradient Descent Concept
 
 The goal is to iteratively update parameters:
 
@@ -81,7 +83,7 @@ Where:
 - $\eta$ is the learning rate
 - $L(\theta)$ is the loss function
 
-## Example: Gradient Descent in PyTorch
+### Example: Gradient Descent in PyTorch
 
 ```python
 import torch
@@ -111,12 +113,12 @@ for step in range(20):
 
 
 
-# 3. Probability and Statistics
+## 3. Probability and Statistics
 
 Probability and statistics are fundamental for understanding uncertainty, noise, 
 model evaluation, and probabilistic learning.
 
-## Topics
+### Topics
 
 - Random variables
 - Probability distributions
@@ -125,7 +127,7 @@ model evaluation, and probabilistic learning.
 - Covariance and correlation
 - Sampling
 
-## Example: Gaussian Distribution
+### Example: Gaussian Distribution
 
 ```python
 import torch
@@ -143,7 +145,7 @@ plt.title("Gaussian Distribution")
 plt.show()
 ```
 
-## Mean and Standard Deviation
+### Mean and Standard Deviation
 
 ```python
 import torch
@@ -155,19 +157,19 @@ print("Standard deviation:", torch.std(x))
 ```
 
 
-# 4. Information Theory
+## 4. Information Theory
 
 Information theory provides mathematical tools for quantifying uncertainty 
 and information content in data.
 
-## Topics
+### Topics
 
 - Entropy
 - Cross-entropy
 - Kullback–Leibler divergence
 - Information content
 
-## Entropy
+### Entropy
 
 Entropy measures uncertainty:
 
@@ -175,7 +177,7 @@ $$
 H(X) = -\sum_i p(x_i) \log p(x_i)
 $$
 
-## Example: Entropy Calculation
+### Example: Entropy Calculation
 
 ```python
 import torch
@@ -188,7 +190,7 @@ entropy = -torch.sum(p * torch.log2(p))
 print("Entropy:", entropy.item())
 ```
 
-## Cross-Entropy Loss Example
+### Cross-Entropy Loss Example
 
 ```python
 import torch
@@ -211,12 +213,12 @@ print("Cross-entropy loss:", loss.item())
 
 
 
-# 5. Basic Graph Theory
+## 5. Basic Graph Theory
 
 Graphs are widely used in machine learning for representing relationships between 
 objects. In chemistry, molecules can naturally be represented as graphs.
 
-## Topics
+### Topics
 
 - Nodes and edges
 - Adjacency matrices
@@ -224,7 +226,7 @@ objects. In chemistry, molecules can naturally be represented as graphs.
 - Graph connectivity
 - Molecular graphs
 
-## Example: Adjacency Matrix
+### Example: Adjacency Matrix
 
 ```python
 import torch
@@ -239,7 +241,7 @@ adjacency = torch.tensor([
 print(adjacency)
 ```
 
-## Graph Node Features
+### Graph Node Features
 
 ```python
 import torch
@@ -254,15 +256,13 @@ node_features = torch.tensor([
 print(node_features)
 ```
 
-
-
-# 6. Dimensionality Reduction
+## 6. Dimensionality Reduction
 
 Many scientific datasets contain high-dimensional data that can be difficult to 
 visualize or analyze directly. Dimensionality reduction techniques project the data into 
 lower-dimensional spaces while preserving important structure.
 
-## Topics
+### Topics
 
 - High-dimensional spaces
 - Principal Component Analysis (PCA)
@@ -270,7 +270,7 @@ lower-dimensional spaces while preserving important structure.
 - Data visualization
 - Feature compression
 
-## Example: PCA with PyTorch and scikit-learn
+### Example: PCA with PyTorch and scikit-learn
 
 ```python
 import torch
@@ -297,7 +297,7 @@ plt.show()
 ```
 
 
-# 7. Integrated Neural Network Example
+## 7. Integrated Neural Network Example
 
 This example combines several mathematical concepts introduced during the course.
 
@@ -338,11 +338,7 @@ for epoch in range(50):
     print(f"Epoch {epoch}: loss = {loss.item():.4f}")
 ```
 
-
-
-
-
-# Summary
+## Summary
 
 This course introduced the core mathematical concepts underlying machine learning and deep learning:
 
@@ -352,5 +348,3 @@ This course introduced the core mathematical concepts underlying machine learnin
 - Information theory for measuring information and learning
 - Graph theory for relational data
 - Dimensionality reduction for visualization and feature compression
-
-
