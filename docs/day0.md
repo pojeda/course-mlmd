@@ -838,52 +838,139 @@ better evaluate model generalization to new chemical structures.
     print("Test set size:", len(X_test))
     ```
 
---------------------------------------------------------
+
 ## 3. Overfitting and Underfitting
 
 ### 3.1 The Bias-Variance Tradeoff
 
+
 **Underfitting (High Bias)**:
-- Model is too simple
-- Poor performance on both training and test data
-- Doesn't capture underlying patterns
+
+* The model is too simple to adequately represent the complexity of the data
+* Performs poorly on both the training set and unseen test data
+* Fails to capture important relationships and underlying patterns
+* Often occurs when the model has insufficient capacity or too few features
 
 **Overfitting (High Variance)**:
-- Model is too complex
-- Excellent on training data, poor on test data
-- Memorizes noise instead of learning patterns
 
-**Sweet Spot**:
-- Balanced complexity
-- Good performance on both training and test data
-- Generalizes to new examples
+* The model is excessively complex relative to the amount of available data
+* Achieves very high accuracy on the training data but performs poorly on new data
+* Learns random fluctuations and noise instead of generalizable patterns
+* Typically results in poor predictive performance on unseen examples
 
-```python
-import matplotlib.pyplot as plt
-import numpy as np
+**Optimal Balance (Sweet Spot)**:
 
-# Generate example data
-X = np.linspace(0, 10, 50)
-y = 2 * X + 1 + np.random.normal(0, 2, 50)
+* The model has an appropriate level of complexity for the problem
+* Performs well on both training and test datasets
+* Captures meaningful patterns while avoiding memorization of noise
+* Generalizes effectively to new and unseen data points
 
-# Underfitting: degree 1 polynomial (too simple)
-underfit_model = np.poly1d(np.polyfit(X, y, 1))
+??? note "Example"
 
-# Good fit: degree 2 polynomial
-good_model = np.poly1d(np.polyfit(X, y, 2))
+    ```python
+    # Fully working example:
+    # Underfitting vs Good Fit vs Overfitting
 
-# Overfitting: degree 15 polynomial (too complex)
-overfit_model = np.poly1d(np.polyfit(X, y, 15))
+    import numpy as np
+    import matplotlib.pyplot as plt
 
-# Visualize
-X_plot = np.linspace(0, 10, 200)
-plt.scatter(X, y, alpha=0.5, label='Data')
-plt.plot(X_plot, underfit_model(X_plot), label='Underfitting', linestyle='--')
-plt.plot(X_plot, good_model(X_plot), label='Good Fit')
-plt.plot(X_plot, overfit_model(X_plot), label='Overfitting', linestyle=':')
-plt.legend()
-plt.show()
-```
+    # ---------------------------------------------------
+    # 1. Generate synthetic dataset
+    # ---------------------------------------------------
+
+    # Reproducibility
+    np.random.seed(42)
+
+    # Input variable
+    X = np.linspace(0, 10, 50)
+
+    # True underlying relationship
+    # Quadratic function + random noise
+    y = 0.5 * X**2 - 2 * X + 3 + np.random.normal(0, 4, 50)
+
+    # ---------------------------------------------------
+    # 2. Train polynomial models
+    # ---------------------------------------------------
+
+    # Underfitting model:
+    # Degree 1 polynomial (linear model)
+    underfit_model = np.poly1d(
+        np.polyfit(X, y, 1)
+    )
+
+    # Good fit model:
+    # Degree 2 polynomial (matches true relationship)
+    good_model = np.poly1d(
+        np.polyfit(X, y, 2)
+    )
+
+    # Overfitting model:
+    # Very high-degree polynomial
+    overfit_model = np.poly1d(
+        np.polyfit(X, y, 15)
+    )
+
+    # ---------------------------------------------------
+    # 3. Create smooth plotting grid
+    # ---------------------------------------------------
+
+    X_plot = np.linspace(0, 10, 500)
+
+    # ---------------------------------------------------
+    # 4. Visualize results
+    # ---------------------------------------------------
+
+    plt.figure(figsize=(10, 6))
+
+    # Original data points
+    plt.scatter(
+        X,
+        y,
+        alpha=0.7,
+        label="Training Data"
+    )
+
+    # Underfitting curve
+    plt.plot(
+        X_plot,
+        underfit_model(X_plot),
+        linestyle="--",
+        linewidth=2,
+        label="Underfitting (Degree 1)"
+    )
+
+    # Good fit curve
+    plt.plot(
+        X_plot,
+        good_model(X_plot),
+        linewidth=2,
+        label="Good Fit (Degree 2)"
+    )
+
+    # Overfitting curve
+    plt.plot(
+        X_plot,
+        overfit_model(X_plot),
+        linestyle=":",
+        linewidth=2,
+        label="Overfitting (Degree 15)"
+    )
+
+    # ---------------------------------------------------
+    # 5. Labels and formatting
+    # ---------------------------------------------------
+
+    plt.xlabel("Input Feature")
+    plt.ylabel("Target Value")
+
+    plt.title("Underfitting vs Good Fit vs Overfitting")
+
+    plt.legend()
+
+    plt.grid(True)
+    plt.savefig("underfitting-overfitting.png", dpi=300, bbox_inches="tight")
+    plt.show()
+    ```
 
 ### 3.2 Detecting Overfitting
 
