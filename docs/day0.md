@@ -2,188 +2,833 @@
 
 ## Welcome to the Course!
 
-Before diving into molecular and materials applications, this foundational day ensures everyone has a solid understanding of core machine learning concepts. Whether you're refreshing your knowledge or learning these concepts for the first time, this material will prepare you for the advanced topics in Days 1-5.
+Before exploring applications in molecular science and materials research, this introductory section is designed to build a strong 
+foundation in the core principles of machine learning. Whether you are revisiting familiar concepts or encountering them for the 
+first time, these fundamentals will prepare you for the more advanced topics covered throughout Days 1–.
 
 ## Learning Objectives
-By the end of Day 0, you will:
-- Understand the fundamental concepts of machine learning
-- Distinguish between different types of learning problems
-- Recognize and address overfitting and underfitting
-- Apply proper validation and evaluation techniques
-- Understand the basics of neural networks
-- Know how to optimize and tune models
+
+By the end of Day 0, you will be able to:
+
+* Explain the fundamental principles of machine learning
+* Differentiate among the main types of learning tasks
+* Identify and mitigate overfitting and underfitting
+* Apply appropriate validation and model evaluation methods
+* Describe the basic structure and function of neural networks
+* Understand key strategies for model optimization and hyperparameter tuning
 
 ---
 
-## 1. What is Machine Learning?
+## 1. What Is Machine Learning?
 
 ### 1.1 Definition
-Machine learning is the science of programming computers to learn from data without being explicitly programmed. Instead of writing rules, we provide examples and let the algorithm discover patterns.
 
-**Traditional Programming**:
-```
+Machine learning is a branch of artificial intelligence focused on developing algorithms that learn patterns directly from data. Rather 
+than explicitly programming a computer with a fixed set of rules, we provide examples and allow the model to infer the underlying relationships 
+on its own.
+
+### Traditional Programming
+
+```text
 Rules + Data → Output
 ```
 
-**Machine Learning**:
+### Machine Learning
+
+```text
+Data + Desired Output → Learned Model
 ```
-Data + Output → Rules (Model)
-```
 
-### 1.2 Why Machine Learning for Science?
+## 1.2 Why Use Machine Learning in Science?
 
-In molecular and materials science, ML helps us:
-- **Predict properties** without expensive experiments or simulations
-- **Discover patterns** in complex datasets
-- **Generate hypotheses** for new molecules or materials
-- **Accelerate discovery** by orders of magnitude
-- **Navigate high-dimensional spaces** that are intractable by traditional methods
+Machine learning has become an essential tool in molecular and materials science because it enables 
+researchers to extract valuable insights from large and complex datasets. By learning directly 
+from data, ML methods can complement traditional theoretical and experimental approaches in several 
+important ways:
 
-### 1.3 Types of Machine Learning
+* **Predict material and molecular properties** without relying solely on computationally expensive 
+simulations or laboratory experiments
+* **Identify hidden relationships and trends** within complex scientific data
+* **Support the design of new molecules and materials** by proposing promising candidates and guiding 
+hypothesis generation
+* **Speed up scientific discovery** by dramatically reducing the time required for screening and analysis
+* **Handle high-dimensional problems** that are difficult or impossible to address using conventional techniques
+
+### 1.3 Main Categories of Machine Learning
 
 #### Supervised Learning
-Learn from labeled examples (input-output pairs):
-- **Regression**: Predict continuous values (e.g., binding affinity, melting point)
-- **Classification**: Predict categories (e.g., toxic/non-toxic, active/inactive)
 
-```python
-# Example: Predicting molecular solubility (regression)
-X = molecular_features  # Input: molecular descriptors
-y = solubility_values   # Output: measured solubility
+Supervised learning involves training a model using labeled data, where both the inputs and the 
+corresponding outputs are known. The goal is to learn the relationship between them in order to make 
+predictions on new, unseen data.
 
-model.fit(X, y)  # Learn the relationship
-prediction = model.predict(new_molecule)  # Predict for new molecule
-```
+Common supervised learning tasks include:
+
+* **Regression** — predicting continuous numerical quantities, such as binding energies, melting temperatures, or reaction rates
+* **Classification** — assigning data to discrete categories, such as toxic vs. non-toxic compounds or active vs. inactive molecules
+
+??? hint "Example"
+    ```python
+    # Example: Predicting molecular solubility using linear regression
+
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+    from sklearn.linear_model import LinearRegression
+    from sklearn.metrics import mean_squared_error
+
+    # ---------------------------------------------------
+    # Input features (molecular descriptors)
+    # Columns:
+    # [molecular_weight, polar_surface_area, logP]
+    # ---------------------------------------------------
+
+    X = np.array([
+        [180.1, 45.2, 1.2],
+        [250.3, 60.1, 2.5],
+        [320.5, 75.0, 3.8],
+        [150.2, 30.5, 0.8],
+        [275.4, 68.2, 2.9],
+        [210.0, 50.0, 1.7]
+    ])
+
+    # Experimental solubility values
+    y = np.array([12.5, 8.1, 3.2, 15.0, 6.4, 10.2])
+
+    # ---------------------------------------------------
+    # Split dataset into training and testing sets
+    # ---------------------------------------------------
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # ---------------------------------------------------
+    # Create and train the model
+    # ---------------------------------------------------
+
+    model = LinearRegression()
+
+    model.fit(X_train, y_train)
+
+    # ---------------------------------------------------
+    # Evaluate the model
+    # ---------------------------------------------------
+
+    y_pred = model.predict(X_test)
+
+    mse = mean_squared_error(y_test, y_pred)
+
+    print("Mean Squared Error:", mse)
+
+    # ---------------------------------------------------
+    # Predict solubility for a new molecule
+    # Example molecule:
+    # molecular_weight = 240
+    # polar_surface_area = 55
+    # logP = 2.1
+    # ---------------------------------------------------
+
+    new_molecule = np.array([[240.0, 55.0, 2.1]])
+
+    prediction = model.predict(new_molecule)
+
+    print("Predicted solubility:", prediction[0])
+    ```
+
 
 #### Unsupervised Learning
-Find patterns in unlabeled data:
-- **Clustering**: Group similar molecules together
-- **Dimensionality reduction**: Visualize high-dimensional chemical space
-- **Anomaly detection**: Find unusual molecules
+
+Unsupervised learning focuses on analyzing data without predefined labels or target values. Instead of 
+learning from known answers, the algorithm explores the data to uncover hidden structures, relationships, and patterns.
+
+Common unsupervised learning techniques include:
+
+* **Clustering** — organizing molecules or materials into groups based on similarities in their properties or 
+structural features
+* **Dimensionality reduction** — simplifying high-dimensional datasets to enable visualization and interpretation 
+of complex chemical or materials spaces
+* **Anomaly detection** — identifying rare, unusual, or unexpected molecules that differ significantly from the 
+majority of the dataset
+
+
 
 ```python
-# Example: Clustering molecules by similarity
-from sklearn.cluster import KMeans
+# Example: Clustering molecules by similarity using K-Means
 
-kmeans = KMeans(n_clusters=5)
+import numpy as np
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+
+# ---------------------------------------------------
+# Example molecular fingerprints
+# Each row represents a molecule
+# Each column represents a simplified molecular feature
+# ---------------------------------------------------
+
+molecular_fingerprints = np.array([
+    [1, 0, 1, 0, 1],
+    [1, 0, 1, 0, 0],
+    [0, 1, 0, 1, 1],
+    [0, 1, 0, 1, 0],
+    [1, 1, 0, 0, 1],
+    [1, 1, 0, 0, 0],
+    [0, 0, 1, 1, 1],
+    [0, 0, 1, 1, 0]
+])
+
+# ---------------------------------------------------
+# Create the K-Means clustering model
+# ---------------------------------------------------
+
+kmeans = KMeans(n_clusters=4, random_state=42)
+
+# Assign each molecule to a cluster
 clusters = kmeans.fit_predict(molecular_fingerprints)
-# Molecules in same cluster are structurally similar
+
+# ---------------------------------------------------
+# Display clustering results
+# ---------------------------------------------------
+
+for i, cluster_id in enumerate(clusters):
+    print(f"Molecule {i + 1} belongs to Cluster {cluster_id}")
+
+# ---------------------------------------------------
+# Visualize clusters using the first two features
+# ---------------------------------------------------
+
+plt.figure(figsize=(6, 5))
+
+scatter = plt.scatter(
+    molecular_fingerprints[:, 0],
+    molecular_fingerprints[:, 1],
+    c=clusters,
+    s=100
+)
+
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+plt.title("Molecular Clustering with K-Means")
+plt.savefig("clustering.png", dpi=300, bbox_inches="tight")
+plt.show()
 ```
 
 #### Reinforcement Learning
-Learn through trial and error with rewards:
-- **Molecular optimization**: Generate molecules with desired properties
-- **Synthesis planning**: Find optimal reaction pathways
-- **Experiment design**: Choose most informative experiments
+
+Reinforcement learning is a machine learning approach in which an agent learns to make decisions 
+through interaction with an environment. By receiving rewards or penalties based on its actions, 
+the model gradually discovers strategies that maximize long-term performance.
+
+In molecular and materials science, reinforcement learning can be applied to tasks such as:
+
+* **Molecular optimization** — designing or modifying molecules to achieve target properties such as 
+improved stability, activity, or solubility
+* **Synthesis planning** — identifying efficient reaction routes and optimal synthetic pathways 
+for chemical compounds
+* **Experimental design** — selecting the most informative experiments to accelerate discovery while 
+minimizing cost and computational effort
+
 
 ```python
-# Example: RL agent learns to design molecules
+# Basic Reinforcement Learning Example for Molecular Optimization
+
+import random
+
+# ---------------------------------------------------
+# Example molecules represented by simple properties
+# Each molecule has:
+# - size
+# - stability
+# - solubility
+# ---------------------------------------------------
+
+molecule_space = [
+    {"name": "Molecule A", "size": 2, "stability": 5, "solubility": 8},
+    {"name": "Molecule B", "size": 5, "stability": 7, "solubility": 4},
+    {"name": "Molecule C", "size": 3, "stability": 9, "solubility": 6},
+    {"name": "Molecule D", "size": 7, "stability": 4, "solubility": 3},
+    {"name": "Molecule E", "size": 4, "stability": 8, "solubility": 7},
+]
+
+# ---------------------------------------------------
+# Reward function
+# Goal:
+# Favor molecules with high stability and solubility
+# ---------------------------------------------------
+
+def evaluate_properties(molecule):
+
+    reward = (
+        molecule["stability"] +
+        molecule["solubility"]
+    )
+
+    return reward
+
+# ---------------------------------------------------
+# Simple RL agent
+# ---------------------------------------------------
+
+class RandomAgent:
+
+    def select_action(self, state):
+
+        # Randomly choose a new molecule
+        return random.choice(molecule_space)
+
+    def learn(self, state, action, reward):
+
+        print(
+            f"Learning from transition:\n"
+            f"  {state['name']} -> {action['name']}\n"
+            f"  Reward = {reward}\n"
+        )
+
+# ---------------------------------------------------
+# Initialize agent
+# ---------------------------------------------------
+
+agent = RandomAgent()
+
+num_episodes = 5
+
+# ---------------------------------------------------
+# Reinforcement learning loop
+# ---------------------------------------------------
+
 for episode in range(num_episodes):
-    state = initial_molecule
+
+    print(f"\nEpisode {episode + 1}")
+
+    # Start from a random molecule
+    state = random.choice(molecule_space)
+
+    done = False
+    step = 0
+
     while not done:
-        action = agent.select_action(state)  # Modify molecule
+
+        # Agent proposes a molecular modification
+        new_molecule = agent.select_action(state)
+
+        # Evaluate molecular properties
         reward = evaluate_properties(new_molecule)
-        agent.learn(state, action, reward)
+
+        # Agent learns from the reward
+        agent.learn(state, new_molecule, reward)
+
+        # Update current state
         state = new_molecule
+
+        step += 1
+
+        # Stop after a few optimization steps
+        if step >= 3:
+            done = True
 ```
 
 ---
 
 ## 2. The Machine Learning Workflow
 
-### 2.1 Problem Definition
-1. **Define the goal**: What do you want to predict or discover?
-2. **Choose the task type**: Regression, classification, generation?
-3. **Define success metrics**: How will you measure performance?
+### 2.1 Defining the Machine Learning Problem
 
-Example: "Predict whether a molecule can cross the blood-brain barrier (binary classification) with >85% accuracy."
+A successful machine learning project begins with a clear and well-structured problem definition. Before 
+selecting algorithms or training models, it is important to establish the scientific objective and 
+determine how success will be evaluated.
+
+The typical workflow includes:
+
+1. **Identify the objective** — determine the property, behavior, or phenomenon you want to predict, 
+classify, or explore.
+2. **Select the appropriate learning task** — decide whether the problem is best formulated as regression, 
+classification, clustering, generative modeling, or another ML approach.
+3. **Establish evaluation criteria** — define the metrics that will be used to measure model performance and 
+determine whether the model meets the desired objectives.
+
+Example:
+
+> “Develop a binary classification model capable of predicting whether a molecule can cross the blood–brain barrier with an accuracy greater than 85%.”
+
+---
 
 ### 2.2 Data Collection and Preparation
 
-#### Data Collection
-- Experimental measurements
-- Computational simulations (DFT, MD)
-- Public databases (PubChem, ChEMBL, Materials Project)
-- Literature mining
+High-quality data is one of the most important components of any machine learning workflow. The reliability 
+and performance of a model strongly depend on the quality, diversity, and consistency of the training data.
+
+#### Data Sources
+
+Scientific datasets can originate from several different sources, including:
+
+* **Experimental measurements** obtained from laboratory characterization and testing
+* **Computational simulations**, such as Density Functional Theory (DFT) calculations or Molecular Dynamics 
+(MD) simulations
+* **Public scientific databases**, including resources such as PubChem, ChEMBL, and Materials Project
+
 
 #### Data Quality Checks
 ```python
+# Fully working example: data preparation + feature engineering
+
 import pandas as pd
 import numpy as np
 
-# Load data
-data = pd.read_csv('molecular_data.csv')
+# ---------------------------------------------------
+# 1. Create a small example dataset
+# ---------------------------------------------------
 
-# Check for missing values
+data = pd.DataFrame({
+    "molecule_name": [
+        "Ethanol",
+        "Acetic acid",
+        "Benzene",
+        "Acetone",
+        "Phenol",
+        "Ethanol",          # duplicate row
+        "Invalid molecule",
+        "Large outlier"
+    ],
+    "smiles": [
+        "CCO",
+        "CC(=O)O",
+        "c1ccccc1",
+        "CC(=O)C",
+        "c1ccccc1O",
+        "CCO",              # duplicate row
+        "not_a_smiles",     # invalid molecule
+        "CCCCCCCCCCCCCCCC"
+    ],
+    "property": [
+        -0.31,
+        -0.17,
+        -2.13,
+        -0.24,
+        -1.46,
+        -0.31,              # duplicate value
+        np.nan,             # missing value
+        50.0                # artificial outlier
+    ]
+})
+
+# Save dataset as CSV
+data.to_csv("molecular_data.csv", index=False)
+
+# ---------------------------------------------------
+# 2. Load data
+# ---------------------------------------------------
+
+data = pd.read_csv("molecular_data.csv")
+
+print("Original data:")
+print(data)
+
+# ---------------------------------------------------
+# 3. Check for missing values
+# ---------------------------------------------------
+
+print("\nMissing values:")
 print(data.isnull().sum())
 
-# Check for duplicates
-print(f"Duplicates: {data.duplicated().sum()}")
+# ---------------------------------------------------
+# 4. Check for duplicates
+# ---------------------------------------------------
 
-# Check distributions
+print("\nNumber of duplicate rows:")
+print(data.duplicated().sum())
+
+# Remove duplicate rows
+data = data.drop_duplicates()
+
+# ---------------------------------------------------
+# 5. Check distributions
+# ---------------------------------------------------
+
+print("\nSummary statistics:")
 print(data.describe())
 
-# Remove outliers (example: 3 sigma rule)
-z_scores = np.abs((data['property'] - data['property'].mean()) / data['property'].std())
-data_clean = data[z_scores < 3]
-```
+# ---------------------------------------------------
+# 6. Remove missing values
+# ---------------------------------------------------
 
-#### Feature Engineering
-Transform raw data into meaningful features:
-```python
+data = data.dropna(subset=["smiles", "property"])
+
+# ---------------------------------------------------
+# 7. Remove outliers using the 3-sigma rule
+# ---------------------------------------------------
+
+z_scores = np.abs(
+    (data["property"] - data["property"].mean()) / data["property"].std()
+)
+
+data_clean = data[z_scores < 3].copy()
+
+print("\nCleaned data:")
+print(data_clean)
+
+# ---------------------------------------------------
+# 8. Feature engineering with RDKit
+# ---------------------------------------------------
+
 from rdkit import Chem
 from rdkit.Chem import Descriptors
 
 def calculate_features(smiles):
+    """
+    Convert a molecule represented by a SMILES string
+    into numerical molecular descriptors.
+    """
+
     mol = Chem.MolFromSmiles(smiles)
-    
+
+    # Handle invalid molecules
+    if mol is None:
+        return None
+
     features = {
-        'molecular_weight': Descriptors.MolWt(mol),
-        'logP': Descriptors.MolLogP(mol),
-        'num_h_donors': Descriptors.NumHDonors(mol),
-        'num_h_acceptors': Descriptors.NumHAcceptors(mol),
-        'tpsa': Descriptors.TPSA(mol),
-        'num_rotatable_bonds': Descriptors.NumRotatableBonds(mol),
-        'num_aromatic_rings': Descriptors.NumAromaticRings(mol)
+        "molecular_weight": Descriptors.MolWt(mol),
+        "logP": Descriptors.MolLogP(mol),
+        "num_h_donors": Descriptors.NumHDonors(mol),
+        "num_h_acceptors": Descriptors.NumHAcceptors(mol),
+        "tpsa": Descriptors.TPSA(mol),
+        "num_rotatable_bonds": Descriptors.NumRotatableBonds(mol),
+        "num_aromatic_rings": Descriptors.NumAromaticRings(mol)
     }
-    
+
     return features
+
+# ---------------------------------------------------
+# 9. Apply feature engineering to each molecule
+# ---------------------------------------------------
+
+feature_rows = []
+
+for _, row in data_clean.iterrows():
+    features = calculate_features(row["smiles"])
+
+    if features is not None:
+        features["molecule_name"] = row["molecule_name"]
+        features["smiles"] = row["smiles"]
+        features["property"] = row["property"]
+        feature_rows.append(features)
+
+features_df = pd.DataFrame(feature_rows)
+
+# Reorder columns
+features_df = features_df[
+    [
+        "molecule_name",
+        "smiles",
+        "molecular_weight",
+        "logP",
+        "num_h_donors",
+        "num_h_acceptors",
+        "tpsa",
+        "num_rotatable_bonds",
+        "num_aromatic_rings",
+        "property"
+    ]
+]
+
+print("\nFinal feature table:")
+print(features_df)
+
+# ---------------------------------------------------
+# 10. Save final processed dataset
+# ---------------------------------------------------
+
+features_df.to_csv("molecular_features.csv", index=False)
+
+print("\nProcessed dataset saved as molecular_features.csv")
 ```
 
-### 2.3 Train-Test Split
+**pandas** is a widely used Python library for data analysis and manipulation. It provides powerful tools for working 
+with structured data such as tables and spreadsheets through objects called DataFrames. In machine learning and scientific 
+computing, pandas is commonly used to load datasets, clean missing values, filter rows, compute statistics, and organize 
+data before training models.
 
-**Critical principle**: Never test on training data!
+**RDKit*** is an open-source cheminformatics library designed for working with molecular and chemical data. It allows 
+researchers to represent molecules computationally, calculate molecular descriptors and fingerprints, visualize chemical 
+structures, and perform tasks such as similarity analysis and feature engineering for machine learning applications in 
+chemistry, drug discovery, and materials science.
+
+
+### 2.3 Training, Validation, and Test Sets
+
+A fundamental principle in machine learning is that models must be evaluated on data they have never seen before.
+
+> **Critical principle:** Never test a model using the same data used for training.
+
+If the model is evaluated on training data, it may memorize examples instead of learning general patterns, leading to overfitting and poor performance on new data.
+
+To avoid this problem, datasets are usually divided into three parts:
+
+#### Training Set
+
+The **training set** is used to teach the model and learn patterns from the data.
+
+#### Validation Set
+
+The **validation set** is used during development to tune hyperparameters, compare models, and monitor overfitting.
+
+#### Test Set
+
+The **test set** is used only for the final evaluation of the model on unseen data.
+
+### Typical Dataset Split
+
+| Dataset        | Typical Fraction |
+| -------------- | ---------------- |
+| Training Set   | 70%              |
+| Validation Set | 15%              |
+| Test Set       | 15%              |
+
+
+### Conceptual Workflow
+
+```text id="u7gj59"
+Training Set   → Learn patterns
+Validation Set → Tune the model
+Test Set       → Final evaluation
+```
+
+
 
 ```python
+# Basic example: training, validation, and test split
+
+import numpy as np
 from sklearn.model_selection import train_test_split
 
-# Basic split (80% train, 20% test)
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+# ---------------------------------------------------
+# 1. Create a small example dataset
+# ---------------------------------------------------
+
+# X = input features
+# y = target values
+
+X = np.array([
+    [1.0, 2.0],
+    [2.0, 1.5],
+    [3.0, 3.5],
+    [4.0, 4.5],
+    [5.0, 5.5],
+    [6.0, 6.5],
+    [7.0, 7.5],
+    [8.0, 8.5],
+    [9.0, 9.5],
+    [10.0, 10.5]
+])
+
+y = np.array([1, 1, 2, 2, 3, 3, 4, 4, 5, 5])
+
+# ---------------------------------------------------
+# 2. First split: training set and temporary set
+# ---------------------------------------------------
+
+X_train, X_temp, y_train, y_temp = train_test_split(
+    X,
+    y,
+    test_size=0.30,
+    random_state=42
 )
 
-# Stratified split (maintains class distribution)
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, stratify=y, random_state=42
+# ---------------------------------------------------
+# 3. Second split: validation set and test set
+# ---------------------------------------------------
+
+X_val, X_test, y_val, y_test = train_test_split(
+    X_temp,
+    y_temp,
+    test_size=0.50,
+    random_state=42
 )
+
+# ---------------------------------------------------
+# 4. Print the results
+# ---------------------------------------------------
+
+print("Training set:")
+print("X_train:")
+print(X_train)
+print("y_train:")
+print(y_train)
+
+print("\nValidation set:")
+print("X_val:")
+print(X_val)
+print("y_val:")
+print(y_val)
+
+print("\nTest set:")
+print("X_test:")
+print(X_test)
+print("y_test:")
+print(y_test)
+
+# ---------------------------------------------------
+# 5. Print the sizes
+# ---------------------------------------------------
+
+print("\nDataset sizes:")
+print("Training set size:", len(X_train))
+print("Validation set size:", len(X_val))
+print("Test set size:", len(X_test))
 ```
 
-**Important for molecules**: Use scaffold-based splits to test generalization to new chemical structures:
+### Scaffold-Based Splitting
+
+In molecular machine learning, **scaffold-based splitting** divides datasets according to the core chemical 
+structure of molecules rather than randomly splitting individual samples.
+
+A molecular scaffold represents the main structural framework of a molecule, such as its ring systems and backbone.
+
+This approach is important because molecules with similar scaffolds often have similar properties. With a random 
+split, very similar molecules may appear in both the training and test sets, leading to overly optimistic performance.
+
+Scaffold-based splitting provides a more realistic evaluation by ensuring that structurally related molecules 
+remain in the same subset.
+
+
+### Conceptual Example
+
+```text id="9ev7qo"
+Random Split:
+Train → Benzene
+Test  → Phenol
+
+Very similar molecules appear in both sets
+```
+
+```text id="6w3w49"
+Scaffold Split:
+Train → Aromatic compounds
+Test  → Different chemical scaffolds
+
+Test molecules are structurally different
+```
+
+This strategy is widely used in molecular property prediction, drug discovery, and materials science to 
+better evaluate model generalization to new chemical structures.
+
+
 ```python
+# example: scaffold-based train/test split
+
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem.Scaffolds import MurckoScaffold
 from sklearn.model_selection import GroupShuffleSplit
 
-# Split by molecular scaffold (core structure)
-scaffolds = [get_scaffold(mol) for mol in molecules]
+# ---------------------------------------------------
+# 1. Example molecules (SMILES strings)
+# ---------------------------------------------------
 
-splitter = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-train_idx, test_idx = next(splitter.split(X, y, groups=scaffolds))
+molecules = [
+    "CCO",                  # Ethanol
+    "CCCO",                 # Propanol
+    "c1ccccc1",             # Benzene
+    "c1ccccc1O",            # Phenol
+    "CC(=O)O",              # Acetic acid
+    "CC(=O)OC1=CC=CC=C1C(=O)O",  # Aspirin
+    "CCN(CC)CC",            # Triethylamine
+    "c1ccncc1"              # Pyridine
+]
+
+# Example target property
+# (e.g., solubility or biological activity)
+
+y = np.array([1.2, 1.5, 0.3, 0.4, 2.1, 0.8, 1.7, 0.5])
+
+# ---------------------------------------------------
+# 2. Generate simple numerical features
+# ---------------------------------------------------
+
+X = []
+
+for smiles in molecules:
+
+    mol = Chem.MolFromSmiles(smiles)
+
+    features = [
+        mol.GetNumAtoms(),
+        mol.GetNumBonds(),
+        mol.GetRingInfo().NumRings()
+    ]
+
+    X.append(features)
+
+X = np.array(X)
+
+# ---------------------------------------------------
+# 3. Define scaffold extraction function
+# ---------------------------------------------------
+
+def get_scaffold(smiles):
+
+    mol = Chem.MolFromSmiles(smiles)
+
+    scaffold = MurckoScaffold.MurckoScaffoldSmiles(mol=mol)
+
+    return scaffold
+
+# ---------------------------------------------------
+# 4. Compute molecular scaffolds
+# ---------------------------------------------------
+
+scaffolds = [get_scaffold(smiles) for smiles in molecules]
+
+print("Molecular scaffolds:\n")
+
+for mol, scaffold in zip(molecules, scaffolds):
+    print(f"{mol:35s} -> {scaffold}")
+
+# ---------------------------------------------------
+# 5. Perform scaffold-based split
+# ---------------------------------------------------
+
+splitter = GroupShuffleSplit(
+    n_splits=1,
+    test_size=0.2,
+    random_state=42
+)
+
+train_idx, test_idx = next(
+    splitter.split(X, y, groups=scaffolds)
+)
+
+# ---------------------------------------------------
+# 6. Create training and test sets
+# ---------------------------------------------------
 
 X_train, X_test = X[train_idx], X[test_idx]
 y_train, y_test = y[train_idx], y[test_idx]
+
+train_molecules = [molecules[i] for i in train_idx]
+test_molecules = [molecules[i] for i in test_idx]
+
+# ---------------------------------------------------
+# 7. Display results
+# ---------------------------------------------------
+
+print("\nTraining molecules:")
+
+for mol in train_molecules:
+    print(mol)
+
+print("\nTest molecules:")
+
+for mol in test_molecules:
+    print(mol)
+
+# ---------------------------------------------------
+# 8. Dataset sizes
+# ---------------------------------------------------
+
+print("\nDataset sizes:")
+print("Training set size:", len(X_train))
+print("Test set size:", len(X_test))
 ```
-
----
-
+--------------------------------------------------------
 ## 3. Overfitting and Underfitting
 
 ### 3.1 The Bias-Variance Tradeoff

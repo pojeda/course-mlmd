@@ -717,8 +717,6 @@ def get_edge_features(bond):
 - Computationally expensive for large molecules
 - Requires specialized neural network architectures
 
----
-Hasta aca
 
 ## 3. Traditional Machine Learning Methods
 
@@ -927,40 +925,9 @@ print(properties)
 
 #### ChEMBL
 
-```python
-from chembl_webresource_client.new_client import new_client
+buscar exemplo
 
-# Target search
-target = new_client.target
-targets = target.filter(target_synonym__icontains='EGFR')
 
-for t in targets[:5]:
-    print(f"{t['pref_name']}: {t['target_chembl_id']}")
-
-# Activity search
-activity = new_client.activity
-activities = activity.filter(
-    target_chembl_id='CHEMBL203',
-    standard_type='IC50',
-    standard_relation='=',
-    pchembl_value__isnull=False
-)
-
-# Convert to DataFrame
-import pandas as pd
-
-data = []
-for act in activities[:1000]:
-    data.append({
-        'molecule_chembl_id': act['molecule_chembl_id'],
-        'smiles': act['canonical_smiles'],
-        'ic50': act['standard_value'],
-        'pchembl_value': act['pchembl_value']
-    })
-
-df = pd.DataFrame(data)
-print(df.head())
-```
 
 ### 4.2 Data Preprocessing
 
@@ -1036,6 +1003,7 @@ def scaffold_split(smiles_list, test_size=0.2):
 
 ## 5. Practical Exercise: Solubility Prediction
 
+Hasta aca
 ### Complete Workflow
 
 ```python
@@ -1070,7 +1038,7 @@ def calculate_descriptors(smiles):
         'NumAromaticRings': Descriptors.NumAromaticRings(mol),
         'NumRings': Descriptors.RingCount(mol),
         'MolMR': Descriptors.MolMR(mol),
-        'FractionCsp3': Descriptors.FractionCsp3(mol)
+        'FractionCSP3': Descriptors.FractionCSP3(mol)
     }
 
 desc_list = [calculate_descriptors(s) for s in df['smiles']]
@@ -1112,7 +1080,9 @@ plt.ylabel('Predicted Solubility (log M)')
 plt.title(f'Predictions (R² = {r2:.3f})')
 plt.axis('equal')
 plt.tight_layout()
-plt.show()
+#plt.show()
+plt.savefig('solubilities.png', dpi=300, bbox_inches='tight')
+plt.close()
 
 # Step 8: Feature Importance
 importances = model.feature_importances_
