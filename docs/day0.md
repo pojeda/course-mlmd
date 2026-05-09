@@ -550,7 +550,7 @@ with structured data such as tables and spreadsheets through objects called Data
 computing, pandas is commonly used to load datasets, clean missing values, filter rows, compute statistics, and organize 
 data before training models.
 
-**RDKit*** is an open-source cheminformatics library designed for working with molecular and chemical data. It allows 
+**RDKit** is an open-source cheminformatics library designed for working with molecular and chemical data. It allows 
 researchers to represent molecules computationally, calculate molecular descriptors and fingerprints, visualize chemical 
 structures, and perform tasks such as similarity analysis and feature engineering for machine learning applications in 
 chemistry, drug discovery, and materials science.
