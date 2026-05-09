@@ -978,35 +978,149 @@ better evaluate model generalization to new chemical structures.
     plt.show()
     ```
 
+
 ### 3.2 Detecting Overfitting
 
-**Learning Curves**: Plot training and validation performance vs. training set size
+A common way to detect overfitting is by analyzing **learning curves**, which show model performance on the training and validation sets as the amount of training data increases.
 
-```python
-from sklearn.model_selection import learning_curve
+Typically, two curves are monitored:
 
-train_sizes, train_scores, val_scores = learning_curve(
-    model, X, y, 
-    train_sizes=np.linspace(0.1, 1.0, 10),
-    cv=5,
-    scoring='neg_mean_squared_error'
-)
+* **Training performance**
+* **Validation performance**
 
-# Plot
-plt.figure(figsize=(10, 6))
-plt.plot(train_sizes, -train_scores.mean(axis=1), label='Training Error')
-plt.plot(train_sizes, -val_scores.mean(axis=1), label='Validation Error')
-plt.xlabel('Training Set Size')
-plt.ylabel('Mean Squared Error')
-plt.legend()
-plt.title('Learning Curves')
-plt.show()
+### Interpreting Learning Curves
 
-# Signs of overfitting:
-# - Large gap between training and validation curves
-# - Training error much lower than validation error
-# - Validation error increases or plateaus
+#### Overfitting
+
+* Very high training performance
+* Much lower validation performance
+* Large gap between the curves
+
+The model memorizes the training data instead of learning general patterns.
+
+#### Underfitting
+
+* Poor performance on both training and validation data
+* Curves remain close together
+
+The model is too simple to capture the underlying relationships.
+
+#### Good Generalization
+
+* Strong performance on both datasets
+* Small gap between the curves
+
+The model generalizes well to unseen data.
+
+
+```text
+Overfitting:
+Training accuracy   → Very high
+Validation accuracy → Much lower
+
+Underfitting:
+Training accuracy   → Low
+Validation accuracy → Low
+
+Good fit:
+Training accuracy   → High
+Validation accuracy → Similar and stable
 ```
+
+??? note "Example"
+
+    ```python
+    # Fully working example: Learning curves
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    from sklearn.datasets import make_regression
+    from sklearn.model_selection import learning_curve
+    from sklearn.preprocessing import PolynomialFeatures
+    from sklearn.pipeline import make_pipeline
+    from sklearn.linear_model import LinearRegression
+
+    # ---------------------------------------------------
+    # 1. Generate example regression data
+    # ---------------------------------------------------
+
+    np.random.seed(42)
+
+    X = np.linspace(0, 10, 100).reshape(-1, 1)
+
+    y = (
+        0.5 * X[:, 0]**2
+        - 2 * X[:, 0]
+        + 3
+        + np.random.normal(0, 4, 100)
+    )
+
+    # ---------------------------------------------------
+    # 2. Define model
+    # ---------------------------------------------------
+
+    # High-degree polynomial model
+    # This model is intentionally complex
+    model = make_pipeline(
+        PolynomialFeatures(degree=10),
+        LinearRegression()
+    )
+
+    # ---------------------------------------------------
+    # 3. Compute learning curves
+    # ---------------------------------------------------
+
+    train_sizes, train_scores, val_scores = learning_curve(
+        model,
+        X,
+        y,
+        train_sizes=np.linspace(0.1, 1.0, 10),
+        cv=5,
+        scoring="neg_mean_squared_error"
+    )
+
+    # Convert negative MSE to positive MSE
+    train_errors = -train_scores.mean(axis=1)
+    val_errors = -val_scores.mean(axis=1)
+
+    # ---------------------------------------------------
+    # 4. Plot learning curves
+    # ---------------------------------------------------
+
+    plt.figure(figsize=(10, 6))
+
+    plt.plot(
+        train_sizes,
+        train_errors,
+        marker="o",
+        label="Training Error"
+    )
+
+    plt.plot(
+        train_sizes,
+        val_errors,
+        marker="o",
+        label="Validation Error"
+    )
+
+    plt.xlabel("Training Set Size")
+    plt.ylabel("Mean Squared Error")
+    plt.title("Learning Curves")
+
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("learning-curves.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
+    # ---------------------------------------------------
+    # 5. Print values
+    # ---------------------------------------------------
+
+    print("Training set sizes:", train_sizes)
+    print("Training errors:", train_errors)
+    print("Validation errors:", val_errors)
+    ```
 
 ### 3.3 Preventing Overfitting
 
