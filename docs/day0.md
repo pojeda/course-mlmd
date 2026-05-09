@@ -1223,62 +1223,176 @@ caused by a single random split.
 
 ![CV](../images/cross-validation.png){: style="width: 600px;"}
 
-```python
-from sklearn.model_selection import cross_val_score
+??? note "Example"
 
-# 5-fold cross-validation
-scores = cross_val_score(model, X, y, cv=5, scoring='r2')
-print(f"Cross-validation R²: {scores.mean():.3f} ± {scores.std():.3f}")
-```
+    ```python
+    # example: Cross-validation with scikit-learn
+
+    import numpy as np
+
+    from sklearn.datasets import make_regression
+    from sklearn.linear_model import LinearRegression
+    from sklearn.model_selection import cross_val_score
+
+    # ---------------------------------------------------
+    # 1. Generate example regression dataset
+    # ---------------------------------------------------
+
+    X, y = make_regression(
+        n_samples=100,
+        n_features=3,
+        noise=15,
+        random_state=42
+    )
+
+    # ---------------------------------------------------
+    # 2. Define machine learning model
+    # ---------------------------------------------------
+
+    model = LinearRegression()
+
+    # ---------------------------------------------------
+    # 3. Perform 5-fold cross-validation
+    # ---------------------------------------------------
+
+    scores = cross_val_score(
+        model,
+        X,
+        y,
+        cv=5,
+        scoring="r2"
+    )
+
+    # ---------------------------------------------------
+    # 4. Display results
+    # ---------------------------------------------------
+
+    print("R² score for each fold:")
+    print(scores)
+
+    print("\nAverage cross-validation performance:")
+    print(f"Cross-validation R²: {scores.mean():.3f} ± {scores.std():.3f}")
+    ```
+
+The code:
+
+* generates a synthetic regression dataset,
+* trains a linear regression model,
+* evaluates it using 5-fold cross-validation,
+* and reports the mean and standard deviation of the (R^2) score across all folds.
+
+
+
 
 #### 4. Feature Selection
-Remove irrelevant or redundant features:
-```python
-from sklearn.feature_selection import SelectKBest, f_regression
 
-# Select top 10 features
-selector = SelectKBest(score_func=f_regression, k=10)
-X_selected = selector.fit_transform(X_train, y_train)
+Feature selection is the process of identifying and retaining the most informative variables 
+in a dataset while removing irrelevant or redundant features. Reducing the number of features 
+can improve model performance, decrease computational cost, and help reduce overfitting. In 
+scientific machine learning applications, feature selection is especially important when working 
+with high-dimensional molecular or materials datasets containing many correlated descriptors.
 
-# Get selected feature names
-selected_features = X.columns[selector.get_support()]
-print(f"Selected features: {selected_features.tolist()}")
-```
+??? note "Example"
 
-#### 5. Early Stopping (for neural networks)
-Stop training when validation error starts increasing:
-```python
-from sklearn.neural_network import MLPRegressor
+    ```python 
+    # example: Feature selection with SelectKBest
 
-model = MLPRegressor(
-    hidden_layer_sizes=(100, 50),
-    early_stopping=True,
-    validation_fraction=0.2,
-    n_iter_no_change=10  # Stop if no improvement for 10 epochs
-)
-```
+    import pandas as pd
+    import numpy as np
 
-#### 6. Dropout (for neural networks)
-Randomly deactivate neurons during training:
-```python
-import torch.nn as nn
+    from sklearn.datasets import make_regression
+    from sklearn.model_selection import train_test_split
+    from sklearn.feature_selection import SelectKBest, f_regression
 
-class MolecularNN(nn.Module):
-    def __init__(self, input_dim, hidden_dim):
-        super().__init__()
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.dropout1 = nn.Dropout(0.3)  # Drop 30% of neurons
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.dropout2 = nn.Dropout(0.3)
-        self.fc3 = nn.Linear(hidden_dim, 1)
-    
-    def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = self.dropout1(x)
-        x = torch.relu(self.fc2(x))
-        x = self.dropout2(x)
-        return self.fc3(x)
-```
+    # ---------------------------------------------------
+    # 1. Generate synthetic regression dataset
+    # ---------------------------------------------------
+
+    X, y = make_regression(
+        n_samples=100,
+        n_features=20,
+        n_informative=8,
+        noise=10,
+        random_state=42
+    )
+
+    # ---------------------------------------------------
+    # 2. Create DataFrame with feature names
+    # ---------------------------------------------------
+
+    feature_names = [f"feature_{i}" for i in range(20)]
+
+    X = pd.DataFrame(X, columns=feature_names)
+
+    # ---------------------------------------------------
+    # 3. Split dataset into training and testing sets
+    # ---------------------------------------------------
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42
+    )
+
+    # ---------------------------------------------------
+    # 4. Select the top 10 features
+    # ---------------------------------------------------
+
+    selector = SelectKBest(
+        score_func=f_regression,
+        k=10
+    )
+
+    X_train_selected = selector.fit_transform(
+        X_train,
+        y_train
+    )
+
+    X_test_selected = selector.transform(X_test)
+
+    # ---------------------------------------------------
+    # 5. Get selected feature names
+    # ---------------------------------------------------
+
+    selected_features = X.columns[
+        selector.get_support()
+    ]
+
+    print("Selected features:")
+    print(selected_features.tolist())
+
+    # ---------------------------------------------------
+    # 6. Display transformed dataset shapes
+    # ---------------------------------------------------
+
+    print("\nOriginal training shape:", X_train.shape)
+    print("Reduced training shape:", X_train_selected.shape)
+
+    print("\nOriginal test shape:", X_test.shape)
+    print("Reduced test shape:", X_test_selected.shape)
+    ```
+
+
+
+#### 5. Early Stopping (for Neural Networks)
+
+Early stopping is a regularization technique used to reduce overfitting during neural network training. 
+As training progresses, the model usually improves on the training data, but after a certain point its 
+performance on validation data may begin to deteriorate. Early stopping monitors validation performance 
+and automatically stops training when no improvement is observed for a specified number of iterations. 
+This helps the model retain good generalization while avoiding unnecessary training.
+
+
+#### 6. Dropout (for Neural Networks)
+
+Dropout is a regularization technique used in neural networks to reduce overfitting and 
+improve generalization. During training, a fraction of neurons is randomly deactivated at each 
+iteration, preventing the network from relying too heavily on specific connections. This encourages 
+the model to learn more robust and distributed representations of the data. During evaluation and 
+prediction, all neurons are used normally.
+
+
 
 ### 3.4 Addressing Underfitting
 
@@ -1288,99 +1402,75 @@ class MolecularNN(nn.Module):
 4. **Train longer**: Increase number of epochs/iterations
 5. **Check for errors**: Ensure data is preprocessed correctly
 
----
+
 
 ## 4. Cross-Validation
 
 ### 4.1 Why Cross-Validation?
 
-- Makes efficient use of limited data
-- Provides more reliable performance estimates
-- Reduces sensitivity to train-test split
-- Helps detect overfitting
+Cross-validation is a model evaluation technique designed to provide a more reliable estimate of 
+model performance. Instead of relying on a single train-test split, the model is trained and evaluated 
+multiple times using different subsets of the data. This approach makes better use of limited datasets, 
+reduces dependence on a particular split, and helps identify problems such as overfitting and poor generalization.
+
 
 ### 4.2 K-Fold Cross-Validation
 
-Split data into K parts, train on K-1, test on 1, repeat K times:
+In K-fold cross-validation, the dataset is divided into (K) equally sized subsets, called folds. The 
+model is trained using (K-1) folds and evaluated on the remaining fold. This process is repeated (K) 
+times so that each fold serves as the test set once. The final performance is computed as the average 
+across all folds, providing a more stable estimate of model accuracy.
 
-```python
-from sklearn.model_selection import KFold, cross_validate
-
-# 5-fold cross-validation
-kf = KFold(n_splits=5, shuffle=True, random_state=42)
-
-# Get multiple metrics
-scoring = {
-    'r2': 'r2',
-    'rmse': 'neg_mean_squared_error',
-    'mae': 'neg_mean_absolute_error'
-}
-
-results = cross_validate(
-    model, X, y,
-    cv=kf,
-    scoring=scoring,
-    return_train_score=True
-)
-
-print(f"Test R²: {results['test_r2'].mean():.3f} ± {results['test_r2'].std():.3f}")
-print(f"Test RMSE: {np.sqrt(-results['test_rmse'].mean()):.3f}")
-print(f"Test MAE: {-results['test_mae'].mean():.3f}")
-```
 
 ### 4.3 Stratified K-Fold
 
-Maintains class distribution in each fold (for classification):
+Stratified K-fold cross-validation is commonly used for classification problems where class imbalance exists. 
+In this approach, each fold preserves approximately the same class distribution as the original dataset. 
+This ensures that all classes are represented consistently during training and validation, leading to 
+more reliable performance estimates.
 
-```python
-from sklearn.model_selection import StratifiedKFold
-
-skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
-for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):
-    print(f"Fold {fold + 1}:")
-    print(f"  Training class distribution: {np.bincount(y[train_idx])}")
-    print(f"  Validation class distribution: {np.bincount(y[val_idx])}")
-```
 
 ### 4.4 Leave-One-Out Cross-Validation (LOOCV)
 
-Each sample is used once as test set:
+Leave-One-Out Cross-Validation is an extreme case of K-fold cross-validation in which each fold contains 
+only a single sample. The model is trained on all remaining data points and tested on the one excluded sample. 
+This process is repeated for every sample in the dataset. LOOCV uses data very efficiently but can become 
+computationally expensive for large datasets.
 
-```python
-from sklearn.model_selection import LeaveOneOut
-
-loo = LeaveOneOut()
-scores = cross_val_score(model, X, y, cv=loo, scoring='r2')
-print(f"LOOCV R²: {scores.mean():.3f}")
-
-# Note: Computationally expensive for large datasets!
-# Use only when data is very limited
-```
 
 ### 4.5 Time Series Cross-Validation
 
-For temporal data (don't peek into the future!):
+Time series cross-validation is specifically designed for temporal or sequential data. Unlike random splitting 
+methods, it preserves the chronological order of observations to avoid using future information during training. 
+The model is trained on past data and evaluated on later time periods, providing a more realistic assessment of 
+predictive performance in forecasting tasks.
 
-```python
-from sklearn.model_selection import TimeSeriesSplit
 
-tscv = TimeSeriesSplit(n_splits=5)
-
-for fold, (train_idx, test_idx) in enumerate(tscv.split(X)):
-    print(f"Fold {fold + 1}:")
-    print(f"  Train: {train_idx.min()} to {train_idx.max()}")
-    print(f"  Test: {test_idx.min()} to {test_idx.max()}")
-```
-
----
 
 ## 5. Model Evaluation Metrics
 
 ### 5.1 Regression Metrics
 
+Regression metrics are used to evaluate how accurately a model predicts continuous numerical values. Different metrics 
+emphasize different aspects of prediction quality, such as average error magnitude, sensitivity to large errors, or the 
+proportion of variance explained by the model. Choosing appropriate evaluation metrics is essential for understanding 
+model performance and comparing different approaches.
+
 #### Mean Absolute Error (MAE)
-Average absolute difference between predictions and true values:
+
+Mean Absolute Error (MAE) measures the average absolute difference between predicted values and the true target values. 
+Because it uses absolute differences, MAE is easy to interpret and provides a direct estimate of the average prediction 
+error in the same units as the target variable. It is less sensitive to large outliers than squared-error metrics.
+
+$$
+\mathrm{MAE} = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|
+$$
+
+Where:
+
+* $y_i$ are the true values
+* $\hat{y}_i$ are the predicted values
+* $n$ is the number of samples
 
 ```python
 from sklearn.metrics import mean_absolute_error
@@ -1394,6 +1484,24 @@ print(f"MAE: {mae:.3f}")
 ```
 
 #### Mean Squared Error (MSE) and Root Mean Squared Error (RMSE)
+
+Mean Squared Error (MSE) measures the average squared difference between predictions and true values. Squaring 
+the errors penalizes large mistakes more strongly, making MSE sensitive to outliers. Root Mean Squared Error 
+(RMSE) is the square root of MSE and expresses the error in the same units as the target variable, making 
+interpretation more intuitive.
+
+$$
+\mathrm{MSE} = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+
+\mathrm{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2}
+$$
+
+Where:
+
+* $y_i$ are the true values
+* $\hat{y}_i$ are the predicted values
+* $n$ is the number of samples
+
 ```python
 from sklearn.metrics import mean_squared_error
 
@@ -1408,6 +1516,23 @@ print(f"RMSE: {rmse:.3f}")
 ```
 
 #### R² (Coefficient of Determination)
+
+The ($R^2$) score measures how well a regression model explains the variability of the target data. 
+An ($R^2$) value of 1 indicates perfect predictions, while a value close to 0 indicates poor predictive 
+performance. Negative values are also possible and suggest that the model performs worse than simply 
+predicting the mean of the dataset.
+
+$$
+R^2 = 1 - \frac{\sum_{i=1}^{n} (y_i - \hat{y}*i)^2}{\sum*{i=1}^{n} (y_i - \bar{y})^2}
+$$
+
+Where:
+
+* $y_i$ are the true values
+* $\hat{y}_i$ are the predicted values
+* $\bar{y}$ is the mean of the true values
+
+
 ```python
 from sklearn.metrics import r2_score
 
@@ -1422,6 +1547,12 @@ print(f"R²: {r2:.3f}")
 ```
 
 #### Visualization
+
+Visualization is an important part of regression model evaluation because it helps identify trends, 
+systematic errors, and outliers that may not be obvious from numerical metrics alone. Common visualizations 
+include predicted vs. true value plots, residual plots, and learning curves, which provide insight 
+into model accuracy and generalization behavior. Matplotlib is a standard Python package for plotting graphs.
+
 ```python
 import matplotlib.pyplot as plt
 
@@ -1440,7 +1571,28 @@ plt.show()
 
 ### 5.2 Classification Metrics
 
+Classification metrics are used to evaluate models that predict discrete categories or classes. Different metrics 
+emphasize different aspects of model performance, such as overall correctness, the ability to detect positive cases, 
+or robustness to class imbalance. Selecting appropriate metrics is especially important in scientific and medical 
+applications where false positives and false negatives may have very different consequences.
+
+
 #### Confusion Matrix
+
+A confusion matrix summarizes the predictions of a classification model by comparing predicted labels with 
+the true labels. It provides counts of correctly and incorrectly classified samples and serves as the basis 
+for many classification metrics.
+
+For binary classification:
+
+|                 | Predicted Positive  | Predicted Negative  |
+| --------------- | ------------------- | ------------------- |
+| Actual Positive | True Positive (TP)  | False Negative (FN) |
+| Actual Negative | False Positive (FP) | True Negative (TN)  |
+
+The confusion matrix helps identify the types of errors made by the model, such as missed positive cases or 
+false alarms.
+
 ```python
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
@@ -1456,6 +1608,33 @@ plt.show()
 ```
 
 #### Accuracy, Precision, Recall, F1-Score
+
+Accuracy measures the fraction of correctly classified samples:
+
+$$
+\mathrm{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}
+$$
+
+Precision measures how many predicted positive cases are actually correct:
+
+$$
+\mathrm{Precision} = \frac{TP}{TP + FP}
+$$
+
+Recall, also called sensitivity, measures how many true positive cases are successfully identified:
+
+$$
+\mathrm{Recall} = \frac{TP}{TP + FN}
+$$
+
+The F1-score combines precision and recall into a single metric using their harmonic mean:
+
+$$
+F_1 = 2 \cdot \frac{\mathrm{Precision} \cdot \mathrm{Recall}}{\mathrm{Precision} + \mathrm{Recall}}
+$$
+
+The F1-score is particularly useful when balancing false positives and false negatives is important.
+
 ```python
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
@@ -1471,49 +1650,263 @@ print(f"F1-Score:  {f1:.3f}       - Harmonic mean of precision and recall")
 ```
 
 #### ROC Curve and AUC
-```python
-from sklearn.metrics import roc_curve, roc_auc_score
 
-# Get probability predictions
-y_prob = model.predict_proba(X_test)[:, 1]
+The Receiver Operating Characteristic (ROC) curve evaluates classification performance across different decision 
+thresholds by plotting:
 
-# Calculate ROC curve
-fpr, tpr, thresholds = roc_curve(y_test, y_prob)
-auc = roc_auc_score(y_test, y_prob)
+* True Positive Rate (TPR)
+* False Positive Rate (FPR)
 
-# Plot
-plt.figure(figsize=(8, 6))
-plt.plot(fpr, tpr, label=f'ROC Curve (AUC = {auc:.3f})')
-plt.plot([0, 1], [0, 1], 'k--', label='Random Classifier')
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Receiver Operating Characteristic (ROC) Curve')
-plt.legend()
-plt.show()
+The True Positive Rate is:
 
-# AUC interpretation:
-# 1.0: Perfect classifier
-# 0.5: Random guessing
-# < 0.5: Worse than random (flip predictions!)
-```
+$$
+\mathrm{TPR} = \frac{TP}{TP + FN}
+$$
+
+The False Positive Rate is:
+
+$$
+\mathrm{FPR} = \frac{FP}{FP + TN}
+$$
+
+The Area Under the Curve (AUC) summarizes the ROC curve into a single value. An AUC close to 1 indicates excellent 
+classification performance, while an AUC near 0.5 suggests random guessing.
+
+??? note "Example"
+
+    ```python
+    # example: ROC curve and AUC
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    from sklearn.datasets import make_classification
+    from sklearn.model_selection import train_test_split
+    from sklearn.linear_model import LogisticRegression
+
+    from sklearn.metrics import (
+        roc_curve,
+        roc_auc_score
+    )
+
+    # ---------------------------------------------------
+    # 1. Generate example classification dataset
+    # ---------------------------------------------------
+
+    X, y = make_classification(
+        n_samples=1000,
+        n_features=10,
+        n_informative=5,
+        n_redundant=2,
+        random_state=42
+    )
+
+    # ---------------------------------------------------
+    # 2. Split dataset into training and test sets
+    # ---------------------------------------------------
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42
+    )
+
+    # ---------------------------------------------------
+    # 3. Train classification model
+    # ---------------------------------------------------
+
+    model = LogisticRegression()
+
+    model.fit(X_train, y_train)
+
+    # ---------------------------------------------------
+    # 4. Get probability predictions
+    # ---------------------------------------------------
+
+    # Probability of belonging to class 1
+    y_prob = model.predict_proba(X_test)[:, 1]
+
+    # ---------------------------------------------------
+    # 5. Calculate ROC curve and AUC
+    # ---------------------------------------------------
+
+    fpr, tpr, thresholds = roc_curve(
+        y_test,
+        y_prob
+    )
+
+    auc = roc_auc_score(
+        y_test,
+        y_prob
+    )
+
+    print(f"AUC score: {auc:.3f}")
+
+    # ---------------------------------------------------
+    # 6. Plot ROC curve
+    # ---------------------------------------------------
+
+    plt.figure(figsize=(8, 6))
+
+    plt.plot(
+        fpr,
+        tpr,
+        linewidth=2,
+        label=f"ROC Curve (AUC = {auc:.3f})"
+    )
+
+    # Random classifier reference line
+    plt.plot(
+        [0, 1],
+        [0, 1],
+        "k--",
+        label="Random Classifier"
+    )
+
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+
+    plt.title("Receiver Operating Characteristic (ROC) Curve")
+
+    plt.legend()
+
+    plt.grid(True)
+    plt.savefig("roc-curve.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
+    # ---------------------------------------------------
+    # 7. AUC interpretation
+    # ---------------------------------------------------
+
+    print("\nAUC Interpretation:")
+    print("1.0  -> Perfect classifier")
+    print("0.5  -> Random guessing")
+    print("<0.5 -> Worse than random")
+    ```
 
 #### Precision-Recall Curve
-Better than ROC for imbalanced datasets:
 
-```python
-from sklearn.metrics import precision_recall_curve, average_precision_score
+The Precision-Recall (PR) curve plots precision against recall for different classification thresholds. 
+Unlike ROC curves, PR curves focus specifically on the positive class and are often more informative for 
+highly imbalanced datasets where positive examples are rare.
 
-precision, recall, thresholds = precision_recall_curve(y_test, y_prob)
-ap = average_precision_score(y_test, y_prob)
+PR curves are widely used in applications such as:
 
-plt.figure(figsize=(8, 6))
-plt.plot(recall, precision, label=f'PR Curve (AP = {ap:.3f})')
-plt.xlabel('Recall')
-plt.ylabel('Precision')
-plt.title('Precision-Recall Curve')
-plt.legend()
-plt.show()
-```
+* medical diagnosis,
+* fraud detection,
+* molecular activity prediction,
+* and anomaly detection.
+
+??? note "Example"
+
+    ```python
+    # example: Precision-Recall curve
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    from sklearn.datasets import make_classification
+    from sklearn.model_selection import train_test_split
+    from sklearn.linear_model import LogisticRegression
+
+    from sklearn.metrics import (
+        precision_recall_curve,
+        average_precision_score
+    )
+
+    # ---------------------------------------------------
+    # 1. Generate example classification dataset
+    # ---------------------------------------------------
+
+    # Imbalanced dataset
+    X, y = make_classification(
+        n_samples=1000,
+        n_features=10,
+        n_informative=5,
+        n_redundant=2,
+        weights=[0.9, 0.1],   # 90% class 0, 10% class 1
+        random_state=42
+    )
+
+    # ---------------------------------------------------
+    # 2. Split dataset into training and test sets
+    # ---------------------------------------------------
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42
+    )
+
+    # ---------------------------------------------------
+    # 3. Train classification model
+    # ---------------------------------------------------
+
+    model = LogisticRegression()
+
+    model.fit(X_train, y_train)
+
+    # ---------------------------------------------------
+    # 4. Get probability predictions
+    # ---------------------------------------------------
+
+    # Probability of belonging to class 1
+    y_prob = model.predict_proba(X_test)[:, 1]
+
+    # ---------------------------------------------------
+    # 5. Compute Precision-Recall curve
+    # ---------------------------------------------------
+
+    precision, recall, thresholds = precision_recall_curve(
+        y_test,
+        y_prob
+    )
+
+    # Average Precision (AP)
+    ap = average_precision_score(
+        y_test,
+        y_prob
+    )
+
+    print(f"Average Precision (AP): {ap:.3f}")
+
+    # ---------------------------------------------------
+    # 6. Plot Precision-Recall curve
+    # ---------------------------------------------------
+
+    plt.figure(figsize=(8, 6))
+
+    plt.plot(
+        recall,
+        precision,
+        linewidth=2,
+        label=f"PR Curve (AP = {ap:.3f})"
+    )
+
+    plt.xlabel("Recall")
+    plt.ylabel("Precision")
+
+    plt.title("Precision-Recall Curve")
+
+    plt.legend()
+
+    plt.grid(True)
+    plt.savefig("pr-curve.png", dpi=300, bbox_inches="tight")
+
+    plt.show()
+
+    # ---------------------------------------------------
+    # 7. Interpretation
+    # ---------------------------------------------------
+
+    print("\nInterpretation:")
+    print("- High precision means few false positives")
+    print("- High recall means few false negatives")
+    print("- Precision-Recall curves are especially useful")
+    print("  for imbalanced datasets")
+    ```
 
 ### 5.3 Choosing the Right Metric
 
@@ -1532,7 +1925,6 @@ plt.show()
 - Toxicity prediction: Prioritize precision (avoid false negatives)
 - Property prediction: RMSE or MAE depending on outlier sensitivity
 
----
 
 ## 6. Hyperparameter Tuning
 
@@ -1647,7 +2039,7 @@ print(f"Best parameters: {bayes_search.best_params_}")
 print(f"Best CV score: {bayes_search.best_score_:.3f}")
 ```
 
----
+
 
 ## 7. Neural Networks Basics
 
@@ -1859,7 +2251,7 @@ for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}, LR: {optimizer.param_groups[0]['lr']:.6f}")
 ```
 
----
+
 
 ## 8. Common Pitfalls and Best Practices
 
@@ -2026,7 +2418,7 @@ def set_seed(seed=42):
 set_seed(42)
 ```
 
----
+
 
 ## 9. Practical Exercise: Complete ML Pipeline
 
@@ -2339,7 +2731,7 @@ prediction = loaded_model.predict(new_X_scaled)
 print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
 ```
 
----
+
 
 ## 10. Key Takeaways
 
@@ -2368,7 +2760,7 @@ print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
 - Inconsistent CV scores → Data problems or small dataset
 - Perfect scores → Check for data leakage!
 
----
+
 
 ## 11. Preparation for Days 1-5
 
@@ -2396,7 +2788,7 @@ Before Day 1, try:
 3. Try other sklearn datasets (boston housing, wine quality)
 4. Read sklearn documentation on your favorite algorithms
 
----
+
 
 ## 12. Additional Resources
 
@@ -2420,7 +2812,7 @@ Before Day 1, try:
 - Google Colab: https://colab.research.google.com/
 - Papers with Code: https://paperswithcode.com/
 
----
+
 
 ## Homework Assignment
 
@@ -2438,4 +2830,3 @@ Complete the following before Day 1:
 - Create a function to detect and handle data leakage
 - Visualize the decision boundary of a classifier
 
----
