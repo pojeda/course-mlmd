@@ -1030,7 +1030,7 @@ Validation accuracy → Similar and stable
 ??? note "Example"
 
     ```python
-    # Fully working example: Learning curves
+    # example: Learning curves
 
     import numpy as np
     import matplotlib.pyplot as plt
@@ -1143,7 +1143,21 @@ def augment_molecule(smiles):
 #### 2. Regularization
 Add penalty for model complexity:
 
-**L1 Regularization (Lasso)**: Encourages sparsity
+
+**L1 Regularization (Lasso)**: Encourages sparsity by penalizing the absolute values of 
+model parameters, causing some coefficients to become exactly zero and effectively performing feature selection.
+
+$$
+L(\mathbf{w}) = \text{Loss}(\mathbf{w}) + \lambda \sum_{i=1}^{n} |w_i|
+$$
+
+Where:
+
+* $ \text{Loss}(\mathbf{w}) $ is the original loss function
+* $ w_i $ are the model parameters
+* $ \lambda $ controls the strength of the regularization penalty
+
+
 ```python
 from sklearn.linear_model import Lasso
 
