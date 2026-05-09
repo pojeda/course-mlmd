@@ -154,17 +154,17 @@ majority of the dataset
 ??? note "Example"
 
     ```python
-    # Example: Clustering molecules by similarity using K-Means
+    """ Example: Clustering molecules by similarity using K-Means """
 
     import numpy as np
     from sklearn.cluster import KMeans
     import matplotlib.pyplot as plt
 
-    # ---------------------------------------------------
-    # Example molecular fingerprints
-    # Each row represents a molecule
-    # Each column represents a simplified molecular feature
-    # ---------------------------------------------------
+    """ 
+     Example molecular fingerprints
+     Each row represents a molecule
+     Each column represents a simplified molecular feature
+    """ 
 
     molecular_fingerprints = np.array([
         [1, 0, 1, 0, 1],
@@ -177,25 +177,25 @@ majority of the dataset
         [0, 0, 1, 1, 0]
     ])
 
-    # ---------------------------------------------------
-    # Create the K-Means clustering model
-    # ---------------------------------------------------
+    """ 
+     Create the K-Means clustering model
+    """ 
 
     kmeans = KMeans(n_clusters=4, random_state=42)
 
-    # Assign each molecule to a cluster
+    """ Assign each molecule to a cluster """
     clusters = kmeans.fit_predict(molecular_fingerprints)
 
-    # ---------------------------------------------------
-    # Display clustering results
-    # ---------------------------------------------------
+    """ 
+     Display clustering results
+    """ 
 
     for i, cluster_id in enumerate(clusters):
         print(f"Molecule {i + 1} belongs to Cluster {cluster_id}")
 
-    # ---------------------------------------------------
-    # Visualize clusters using the first two features
-    # ---------------------------------------------------
+    """ 
+     Visualize clusters using the first two features
+    """ 
 
     plt.figure(figsize=(6, 5))
 
