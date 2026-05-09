@@ -1153,9 +1153,9 @@ $$
 
 Where:
 
-* $ \text{Loss}(\mathbf{w}) $ is the original loss function
-* $ w_i $ are the model parameters
-* $ \lambda $ controls the strength of the regularization penalty
+* $\text{Loss}(\mathbf{w})$ is the original loss function
+* $w_i$ are the model parameters
+* $\lambda$ controls the strength of the regularization penalty
 
 
 ```python
