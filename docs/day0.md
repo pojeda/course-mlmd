@@ -67,7 +67,8 @@ Common supervised learning tasks include:
 * **Regression** — predicting continuous numerical quantities, such as binding energies, melting temperatures, or reaction rates
 * **Classification** — assigning data to discrete categories, such as toxic vs. non-toxic compounds or active vs. inactive molecules
 
-???- "Example"
+
+??? note "Example"
 
     ```python
     # Example: Predicting molecular solubility using linear regression
@@ -136,12 +137,6 @@ Common supervised learning tasks include:
     print("Predicted solubility:", prediction[0])
     ```
 
-??? note "Example"
-
-    ```python
-    print("Hello world")
-    ```
-    
 #### Unsupervised Learning
 
 Unsupervised learning focuses on analyzing data without predefined labels or target values. Instead of 
