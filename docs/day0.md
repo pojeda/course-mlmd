@@ -350,7 +350,6 @@ Example:
 
 > “Develop a binary classification model capable of predicting whether a molecule can cross the blood–brain barrier with an accuracy greater than 85%.”
 
----
 
 ### 2.2 Data Collection and Preparation
 
