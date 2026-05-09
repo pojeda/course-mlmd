@@ -588,9 +588,9 @@ The **test set** is used only for the final evaluation of the model on unseen da
 ### Conceptual Workflow
 
 ```text id="u7gj59"
-Training Set   → Learn patterns
-Validation Set → Tune the model
-Test Set       → Final evaluation
+Training Set   -> Learn patterns
+Validation Set -> Tune the model
+Test Set       -> Final evaluation
 ```
 
 ??? note "Example"
