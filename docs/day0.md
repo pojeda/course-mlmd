@@ -1525,7 +1525,7 @@ performance. Negative values are also possible and suggest that the model perfor
 predicting the mean of the dataset.
 
 $$
-R^2 = 1 - \frac{\sum_{i=1}^{n} (y_i - \hat{y}*i)^2}{\sum_{i=1}^{n} (y_i - \bar{y})^2}
+R^2 = 1 - \frac{\sum_{i=1}^{n} (y_i - \hat{y}_i)^2}{\sum_{i=1}^{n} (y_i - \bar{y})^2}
 $$
 
 Where:
