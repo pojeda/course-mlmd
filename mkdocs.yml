@@ -5,7 +5,7 @@ site_dir: site.build
 theme:
   name: readthedocs
   locale: en
-  logo: images/hpc2n-qmmm.png
+  logo: images/hpc2n-mlmm.png
     #  static_templates:
     #- sitemap.html
   include_sidebar: true
@@ -32,15 +32,15 @@ nav:
     - Mathematics for Machine Learning: daym.md
   - Day 2:
     - Machine Learning Concepts: day0.md
-  - Day 1: 
+  - Day 3: 
     - ML for Molecular Systems: day1.md
-  - Day 2:
-    - Neural Networks: day2.md  
-  - Day 3:
-    - Graph Neural Networks: day3.md 
   - Day 4:
-    - Generative Models: day4.md 
+    - Neural Networks: day2.md  
   - Day 5:
+    - Graph Neural Networks: day3.md 
+  - Day 6:
+    - Generative Models: day4.md 
+  - Day 7:
     - Advanced Models: day5.md 
   - Summary: summary.md
 plugins:
