@@ -1,23 +1,26 @@
 # Day 1: Foundations of Machine Learning for Molecular Systems
 
 ## Course Overview
-Welcome to the Machine Learning and Deep Learning for Biomolecular Systems and Material Science course. This intensive 5-day program will equip you with the knowledge and skills to apply cutting-edge ML techniques to molecular design, property prediction, and materials discovery.
+Welcome to the Machine Learning and Deep Learning for Biomolecular Systems and Material Science course. This 
+program will equip you with the knowledge and skills to apply cutting-edge ML techniques to molecular design, 
+property prediction, and materials discovery.
 
 ## Learning Objectives
-By the end of Day 1, you will:
+
 - Understand the fundamental ML concepts relevant to molecular sciences
 - Learn multiple molecular representation methods and their trade-offs
 - Implement basic ML models for molecular property prediction
 - Work with chemical databases and molecular descriptors
 - Understand the unique challenges of applying ML to chemistry
 
----
 
 ## 1. Introduction to ML in Molecular Sciences
 
 ### 1.1 Why Machine Learning for Molecules?
 
-The chemical space is vast—estimates suggest there are 10^60 possible drug-like molecules, far more than atoms in the universe. Traditional approaches to drug discovery and materials design involve:
+The chemical space is vast—estimates suggest there are 10^60 possible drug-like molecules, far 
+more than atoms in the universe. Traditional approaches to drug discovery and materials design involve:
+
 - Synthesizing and testing compounds one by one (expensive, slow)
 - Running quantum mechanical calculations for each molecule (computationally expensive)
 - Trial-and-error experimentation (low success rate)
@@ -25,21 +28,25 @@ The chemical space is vast—estimates suggest there are 10^60 possible drug-lik
 Machine learning has revolutionized our ability to:
 
 **Predict Properties Without Experiments**
+
 - Calculate solubility, toxicity, binding affinity computationally
 - Screen millions of compounds in silico before synthesis
 - Reduce time from years to weeks
 
 **Discover Structure-Property Relationships**
+
 - Identify which molecular features drive desired properties
 - Understand mechanisms of action
 - Transfer knowledge across molecular families
 
 **Navigate Chemical Space Efficiently**
+
 - Explore 10^60 possible molecules intelligently
 - Focus experimental resources on most promising candidates
 - Find novel scaffolds outside known chemistry
 
 **Accelerate Discovery Pipelines**
+
 - Traditional drug discovery: 10-15 years, $2.6B per drug
 - ML-assisted discovery: Potentially 2-3x faster, significantly cheaper
 - Example: Insilico Medicine designed a novel drug candidate in 46 days
@@ -47,16 +54,19 @@ Machine learning has revolutionized our ability to:
 ### 1.2 Success Stories
 
 **COVID-19 Drug Repurposing**
+
 - ML models screened 6,000+ FDA-approved drugs against SARS-CoV-2
 - Identified Baricitinib (arthritis drug) as potential treatment
 - Approved by FDA for COVID-19 treatment in 2020
 
 **Antibiotic Discovery**
+
 - ML identified Halicin, a novel antibiotic
 - Effective against drug-resistant bacteria
 - Different from existing antibiotics (discovered through ML, not traditional chemistry)
 
 **Materials Science**
+
 - ML accelerated discovery of solid electrolytes for batteries
 - Predicted thermal conductivity of materials 1000x faster than simulations
 - Identified new photovoltaic materials
@@ -65,6 +75,7 @@ Machine learning has revolutionized our ability to:
 
 #### High Dimensionality
 Molecules exist in complex, high-dimensional spaces:
+
 - 3D coordinates for each atom
 - Electronic structure information
 - Conformational flexibility
@@ -74,6 +85,7 @@ Molecules exist in complex, high-dimensional spaces:
 
 #### Data Scarcity
 Unlike computer vision (millions of labeled images), molecular datasets are small:
+
 - Typical drug dataset: 1,000 - 100,000 compounds
 - Experimental measurements are expensive and time-consuming
 - Many properties are difficult to measure accurately
@@ -82,6 +94,7 @@ Unlike computer vision (millions of labeled images), molecular datasets are smal
 
 #### Physical Constraints
 Models must respect fundamental laws:
+
 - Conservation of energy
 - Valence rules (atoms have specific bonding patterns)
 - Symmetries (rotation, translation, permutation)
@@ -91,6 +104,7 @@ Models must respect fundamental laws:
 
 #### Interpretability Requirements
 Black-box predictions aren't enough in science:
+
 - Need to understand WHY predictions work
 - Identify key molecular features
 - Generate hypotheses for experiments
@@ -100,17 +114,18 @@ Black-box predictions aren't enough in science:
 
 #### Distribution Shift
 Models trained on one chemical space may fail on another:
+
 - Different molecular scaffolds
 - Novel functional groups
 - Extreme property values
 
 **Solution**: Domain adaptation, uncertainty quantification, active learning
 
----
 
 ## 2. Molecular Representations
 
-The choice of molecular representation is crucial—it determines what information is available to the model and how efficiently it can learn.
+The choice of molecular representation is crucial—it determines what information is available to 
+the model and how efficiently it can learn.
 
 ### 2.1 SMILES (Simplified Molecular Input Line Entry System)
 
@@ -191,12 +206,14 @@ for i in range(5):
 ```
 
 #### Advantages of SMILES
+
 - **Compact**: Short strings for complex molecules
 - **Human-readable**: Chemists can interpret them
 - **Widely used**: Most databases provide SMILES
 - **Easy to store**: Plain text format
 
 #### Limitations of SMILES
+
 - **Not unique**: Same molecule can have multiple SMILES representations
   ```python
   # All represent ethanol:
@@ -246,62 +263,84 @@ print(f"Valid molecule: {mol is not None}")
 
 Fingerprints are fixed-length binary or count vectors that encode molecular structure.
 
+
 #### Morgan Fingerprints (ECFP - Extended Connectivity Fingerprints)
 
-Morgan fingerprints capture circular neighborhoods around each atom.
+Morgan fingerprints, also known as Extended Connectivity Fingerprints (ECFP), are one 
+of the most widely used molecular representations in cheminformatics and molecular machine 
+learning. They describe a molecule by examining the local chemical environment around each 
+atom. Instead of representing the molecule as a whole structure, Morgan fingerprints break 
+it into many small circular neighborhoods centered on individual atoms.
+
+The main idea is that each atom is first assigned an identifier based on its local properties, 
+such as atom type, bonding pattern, and connectivity. The algorithm then expands outward step 
+by step, collecting information from neighboring atoms at increasing radii. These local environments 
+are converted into numerical identifiers and stored in a fixed-length fingerprint vector. The 
+final result is a numerical representation that can be used for similarity search, clustering, 
+classification, regression, or other machine learning tasks.
 
 **Algorithm**:
-1. Initialize each atom with a unique identifier based on properties
-2. For each radius (0, 1, 2, ...), update atom identifiers based on neighbors
-3. Hash identifiers to fixed-length bit vector
+
+1. Assign an initial identifier to each atom based on its chemical properties.
+2. Expand around each atom to include neighboring atoms within a chosen radius.
+3. Update the atom identifiers based on the surrounding chemical environment.
+4. Hash the resulting identifiers into a fixed-length fingerprint vector.
+5. Use the fingerprint as input for similarity analysis or machine learning models.
+
 
 ```python
 from rdkit import Chem
-from rdkit.Chem import AllChem
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 import numpy as np
-import warnings
 
-# Create molecule
-mol = Chem.MolFromSmiles("CCO")
+# 
+# 1. Create molecule from SMILES
+# 
 
-# NEW METHOD: Using MorganGenerator
-morgan_gen = GetMorganGenerator(radius=2, fpSize=2048)
+smiles = "CCO"  # Ethanol
 
-# Generate fingerprint as bit vector
+mol = Chem.MolFromSmiles(smiles)
+
+if mol is None:
+    raise ValueError("Invalid SMILES string")
+
+# 
+# 2. Create Morgan fingerprint generator
+# 
+
+morgan_gen = GetMorganGenerator(
+    radius=2,
+    fpSize=2048
+)
+
+# 
+# 3. Generate Morgan fingerprint as a bit vector
+# 
+
 morgan_fp = morgan_gen.GetFingerprint(mol)
 
-# Convert to numpy array
-fp_array = np.zeros((2048,))
-from rdkit import DataStructs
-DataStructs.ConvertToNumpyArray(morgan_fp, fp_array)
+# Convert bit vector to NumPy array
+fp_array = np.array(morgan_fp)
 
-print(f"Fingerprint shape: {fp_array.shape}")
-print(f"Number of set bits: {fp_array.sum()}")
+print("Morgan bit fingerprint")
+print("Fingerprint shape:", fp_array.shape)
+print("Number of set bits:", int(fp_array.sum()))
 
-# Morgan fingerprint with counts (count version)
-morgan_gen_count = GetMorganGenerator(radius=2, fpSize=2048, countSimulation=True)
-morgan_count = morgan_gen_count.GetFingerprint(mol)
+# 
+# 4. Generate Morgan count fingerprint
+# 
 
-print(f"Count fingerprint generated")
+count_fp_array = morgan_gen.GetCountFingerprintAsNumPy(mol)
+
+print("\nMorgan count fingerprint")
+print("Fingerprint shape:", count_fp_array.shape)
+print("Total feature counts:", int(count_fp_array.sum()))
+print("Number of nonzero features:", np.count_nonzero(count_fp_array))
 ```
 
-**Visualization of Circular Neighborhoods**:
-```python
-# Visualize which atoms contribute to which bits
-from rdkit.Chem import Draw
-
-#info = {}
-#fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048, bitInfo=info)
-info = {}
-fp_old = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048, bitInfo=info)
-
-# Show atom environments for specific bits
-for bit_id in list(info.keys())[:5]:  # First 5 bits
-    print(f"Bit {bit_id}: {info[bit_id]}")
-    # atom_ids = [atom_id for atom_id, radius in info[bit_id]]
-    # img = Draw.DrawMorganBit(mol, bit_id, info)  # Uncomment if you want to visualize
-```
+A bit fingerprint stores whether a molecular feature is present or absent. A count fingerprint stores 
+how many times each feature appears. For many introductory examples, bit fingerprints are easier to explain, 
+while count fingerprints can provide more detailed information for machine learning.
 
 **Parameters**:
 - **Radius**: Larger radius captures more context
@@ -309,31 +348,51 @@ for bit_id in list(info.keys())[:5]:  # First 5 bits
   - Radius 2 (ECFP4): Common choice, balances local and broader context
   - Radius 3 (ECFP6): Larger substructures
 
-- **nBits**: Fingerprint length
+- **fpSize**: Fingerprint length
   - 1024: Fast, but more collisions
   - 2048: Common default
-  - 4096: More unique features, slower
+  - 4096: More unique features, slower computationally
 
 #### MACCS Keys
 
-166 predefined structural keys based on common molecular features.
+MACCS keys are fixed-length structural fingerprints composed of 166 predefined chemical 
+patterns commonly found in molecular structures. Each bit in the fingerprint indicates the 
+presence or absence of a specific substructure, functional group, or bonding pattern, making 
+MACCS keys useful for molecular similarity analysis, clustering, and cheminformatics applications.
 
 ```python
 from rdkit import Chem
 from rdkit.Chem import MACCSkeys
 import numpy as np
 
+# 1. Create molecule
+
+mol = Chem.MolFromSmiles("CCO")  # Ethanol
+
+# 2. Generate MACCS fingerprint
+
 maccs = MACCSkeys.GenMACCSKeys(mol)
+
 print(f"MACCS keys length: {len(maccs)}")
 
-# Each bit represents specific structural feature:
-# Bit 1: Contains isotope
-# Bit 44: C-O bond
-# Bit 79: Aromatic ring
+# 
+# 3. Example structural features
+
+# Each bit corresponds to a predefined feature:
+# Bit 1   -> Contains isotope
+# Bit 44  -> Contains C-O bond
+# Bit 79  -> Contains aromatic ring
 # etc.
 
-# Convert to numpy
-maccs_array = np.array(list(maccs.ToBitString()), dtype=int)
+# 4. Convert fingerprint to NumPy array
+
+maccs_array = np.array(
+    list(maccs.ToBitString()),
+    dtype=int
+)
+
+print("\nFingerprint shape:", maccs_array.shape)
+print("Number of active bits:", maccs_array.sum())
 ```
 
 **Advantages**:
@@ -347,14 +406,39 @@ maccs_array = np.array(list(maccs.ToBitString()), dtype=int)
 
 #### RDKit Fingerprints
 
-Topological fingerprints based on molecular paths.
+RDKit fingerprints are topological molecular fingerprints that encode structural information 
+by analyzing atom paths and bond connectivity within a molecule. They are commonly used for 
+molecular similarity searches, clustering, and cheminformatics machine learning applications.
 
 ```python
 from rdkit import Chem
 from rdkit.Chem import RDKFingerprint
+import numpy as np
 
-rdkit_fp = RDKFingerprint(mol, fpSize=2048, maxPath=7)
-# maxPath: maximum path length to consider
+# 1. Create molecule
+mol = Chem.MolFromSmiles("CCO")  # Ethanol
+
+# 2. Generate RDKit fingerprint
+
+rdkit_fp = RDKFingerprint(
+    mol,
+    fpSize=2048,
+    maxPath=7
+)
+
+# maxPath:
+# Maximum bond path length considered
+# when generating structural patterns
+
+# 3. Convert to NumPy array
+
+fp_array = np.array(
+    list(rdkit_fp.ToBitString()),
+    dtype=int
+)
+
+print("Fingerprint shape:", fp_array.shape)
+print("Number of active bits:", fp_array.sum())
 ```
 
 #### Atom Pair and Topological Torsion Fingerprints
