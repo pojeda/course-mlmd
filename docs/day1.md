@@ -441,7 +441,7 @@ print("Fingerprint shape:", fp_array.shape)
 print("Number of active bits:", fp_array.sum())
 ```
 
---- hasta aca 10 may
+---- 
 
 #### Atom Pair and Topological Torsion Fingerprints
 
@@ -481,6 +481,99 @@ print(f"Similarity(ethanol, benzene): {sim_13:.3f}")   # Low (different structur
 dice = DataStructs.DiceSimilarity(fp1, fp2)
 cosine = DataStructs.CosineSimilarity(fp1, fp2)
 ```
+
+## 3D Molecular Representations
+
+While fingerprints and graph-based methods describe molecular connectivity, many molecular 
+properties also depend strongly on three-dimensional geometry. 3D molecular representations 
+include spatial information such as atomic coordinates, bond distances, angles, and molecular 
+conformations. These representations are especially important for applications involving 
+molecular dynamics, docking, quantum chemistry, protein-ligand interactions, and materials modeling.
+
+Common 3D representations include:
+
+* Cartesian coordinates
+* Distance matrices
+* Coulomb matrices
+* Atomic environments
+* Molecular conformations
+
+### Example: Generating 3D Coordinates with RDKit
+
+```python 
+from rdkit import Chem
+from rdkit.Chem import AllChem
+
+# Create molecule from SMILES
+mol = Chem.MolFromSmiles("CCO")  # Ethanol
+
+# Add hydrogen atoms
+mol = Chem.AddHs(mol)
+
+# Generate 3D conformation
+AllChem.EmbedMolecule(mol)
+
+# Optimize geometry
+AllChem.UFFOptimizeMolecule(mol)
+
+# Print atomic coordinates
+conf = mol.GetConformer()
+
+print("Atomic coordinates:\n")
+
+for atom in mol.GetAtoms():
+
+    pos = conf.GetAtomPosition(atom.GetIdx())
+
+    print(
+        f"Atom {atom.GetSymbol():2s} "
+        f"-> x={pos.x:.3f}, y={pos.y:.3f}, z={pos.z:.3f}"
+    )
+```
+
+---
+
+## Protein Representations
+
+Proteins are complex biological macromolecules that can be represented in several different 
+ways for machine learning applications. Depending on the problem, proteins may be described using 
+amino acid sequences, structural information, residue contact maps, graphs, embeddings, or atomistic 
+coordinates. Choosing an appropriate representation is essential for tasks such as protein 
+structure prediction, molecular dynamics, function prediction, and protein-ligand interaction modeling.
+
+Common protein representations include:
+
+* Amino acid sequences
+* One-hot encodings
+* Protein language model embeddings
+* Contact maps
+* Graph representations
+* Atomic coordinate representations
+
+### Example: Loading a Protein Structure with ASE
+
+```python 
+from ase.io import read
+
+# Load protein structure from PDB file
+protein = read("protein.pdb")
+
+print("Number of atoms:", len(protein))
+
+print("\nFirst five atoms:\n")
+
+for atom in protein[:5]:
+
+    print(
+        f"{atom.symbol:2s} "
+        f"x={atom.position[0]:8.3f} "
+        f"y={atom.position[1]:8.3f} "
+        f"z={atom.position[2]:8.3f}"
+    )
+```
+
+This example demonstrates how atomistic protein structures can be loaded and manipulated using [ASE (Atomic Simulation Environment)](https://wiki.fysik.dtu.dk/ase/?utm_source=chatgpt.com) for scientific computing and machine learning workflows.
+
 
 ### 2.3 Molecular Descriptors
 
