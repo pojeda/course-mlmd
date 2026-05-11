@@ -863,6 +863,9 @@ better evaluate model generalization to new chemical structures.
 * Captures meaningful patterns while avoiding memorization of noise
 * Generalizes effectively to new and unseen data points
 
+
+![bias-variance](../images/bias-variance.png){: style="width: 600px;"}
+
 ??? note "Example"
 
     ```python
