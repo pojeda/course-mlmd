@@ -441,45 +441,88 @@ print("Fingerprint shape:", fp_array.shape)
 print("Number of active bits:", fp_array.sum())
 ```
 
----- 
 
-#### Atom Pair and Topological Torsion Fingerprints
+### Atom Pair and Topological Torsion Fingerprints
 
-Encode distances between atom pairs or torsion angles.
+Atom pair fingerprints encode distances between atom pairs, while topological torsion fingerprints 
+capture sequential four-atom connectivity patterns.
 
 ```python
+from rdkit import Chem
 from rdkit.Chem import rdMolDescriptors
 
-# Atom pairs
-atom_pairs = rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(mol, nBits=2048)
+# Create molecule
+mol = Chem.MolFromSmiles("CCO")  # Ethanol
 
-# Topological torsions (4 consecutive atoms)
-torsions = rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(mol, nBits=2048)
+# Atom pair fingerprint
+
+atom_pairs = rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(
+    mol,
+    nBits=2048
+)
+
+# Topological torsion fingerprint
+
+torsions = rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(
+    mol,
+    nBits=2048
+)
+
+print("Atom pair fingerprint length:", len(atom_pairs))
+print("Topological torsion fingerprint length:", len(torsions))
 ```
 
 #### Comparing Molecules with Fingerprints
 
+Fingerprint similarity metrics quantify structural similarity between molecules by comparing 
+shared molecular features encoded in fingerprint vectors.
+
 ```python
+from rdkit import Chem
+from rdkit.Chem import AllChem
 from rdkit import DataStructs
 
-mol1 = Chem.MolFromSmiles("CCO")
-mol2 = Chem.MolFromSmiles("CCCO")
-mol3 = Chem.MolFromSmiles("c1ccccc1")
+# 1. Create molecules
 
-fp1 = AllChem.GetMorganFingerprintAsBitVect(mol1, 2, 2048)
-fp2 = AllChem.GetMorganFingerprintAsBitVect(mol2, 2, 2048)
-fp3 = AllChem.GetMorganFingerprintAsBitVect(mol3, 2, 2048)
+mol1 = Chem.MolFromSmiles("CCO")        # Ethanol
+mol2 = Chem.MolFromSmiles("CCCO")       # Propanol
+mol3 = Chem.MolFromSmiles("c1ccccc1")   # Benzene
 
-# Tanimoto similarity (Jaccard index for binary vectors)
+# 2. Generate Morgan fingerprints
+
+fp1 = AllChem.GetMorganFingerprintAsBitVect(
+    mol1,
+    radius=2,
+    nBits=2048
+)
+
+fp2 = AllChem.GetMorganFingerprintAsBitVect(
+    mol2,
+    radius=2,
+    nBits=2048
+)
+
+fp3 = AllChem.GetMorganFingerprintAsBitVect(
+    mol3,
+    radius=2,
+    nBits=2048
+)
+
+# 3. Compute similarity metrics
+
+# Tanimoto similarity
 sim_12 = DataStructs.TanimotoSimilarity(fp1, fp2)
 sim_13 = DataStructs.TanimotoSimilarity(fp1, fp3)
 
-print(f"Similarity(ethanol, propanol): {sim_12:.3f}")  # High (similar structures)
-print(f"Similarity(ethanol, benzene): {sim_13:.3f}")   # Low (different structures)
+print(f"Similarity (ethanol, propanol): {sim_12:.3f}")
+print(f"Similarity (ethanol, benzene):  {sim_13:.3f}")
 
-# Other similarity metrics
+# Additional similarity metrics
 dice = DataStructs.DiceSimilarity(fp1, fp2)
 cosine = DataStructs.CosineSimilarity(fp1, fp2)
+
+print(f"\nDice similarity:   {dice:.3f}")
+print(f"Cosine similarity: {cosine:.3f}")
 ```
 
 ## 3D Molecular Representations
@@ -531,8 +574,6 @@ for atom in mol.GetAtoms():
     )
 ```
 
----
-
 ## Protein Representations
 
 Proteins are complex biological macromolecules that can be represented in several different 
@@ -572,8 +613,135 @@ for atom in protein[:5]:
     )
 ```
 
-This example demonstrates how atomistic protein structures can be loaded and manipulated using [ASE (Atomic Simulation Environment)](https://wiki.fysik.dtu.dk/ase/?utm_source=chatgpt.com) for scientific computing and machine learning workflows.
+This example demonstrates how atomistic protein structures can be loaded and manipulated using 
+[ASE (Atomic Simulation Environment)](https://wiki.fysik.dtu.dk/ase) for 
+scientific computing and machine learning workflows.
 
+The Coulomb matrix representation is described in the PRL article x
+
+```python
+# Coulomb matrix representation for a small protein-like backbone fragment
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. Define a small protein-like fragment
+# For simplicity, we use backbone atoms from two residues:
+# N, CA, C, O, N, CA, C, O
+#
+# In a real protein, these coordinates would usually come
+# from a PDB file.
+
+atom_symbols = np.array([
+    "N", "C", "C", "O",
+    "N", "C", "C", "O"
+])
+
+coordinates = np.array([
+    [0.00, 0.00, 0.00],   # N
+    [1.45, 0.10, 0.00],   # CA
+    [2.10, 1.45, 0.00],   # C
+    [1.55, 2.50, 0.00],   # O
+
+    [3.45, 1.40, 0.00],   # N
+    [4.20, 2.65, 0.10],   # CA
+    [5.65, 2.30, 0.00],   # C
+    [6.10, 1.20, 0.00]    # O
+])
+
+# Atomic numbers
+atomic_numbers = {
+    "H": 1,
+    "C": 6,
+    "N": 7,
+    "O": 8,
+    "S": 16
+}
+
+Z = np.array([atomic_numbers[symbol] for symbol in atom_symbols])
+
+# 2. Compute Coulomb matrix
+
+def coulomb_matrix(Z, coordinates):
+    """
+    Compute the Coulomb matrix.
+
+    Diagonal terms:
+        0.5 * Z_i^2.4
+
+    Off-diagonal terms:
+        Z_i * Z_j / distance(i, j)
+    """
+
+    n_atoms = len(Z)
+
+    C = np.zeros((n_atoms, n_atoms))
+
+    for i in range(n_atoms):
+        for j in range(n_atoms):
+
+            if i == j:
+                C[i, j] = 0.5 * Z[i] ** 2.4
+
+            else:
+                distance = np.linalg.norm(
+                    coordinates[i] - coordinates[j]
+                )
+
+                C[i, j] = Z[i] * Z[j] / distance
+
+    return C
+
+C = coulomb_matrix(Z, coordinates)
+
+print("Coulomb matrix shape:", C.shape)
+print("\nCoulomb matrix:")
+print(np.round(C, 2))
+
+# 3. Convert matrix into a machine learning feature vector
+# One common option is to flatten the matrix.
+# For fixed-size systems, this can be used directly as an ML input.
+
+feature_vector = C.flatten()
+
+print("\nFeature vector shape:", feature_vector.shape)
+
+
+# 4. Optional: use the sorted eigenvalues as a compact representation
+# Eigenvalues are useful because they provide a fixed-length
+# summary of the matrix and are invariant to atom ordering.
+
+eigenvalues = np.linalg.eigvalsh(C)
+eigenvalues = np.sort(eigenvalues)[::-1]
+
+print("\nSorted Coulomb matrix eigenvalues:")
+print(np.round(eigenvalues, 3))
+
+# 5. Visualize the Coulomb matrix
+
+plt.figure(figsize=(6, 5))
+
+plt.imshow(C)
+
+plt.colorbar(label="Coulomb matrix value")
+
+plt.xticks(
+    ticks=np.arange(len(atom_symbols)),
+    labels=atom_symbols
+)
+
+plt.yticks(
+    ticks=np.arange(len(atom_symbols)),
+    labels=atom_symbols
+)
+
+plt.title("Coulomb Matrix for a Protein-Like Fragment")
+plt.xlabel("Atom index")
+plt.ylabel("Atom index")
+
+plt.tight_layout()
+plt.show()
+```
 
 ### 2.3 Molecular Descriptors
 
