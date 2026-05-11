@@ -2,37 +2,21 @@
 
 **Machine Learning for Molecular Systems - Advanced Course**
 
-*Course Module 2: Neural Networks and Deep Learning Applications*
+*Course Module : Neural Networks and Deep Learning Applications*
 
----
-
-## Table of Contents
-
-1. [Deep Learning Fundamentals](#1-deep-learning-fundamentals)
-2. [Feedforward Neural Networks](#2-feedforward-neural-networks)
-3. [Multi-Task Learning](#3-multi-task-learning)
-4. [Convolutional Neural Networks](#4-convolutional-neural-networks)
-5. [Recurrent Neural Networks](#5-recurrent-neural-networks)
-6. [Transfer Learning](#6-transfer-learning)
-7. [Complete Practical Exercise](#7-complete-practical-exercise)
-8. [Model Interpretation](#8-model-interpretation)
-9. [Best Practices](#9-best-practices)
-10. [Key Takeaways](#10-key-takeaways)
-11. [Resources](#11-resources)
-12. [Homework Assignment](#12-homework-assignment)
-13. [Appendix](#13-appendix)
-
----
 
 ## 1. Deep Learning Fundamentals
 
 ### 1.1 Why Deep Learning for Molecules?
 
-Deep learning has revolutionized molecular property prediction by automatically learning complex representations from raw molecular data. Unlike traditional machine learning approaches that rely on hand-crafted descriptors, deep learning models can:
+Deep learning has revolutionized molecular property prediction by automatically learning complex 
+representations from raw molecular data. Unlike traditional machine learning approaches that rely on 
+hand-crafted descriptors, deep learning models can:
 
 **Key Advantages:**
 
-- **Automatic Feature Learning**: Neural networks learn hierarchical representations directly from molecular structures (SMILES, graphs, 3D coordinates) without manual feature engineering
+- **Automatic Feature Learning**: Neural networks learn hierarchical representations directly from 
+molecular structures (SMILES, graphs, 3D coordinates) without manual feature engineering
 - **Complex Pattern Recognition**: Capture non-linear relationships and subtle structural patterns that affect molecular properties
 - **Transfer Learning**: Pre-trained models on large chemical databases can be fine-tuned for specific tasks with limited data
 - **End-to-End Learning**: Direct mapping from molecular representation to property prediction in a single unified model
@@ -41,7 +25,8 @@ Deep learning has revolutionized molecular property prediction by automatically 
 **Detailed Examples:**
 
 **Example 1: Solubility Prediction**
-Traditional ML approach requires calculating molecular descriptors (LogP, molecular weight, H-bond donors/acceptors). Deep learning models can learn these patterns directly from SMILES strings:
+Traditional ML approach requires calculating molecular descriptors (LogP, molecular weight, H-bond 
+donors/acceptors). Deep learning models can learn these patterns directly from SMILES strings:
 
 ```
 Input: "CC(=O)OC1=CC=CC=C1C(=O)O" (Aspirin)
