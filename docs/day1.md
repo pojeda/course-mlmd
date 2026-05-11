@@ -2544,8 +2544,104 @@ prediction = loaded_model.predict(new_X_scaled)
 print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
 ```
 
+## 7. Practical example: QM9
 
-## 7. Key Takeaways
+```python
+# Classical machine learning with QM9
+# Model: Random Forest Regressor
+# Target: HOMO energy
+
+import numpy as np
+import pandas as pd
+
+import deepchem as dc
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+# 1. Load QM9 dataset
+
+tasks, datasets, transformers = dc.molnet.load_qm9(
+    featurizer="ECFP",
+    splitter="random"
+)
+
+train_dataset, valid_dataset, test_dataset = datasets
+
+print("QM9 tasks:")
+print(tasks)
+
+# 2. Select target property
+
+target_name = "homo"
+target_index = tasks.index(target_name)
+
+# DeepChem datasets store:
+# X = molecular features
+# y = target values
+
+X_train = train_dataset.X
+y_train = train_dataset.y[:, target_index]
+
+X_valid = valid_dataset.X
+y_valid = valid_dataset.y[:, target_index]
+
+X_test = test_dataset.X
+y_test = test_dataset.y[:, target_index]
+
+print("\nTraining shape:", X_train.shape)
+print("Validation shape:", X_valid.shape)
+print("Test shape:", X_test.shape)
+
+# 3. Train classical ML model
+
+model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=None,
+    random_state=42,
+    n_jobs=-1
+)
+
+model.fit(X_train, y_train)
+
+# 4. Validate model
+
+y_valid_pred = model.predict(X_valid)
+
+valid_mae = mean_absolute_error(y_valid, y_valid_pred)
+valid_rmse = np.sqrt(mean_squared_error(y_valid, y_valid_pred))
+valid_r2 = r2_score(y_valid, y_valid_pred)
+
+print("\nValidation performance")
+print(f"MAE:  {valid_mae:.4f}")
+print(f"RMSE: {valid_rmse:.4f}")
+print(f"R²:   {valid_r2:.4f}")
+
+# 5. Final test evaluation
+
+y_test_pred = model.predict(X_test)
+
+test_mae = mean_absolute_error(y_test, y_test_pred)
+test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
+test_r2 = r2_score(y_test, y_test_pred)
+
+print("\nTest performance")
+print(f"MAE:  {test_mae:.4f}")
+print(f"RMSE: {test_rmse:.4f}")
+print(f"R²:   {test_r2:.4f}")
+
+# 6. Compare true vs predicted values
+
+results = pd.DataFrame({
+    "true_homo": y_test[:10],
+    "predicted_homo": y_test_pred[:10]
+})
+
+print("\nExample predictions:")
+print(results)
+```
+
+## 8. Key Takeaways
 
 ### Molecular Representations
 - **SMILES**: Compact text representation, requires careful handling
@@ -2577,7 +2673,7 @@ print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
 
 ---
 
-## 8. Resources and Further Reading
+## 9. Resources and Further Reading
 
 ### Software Libraries
 - **RDKit**: Cheminformatics toolkit - https://www.rdkit.org/
