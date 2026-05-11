@@ -740,6 +740,7 @@ plt.xlabel("Atom index")
 plt.ylabel("Atom index")
 
 plt.tight_layout()
+plt.savefig("coulomb.png", dpi=300, bbox_inches="tight")
 plt.show()
 ```
 
@@ -750,222 +751,308 @@ Numerical features that capture molecular properties.
 #### Types of Descriptors
 
 **1. Physical Descriptors**
+
+Physical descriptors quantify fundamental molecular properties related to size, 
+polarity, hydrophobicity, and intermolecular interactions in chemical systems.
+
 ```python
+from rdkit import Chem
 from rdkit.Chem import Descriptors, Crippen
 
-mol = Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")  # Aspirin
+# 1. Create molecule
 
-# Molecular weight
+# Aspirin
+mol = Chem.MolFromSmiles(
+    "CC(=O)Oc1ccccc1C(=O)O"
+)
+
+# 2. Molecular weight
+
 mw = Descriptors.MolWt(mol)
+
 print(f"Molecular Weight: {mw:.2f} g/mol")
 
-# Lipophilicity (logP - octanol/water partition coefficient)
+# 3. Lipophilicity (LogP)
+
+# Octanol/water partition coefficient
 logp = Crippen.MolLogP(mol)
+
 print(f"LogP: {logp:.2f}")
-# LogP > 5: Too lipophilic (Lipinski's Rule of Five)
 
-# Polar Surface Area
+# Lipinski guideline:
+# LogP > 5 may indicate excessive lipophilicity
+
+# 4. Topological Polar Surface Area (TPSA)
+
 tpsa = Descriptors.TPSA(mol)
-print(f"TPSA: {tpsa:.2f} Ų")
-# TPSA < 140: Likely to cross blood-brain barrier
 
-# Molar Refractivity
+print(f"TPSA: {tpsa:.2f} Å²")
+
+# Lower TPSA values are often associated with
+# better membrane permeability
+
+# 5. Molar Refractivity
+
 mr = Crippen.MolMR(mol)
+
 print(f"Molar Refractivity: {mr:.2f}")
 ```
 
 **2. Structural Descriptors**
+
+Structural descriptors characterize molecular topology, flexibility, ring systems, 
+hydrogen bonding capacity, and atomic connectivity patterns influencing chemical behavior.
+
 ```python
-# Hydrogen bond donors and acceptors
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# 1. Create molecule
+
+# Aspirin
+mol = Chem.MolFromSmiles(
+    "CC(=O)Oc1ccccc1C(=O)O"
+)
+
+# 2. Hydrogen bond donors and acceptors
+
 h_donors = Descriptors.NumHDonors(mol)
 h_acceptors = Descriptors.NumHAcceptors(mol)
+
 print(f"H-Bond Donors: {h_donors}")
 print(f"H-Bond Acceptors: {h_acceptors}")
 
-# Rotatable bonds (flexibility)
+# 3. Rotatable bonds
+
+# Measures molecular flexibility
 rot_bonds = Descriptors.NumRotatableBonds(mol)
+
 print(f"Rotatable Bonds: {rot_bonds}")
 
-# Ring information
-num_rings = Descriptors.RingCount(mol)
-aromatic_rings = Descriptors.NumAromaticRings(mol)
-print(f"Total Rings: {num_rings}, Aromatic: {aromatic_rings}")
+# 4. Ring information
 
-# Fraction of sp3 carbons (saturation)
+num_rings = Descriptors.RingCount(mol)
+
+aromatic_rings = Descriptors.NumAromaticRings(mol)
+
+print(f"Total Rings: {num_rings}")
+print(f"Aromatic Rings: {aromatic_rings}")
+
+# 5. Fraction of sp3 carbons
+
+# Indicates molecular saturation and 3D character
 frac_sp3 = Descriptors.FractionCSP3(mol)
+
 print(f"Fraction Csp3: {frac_sp3:.2f}")
 ```
 
 **3. Topological Descriptors**
+
+Topological descriptors quantify molecular connectivity, branching, complexity, 
+and graph structure independently of three-dimensional molecular geometry or coordinates.
+
 ```python
+from rdkit import Chem
 from rdkit.Chem import GraphDescriptors
 
-# Balaban J index (molecular branching)
+# 1. Create molecule
+
+# Aspirin
+mol = Chem.MolFromSmiles(
+    "CC(=O)Oc1ccccc1C(=O)O"
+)
+
+# 2. Balaban J index
+
+# Measures molecular branching and connectivity
 balaban = GraphDescriptors.BalabanJ(mol)
 
-# Bertz complexity index
+print(f"Balaban J Index: {balaban:.3f}")
+
+# 3. Bertz complexity index
+
+# Estimates molecular structural complexity
 bertz = GraphDescriptors.BertzCT(mol)
 
-# Chi indices (connectivity)
+print(f"Bertz Complexity Index: {bertz:.3f}")
+
+# 4. Chi connectivity indices
+
+# Connectivity and branching descriptors
 chi0 = GraphDescriptors.Chi0(mol)
 chi1 = GraphDescriptors.Chi1(mol)
+
+print(f"Chi0 Index: {chi0:.3f}")
+print(f"Chi1 Index: {chi1:.3f}")
 ```
 
 **4. 3D Descriptors**
+
+3D descriptors characterize molecular shape, spatial distribution, geometry, and 
+conformational properties using three-dimensional atomic coordinates and optimized 
+molecular structures.
+
 ```python
+from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors3D
 
-# Generate 3D coordinates
+# 1. Create molecule
+
+# Aspirin
+mol = Chem.MolFromSmiles(
+    "CC(=O)Oc1ccccc1C(=O)O"
+)
+
+# 2. Generate 3D molecular structure
+
 mol_3d = Chem.AddHs(mol)
-AllChem.EmbedMolecule(mol_3d, randomSeed=42)
+
+# Generate 3D coordinates
+AllChem.EmbedMolecule(
+    mol_3d,
+    randomSeed=42
+)
+
+# Geometry optimization
 AllChem.MMFFOptimizeMolecule(mol_3d)
 
-# 3D descriptors
+# 3. Compute 3D descriptors
+
+# Molecular shape descriptor
 asphericity = Descriptors3D.Asphericity(mol_3d)
+
+# Measures deviation from spherical shape
 eccentricity = Descriptors3D.Eccentricity(mol_3d)
+
+# Shape and mass distribution descriptor
 inertial_shape = Descriptors3D.InertialShapeFactor(mol_3d)
+
+# Spatial distribution of atoms
 radius_of_gyration = Descriptors3D.RadiusOfGyration(mol_3d)
 
-print(f"Radius of Gyration: {radius_of_gyration:.2f} Ų")
+# 4. Display results
+print(f"Asphericity: {asphericity:.3f}")
+print(f"Eccentricity: {eccentricity:.3f}")
+print(f"Inertial Shape Factor: {inertial_shape:.3f}")
+print(f"Radius of Gyration: {radius_of_gyration:.3f} Å")
 ```
 
 #### Drug-Likeness Metrics
 
-**Lipinski's Rule of Five**
-```python
-def lipinski_rule_of_five(mol):
-    """
-    Predicts if molecule is drug-like
-    Rules:
-    - MW <= 500
-    - LogP <= 5
-    - H-bond donors <= 5
-    - H-bond acceptors <= 10
-    """
-    mw = Descriptors.MolWt(mol)
-    logp = Crippen.MolLogP(mol)
-    hbd = Descriptors.NumHDonors(mol)
-    hba = Descriptors.NumHAcceptors(mol)
-    
-    violations = 0
-    if mw > 500: violations += 1
-    if logp > 5: violations += 1
-    if hbd > 5: violations += 1
-    if hba > 10: violations += 1
-    
-    return violations <= 1  # Allow 1 violation
+Drug-likeness metrics evaluate whether a molecule possesses physicochemical and 
+structural properties commonly associated with successful pharmaceutical compounds.
 
-is_druglike = lipinski_rule_of_five(mol)
-print(f"Passes Lipinski's Rule: {is_druglike}")
-```
+**Lipinski's Rule of Five**
+
+Lipinski’s Rule of Five estimates oral bioavailability using molecular weight, 
+hydrogen bonding, and lipophilicity-based physicochemical thresholds.
 
 **QED (Quantitative Estimate of Drug-likeness)**
-```python
-from rdkit.Chem import QED
 
-qed_score = QED.qed(mol)
-print(f"QED Score: {qed_score:.3f}")
-# Range: [0, 1], higher is more drug-like
-# Based on 8 molecular properties
-```
-
-**Synthetic Accessibility Score**
-```python
-from rdkit.Chem import RDConfig
-import sys
-sys.path.append(f'{RDConfig.RDContribDir}/SA_Score')
-import sascorer
-
-sa_score = sascorer.calculateScore(mol)
-print(f"SA Score: {sa_score:.2f}")
-# Range: [1, 10]
-# 1: Easy to synthesize
-# 10: Difficult to synthesize
-```
+QED combines multiple molecular descriptors into a single score representing the 
+overall drug-like character of a compound.
 
 #### Creating Feature Vectors
 
 ```python
-def calculate_molecular_descriptors(smiles):
-    """
-    Comprehensive descriptor calculation
-    """
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        return None
-    
-    # Add hydrogens for accurate calculations
-    mol = Chem.AddHs(mol)
-    
-    descriptors = {
-        # Physical
-        'MW': Descriptors.MolWt(mol),
-        'LogP': Crippen.MolLogP(mol),
-        'TPSA': Descriptors.TPSA(mol),
-        'MolMR': Crippen.MolMR(mol),
-        
-        # Structural
-        'NumHDonors': Descriptors.NumHDonors(mol),
-        'NumHAcceptors': Descriptors.NumHAcceptors(mol),
-        'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
-        'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
-        'NumAromaticRings': Descriptors.NumAromaticRings(mol),
-        'NumSaturatedRings': Descriptors.NumSaturatedRings(mol),
-        'NumAliphaticRings': Descriptors.NumAliphaticRings(mol),
-        'RingCount': Descriptors.RingCount(mol),
-        
-        # Complexity
-        'BertzCT': GraphDescriptors.BertzCT(mol),
-        'NumBridgeheadAtoms': Descriptors.NumBridgeheadAtoms(mol),
-        'NumSpiroAtoms': Descriptors.NumSpiroAtoms(mol),
-        
-        # Electronic
-        'LabuteASA': Descriptors.LabuteASA(mol),
-        'PEOE_VSA1': Descriptors.PEOE_VSA1(mol),
-        
-        # Counts
-        'NumCarbon': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 6]),
-        'NumNitrogen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 7]),
-        'NumOxygen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 8]),
-        'NumHalogens': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() in [9, 17, 35, 53]]),
-        
-        # Saturation
-        'FractionCsp3': Descriptors.FractionCSP3(mol),
-        
-        # Drug-likeness
-        'QED': QED.qed(mol),
-    }
-    
-    return descriptors
-
-# Example usage
-smiles_list = ["CCO", "CC(=O)Oc1ccccc1C(=O)O", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"]
+from rdkit import Chem
+from rdkit.Chem import Descriptors, Crippen, GraphDescriptors, QED
 import pandas as pd
 
-descriptor_list = [calculate_molecular_descriptors(s) for s in smiles_list]
+def calculate_molecular_descriptors(smiles):
+    """
+    Calculate a collection of common molecular descriptors.
+    """
+
+    mol = Chem.MolFromSmiles(smiles)
+
+    if mol is None:
+        return None
+
+    descriptors = {
+        # Physical
+        "MW": Descriptors.MolWt(mol),
+        "LogP": Crippen.MolLogP(mol),
+        "TPSA": Descriptors.TPSA(mol),
+        "MolMR": Crippen.MolMR(mol),
+
+        # Structural
+        "NumHDonors": Descriptors.NumHDonors(mol),
+        "NumHAcceptors": Descriptors.NumHAcceptors(mol),
+        "NumRotatableBonds": Descriptors.NumRotatableBonds(mol),
+        "NumHeteroatoms": Descriptors.NumHeteroatoms(mol),
+        "NumAromaticRings": Descriptors.NumAromaticRings(mol),
+        "NumSaturatedRings": Descriptors.NumSaturatedRings(mol),
+        "NumAliphaticRings": Descriptors.NumAliphaticRings(mol),
+        "RingCount": Descriptors.RingCount(mol),
+
+        # Complexity
+        "BertzCT": GraphDescriptors.BertzCT(mol),
+        "NumBridgeheadAtoms": Descriptors.NumBridgeheadAtoms(mol),
+        "NumSpiroAtoms": Descriptors.NumSpiroAtoms(mol),
+
+        # Surface-area descriptors
+        "LabuteASA": Descriptors.LabuteASA(mol),
+        "PEOE_VSA1": Descriptors.PEOE_VSA1(mol),
+
+        # Atom counts
+        "NumCarbon": sum(atom.GetAtomicNum() == 6 for atom in mol.GetAtoms()),
+        "NumNitrogen": sum(atom.GetAtomicNum() == 7 for atom in mol.GetAtoms()),
+        "NumOxygen": sum(atom.GetAtomicNum() == 8 for atom in mol.GetAtoms()),
+        "NumHalogens": sum(atom.GetAtomicNum() in [9, 17, 35, 53] for atom in mol.GetAtoms()),
+
+        # Saturation
+        "FractionCsp3": Descriptors.FractionCSP3(mol),
+
+        # Drug-likeness
+        "QED": QED.qed(mol),
+    }
+
+    return descriptors
+
+
+# Example usage
+smiles_list = [
+    "CCO",                              # Ethanol
+    "CC(=O)Oc1ccccc1C(=O)O",           # Aspirin
+    "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"     # Caffeine
+]
+
+descriptor_list = [
+    calculate_molecular_descriptors(smiles)
+    for smiles in smiles_list
+]
+
 df_descriptors = pd.DataFrame(descriptor_list)
-df_descriptors['SMILES'] = smiles_list
+df_descriptors.insert(0, "SMILES", smiles_list)
 
 print(df_descriptors)
 ```
 
 ### 2.4 Graph Representations
 
-Molecules as graphs where atoms are nodes and bonds are edges.
+Molecular graphs represent atoms as nodes and chemical bonds as edges, preserving 
+connectivity and atom-level information.
 
 #### Graph Structure
 
+Molecules as graphs where atoms are nodes and bonds are edges.
+
 ```python
+from rdkit import Chem
 import networkx as nx
 
 def mol_to_graph(smiles):
-    """Convert molecule to NetworkX graph"""
+    """Convert a molecule into a NetworkX graph."""
+
     mol = Chem.MolFromSmiles(smiles)
-    
-    # Create graph
+
+    if mol is None:
+        raise ValueError("Invalid SMILES string")
+
     G = nx.Graph()
-    
-    # Add nodes (atoms)
+
+    # Add nodes: atoms
     for atom in mol.GetAtoms():
         G.add_node(
             atom.GetIdx(),
@@ -977,8 +1064,8 @@ def mol_to_graph(smiles):
             hybridization=str(atom.GetHybridization()),
             is_aromatic=atom.GetIsAromatic()
         )
-    
-    # Add edges (bonds)
+
+    # Add edges: bonds
     for bond in mol.GetBonds():
         G.add_edge(
             bond.GetBeginAtomIdx(),
@@ -987,77 +1074,237 @@ def mol_to_graph(smiles):
             is_conjugated=bond.GetIsConjugated(),
             is_aromatic=bond.GetIsAromatic()
         )
-    
+
     return G
 
 # Example
 G = mol_to_graph("CCO")
+
 print(f"Nodes: {G.number_of_nodes()}")
 print(f"Edges: {G.number_of_edges()}")
-print(f"Node features: {G.nodes[0]}")
+print(f"Node 0 features: {G.nodes[0]}")
 ```
 
 #### Adjacency Matrix Representation
 
 ```python
+from rdkit import Chem
+import numpy as np
+
 def get_adjacency_matrix(smiles, max_atoms=50):
-    """Get adjacency matrix with padding"""
+    """Generate a padded molecular adjacency matrix."""
+
     mol = Chem.MolFromSmiles(smiles)
+
+    if mol is None:
+        raise ValueError("Invalid SMILES string")
+
     num_atoms = mol.GetNumAtoms()
-    
-    # Initialize matrix
-    adj_matrix = np.zeros((max_atoms, max_atoms))
-    
-    # Fill adjacency matrix
+
+    if num_atoms > max_atoms:
+        raise ValueError(
+            f"Molecule contains {num_atoms} atoms "
+            f"but max_atoms={max_atoms}"
+        )
+
+    # Initialize adjacency matrix
+    adj_matrix = np.zeros(
+        (max_atoms, max_atoms),
+        dtype=int
+    )
+
+    # Fill connectivity
     for bond in mol.GetBonds():
+
         i = bond.GetBeginAtomIdx()
         j = bond.GetEndAtomIdx()
+
         adj_matrix[i, j] = 1
-        adj_matrix[j, i] = 1  # Symmetric
-    
+        adj_matrix[j, i] = 1  # Symmetric matrix
+
     return adj_matrix, num_atoms
 
+# Example
 adj, n_atoms = get_adjacency_matrix("CCO")
+
 print(f"Adjacency matrix shape: {adj.shape}")
 print(f"Actual atoms: {n_atoms}")
+
+print("\nAdjacency matrix:")
+print(adj[:n_atoms, :n_atoms])
 ```
 
 #### Node and Edge Features
 
+Node and edge features encode atom and bond properties as numerical vectors 
+for graph-based molecular machine learning models.
+
 ```python
+from rdkit import Chem
+import numpy as np
+
 def get_node_features(atom):
-    """Extract features for a single atom"""
+    """Extract numerical features for one atom."""
+
+    hybridization_map = {
+        Chem.rdchem.HybridizationType.SP: 1,
+        Chem.rdchem.HybridizationType.SP2: 2,
+        Chem.rdchem.HybridizationType.SP3: 3,
+        Chem.rdchem.HybridizationType.SP3D: 4,
+        Chem.rdchem.HybridizationType.SP3D2: 5,
+    }
+
     return np.array([
-        atom.GetAtomicNum(),  # Atomic number
-        atom.GetDegree(),  # Number of bonds
-        atom.GetFormalCharge(),  # Charge
-        atom.GetNumRadicalElectrons(),  # Radicals
-        atom.GetHybridization().real,  # sp, sp2, sp3
-        atom.GetIsAromatic(),  # Aromaticity
-        atom.GetTotalNumHs(),  # Hydrogens
-    ])
+        atom.GetAtomicNum(),                     # Atomic number
+        atom.GetDegree(),                        # Number of bonded neighbors
+        atom.GetFormalCharge(),                  # Formal charge
+        atom.GetNumRadicalElectrons(),           # Radical electrons
+        hybridization_map.get(
+            atom.GetHybridization(), 0
+        ),                                       # Hybridization state
+        int(atom.GetIsAromatic()),               # Aromaticity
+        atom.GetTotalNumHs(),                    # Attached hydrogens
+    ], dtype=float)
+
 
 def get_edge_features(bond):
-    """Extract features for a single bond"""
+    """Extract numerical features for one bond."""
+
     bond_type_map = {
         Chem.rdchem.BondType.SINGLE: 1,
         Chem.rdchem.BondType.DOUBLE: 2,
         Chem.rdchem.BondType.TRIPLE: 3,
         Chem.rdchem.BondType.AROMATIC: 4,
     }
-    
+
     return np.array([
-        bond_type_map.get(bond.GetBondType(), 0),
-        bond.GetIsConjugated(),
-        bond.GetIsAromatic(),
-    ])
+        bond_type_map.get(
+            bond.GetBondType(), 0
+        ),                                       # Bond type
+
+        int(bond.GetIsConjugated()),             # Conjugation
+
+        int(bond.GetIsAromatic()),               # Aromaticity
+    ], dtype=float)
+
+
+# Example
+mol = Chem.MolFromSmiles("CCO")
+
+print("Node features:\n")
+
+for atom in mol.GetAtoms():
+    print(
+        atom.GetSymbol(),
+        get_node_features(atom)
+    )
+
+print("\nEdge features:\n")
+
+for bond in mol.GetBonds():
+    print(
+        f"{bond.GetBeginAtomIdx()} - "
+        f"{bond.GetEndAtomIdx()}:",
+        get_edge_features(bond)
+    )
+```
+
+```python
+# Protein graph example using residue C-alpha atoms
+
+import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
+
+
+# 1. Example protein residues
+# Each residue has:
+# - residue name
+# - residue index
+# - C-alpha 3D coordinates
+
+residues = [
+    {"name": "ALA", "index": 1, "ca_coord": np.array([0.0, 0.0, 0.0])},
+    {"name": "GLY", "index": 2, "ca_coord": np.array([3.8, 0.2, 0.0])},
+    {"name": "SER", "index": 3, "ca_coord": np.array([7.5, 0.1, 0.3])},
+    {"name": "VAL", "index": 4, "ca_coord": np.array([5.0, 3.5, 0.2])},
+    {"name": "LYS", "index": 5, "ca_coord": np.array([1.5, 3.2, 0.1])},
+]
+
+# 2. Create graph
+
+G = nx.Graph()
+
+# Add residues as nodes
+for residue in residues:
+    G.add_node(
+        residue["index"],
+        residue_name=residue["name"],
+        ca_coord=residue["ca_coord"]
+    )
+
+# 3. Add edges based on distance cutoff
+
+distance_cutoff = 4.5
+
+for i in range(len(residues)):
+    for j in range(i + 1, len(residues)):
+
+        coord_i = residues[i]["ca_coord"]
+        coord_j = residues[j]["ca_coord"]
+
+        distance = np.linalg.norm(coord_i - coord_j)
+
+        if distance <= distance_cutoff:
+            G.add_edge(
+                residues[i]["index"],
+                residues[j]["index"],
+                distance=distance
+            )
+
+# 4. Print graph information
+
+print("Number of nodes:", G.number_of_nodes())
+print("Number of edges:", G.number_of_edges())
+
+print("\nNodes:")
+for node, features in G.nodes(data=True):
+    print(node, features)
+
+print("\nEdges:")
+for u, v, features in G.edges(data=True):
+    print(f"{u} -- {v}, distance = {features['distance']:.2f} Å")
+
+# 5. Visualize graph
+
+pos = {
+    residue["index"]: residue["ca_coord"][:2]
+    for residue in residues
+}
+
+labels = {
+    residue["index"]: residue["name"]
+    for residue in residues
+}
+
+nx.draw(
+    G,
+    pos,
+    labels=labels,
+    with_labels=True,
+    node_size=900
+)
+
+plt.title("Protein Graph Representation")
+plt.savefig("graph-protein.png", dpi=300, bbox_inches="tight")
+plt.show()
 ```
 
 **Advantages of Graph Representations**:
 - Natural for molecules (atoms connected by bonds)
 - Permutation invariant (atom order doesn't matter)
 - Captures topology and local structure
-- Enables Graph Neural Networks (Day 3)
+- Enables Graph Neural Networks 
 
 **Limitations**:
 - More complex to implement
@@ -1077,51 +1324,105 @@ Before deep learning, these methods were (and still are) workhorses of molecular
 - For toxicity: reactive functional groups, lipophilicity
 
 **Feature Scaling**:
+
 ```python
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+from sklearn.model_selection import train_test_split
 
-# Standardization (zero mean, unit variance)
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-# Good for: Most ML algorithms, assumes normal distribution
+# Split first to avoid data leakage
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
 
-# Min-Max scaling (range [0, 1])
-scaler = MinMaxScaler()
-X_scaled = scaler.fit_transform(X)
-# Good for: Neural networks, when you need bounded values
+# Standardization: zero mean, unit variance
+standard_scaler = StandardScaler()
 
-# Robust scaling (uses median and IQR)
-scaler = RobustScaler()
-X_scaled = scaler.fit_transform(X)
-# Good for: Data with outliers
+X_train_standard = standard_scaler.fit_transform(X_train)
+X_test_standard = standard_scaler.transform(X_test)
+
+# Min-Max scaling: range [0, 1]
+minmax_scaler = MinMaxScaler()
+
+X_train_minmax = minmax_scaler.fit_transform(X_train)
+X_test_minmax = minmax_scaler.transform(X_test)
+
+# Robust scaling: uses median and interquartile range
+robust_scaler = RobustScaler()
+
+X_train_robust = robust_scaler.fit_transform(X_train)
+X_test_robust = robust_scaler.transform(X_test)
 ```
 
 **Feature Selection**:
+
 ```python
 from sklearn.feature_selection import (
-    VarianceThreshold, SelectKBest, f_regression,
-    RFE, SelectFromModel
+    VarianceThreshold,
+    SelectKBest,
+    f_regression,
+    RFE,
+    SelectFromModel
 )
+
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+
+# Split first to avoid data leakage
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
 
 # Remove low-variance features
-selector = VarianceThreshold(threshold=0.01)
-X_high_var = selector.fit_transform(X)
+variance_selector = VarianceThreshold(threshold=0.01)
 
-# Univariate feature selection
-selector = SelectKBest(score_func=f_regression, k=10)
-X_selected = selector.fit_transform(X, y)
+X_train_high_var = variance_selector.fit_transform(X_train)
+X_test_high_var = variance_selector.transform(X_test)
+
+# Select top 10 features using univariate regression scores
+kbest_selector = SelectKBest(
+    score_func=f_regression,
+    k=10
+)
+
+X_train_selected = kbest_selector.fit_transform(X_train, y_train)
+X_test_selected = kbest_selector.transform(X_test)
 
 # Recursive Feature Elimination
-model = RandomForestRegressor()
-rfe = RFE(model, n_features_to_select=10)
-X_rfe = rfe.fit_transform(X, y)
+rfe_model = RandomForestRegressor(
+    n_estimators=100,
+    random_state=42
+)
+
+rfe_selector = RFE(
+    estimator=rfe_model,
+    n_features_to_select=10
+)
+
+X_train_rfe = rfe_selector.fit_transform(X_train, y_train)
+X_test_rfe = rfe_selector.transform(X_test)
 
 # Feature importance from model
-model = RandomForestRegressor()
-model.fit(X, y)
-selector = SelectFromModel(model, prefit=True, threshold='median')
-X_important = selector.transform(X)
+importance_model = RandomForestRegressor(
+    n_estimators=100,
+    random_state=42
+)
+
+importance_model.fit(X_train, y_train)
+
+importance_selector = SelectFromModel(
+    importance_model,
+    prefit=True,
+    threshold="median"
+)
+
+X_train_important = importance_selector.transform(X_train)
+X_test_important = importance_selector.transform(X_test)
 ```
 
 ### 3.2 Random Forests
@@ -1136,49 +1437,102 @@ Ensemble of decision trees, each trained on random subset of data and features.
 4. **Prediction**: Average predictions from all trees (regression) or vote (classification)
 
 ```python
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.model_selection import cross_val_score
+from sklearn.datasets import make_regression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import r2_score, mean_squared_error
 import numpy as np
-
-# Regression example
-rf_reg = RandomForestRegressor(
-    n_estimators=100,  # Number of trees
-    max_depth=None,  # Grow trees fully
-    min_samples_split=2,  # Minimum samples to split node
-    min_samples_leaf=1,  # Minimum samples in leaf
-    max_features='sqrt',  # Features to consider at each split
-    bootstrap=True,  # Use bootstrap sampling
-    random_state=42,
-    n_jobs=-1  # Use all CPUs
-)
-
-# Train
-rf_reg.fit(X_train, y_train)
-
-# Predict
-y_pred = rf_reg.predict(X_test)
-
-# Cross-validation
-cv_scores = cross_val_score(rf_reg, X, y, cv=5, scoring='r2')
-print(f"Cross-validation R²: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
-
-# Feature importance
-importances = rf_reg.feature_importances_
-indices = np.argsort(importances)[::-1]
-
-print("Feature ranking:")
-for i, idx in enumerate(indices[:10]):
-    print(f"{i+1}. Feature {idx}: {importances[idx]:.4f}")
-
-# Visualize feature importance
 import matplotlib.pyplot as plt
 
+# 1. Create example regression dataset
+
+X, y = make_regression(
+    n_samples=500,
+    n_features=12,
+    n_informative=6,
+    noise=15,
+    random_state=42
+)
+
+# 2. Train-test split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+# 3. Define random forest regressor
+
+rf_reg = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=None,
+    min_samples_split=2,
+    min_samples_leaf=1,
+    max_features="sqrt",
+    bootstrap=True,
+    random_state=42,
+    n_jobs=-1
+)
+
+# 4. Train model
+
+rf_reg.fit(X_train, y_train)
+
+# 5. Predict and evaluate
+
+y_pred = rf_reg.predict(X_test)
+
+r2 = r2_score(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+
+print(f"Test R²: {r2:.3f}")
+print(f"Test MSE: {mse:.3f}")
+
+# 6. Cross-validation
+
+cv_scores = cross_val_score(
+    rf_reg,
+    X,
+    y,
+    cv=5,
+    scoring="r2"
+)
+
+print(f"Cross-validation R²: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
+
+# 7. Feature importance
+
+importances = rf_reg.feature_importances_
+
+indices = np.argsort(importances)[::-1]
+
+print("\nFeature ranking:")
+
+for i, idx in enumerate(indices[:10]):
+    print(f"{i + 1}. Feature {idx}: {importances[idx]:.4f}")
+
+# 8. Visualize feature importance
+
 plt.figure(figsize=(10, 6))
-plt.bar(range(len(importances)), importances[indices])
-plt.xlabel('Features')
-plt.ylabel('Importance')
-plt.title('Random Forest Feature Importance')
+
+plt.bar(
+    range(len(importances)),
+    importances[indices]
+)
+
+plt.xticks(
+    range(len(importances)),
+    indices
+)
+
+plt.xlabel("Feature Index")
+plt.ylabel("Importance")
+plt.title("Random Forest Feature Importance")
+
 plt.tight_layout()
+plt.savefig("random-forest.png", dpi=300, bbox_inches="tight")
 plt.show()
 ```
 
@@ -1241,7 +1595,81 @@ r2 = r2_score(y_true, y_pred)
 print(f"R²: {r2:.3f}")
 ```
 
----
+### 3.4 (Quantitative Structure–Activity Relationship) QSAR
+
+QSAR models relate molecular structure to biological or chemical activity using numerical descriptors. Classical 
+QSAR workflows often combine molecular features with regression or classification algorithms.
+
+Examples of QSAR applications:
+
+* predicting drug activity,
+* toxicity prediction,
+* solubility estimation,
+* binding affinity prediction,
+* environmental risk assessment.
+
+In a QSAR workflow:
+
+1. molecules are converted into descriptors or fingerprints,
+2. descriptors are used as ML input features,
+3. a regression or classification model predicts molecular properties.
+
+Yes. QSAR is commonly considered a **classical machine learning approach** in cheminformatics because it uses molecular descriptors or fingerprints to predict biological or chemical activity.
+
+#### QSAR Models
+
+QSAR models relate molecular structure to biological or chemical activity using numerical descriptors. Classical QSAR workflows often combine molecular features with regression or classification algorithms.
+
+```python
+# QSAR regression example
+import numpy as np
+import pandas as pd
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+
+# 1. Example molecular descriptor dataset
+
+data = pd.DataFrame({
+    "molecular_weight": [46.07, 60.05, 78.11, 180.16, 194.19, 151.16],
+    "logP": [-0.31, -0.17, 2.13, 1.19, -0.07, 1.35],
+    "h_bond_donors": [1, 1, 0, 1, 0, 1],
+    "h_bond_acceptors": [1, 2, 0, 4, 6, 2],
+    "activity": [1.2, 1.6, 0.4, 2.8, 3.1, 2.2]
+})
+
+X = data.drop(columns="activity")
+y = data["activity"]
+
+# 2. Split data
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.33,
+    random_state=42
+)
+
+# 3. Train QSAR model
+
+model = RandomForestRegressor(
+    n_estimators=100,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+# 4. Predict and evaluate
+
+y_pred = model.predict(X_test)
+
+print("Predicted activity:", y_pred)
+print("True activity:", y_test.values)
+
+print("MSE:", mean_squared_error(y_test, y_pred))
+print("R²:", r2_score(y_test, y_pred))
+```
 
 ## 4. Working with Chemical Databases
 
@@ -1252,28 +1680,90 @@ print(f"R²: {r2:.3f}")
 ```python
 import pubchempy as pcp
 
-# Search by name
-results = pcp.get_compounds('aspirin', 'name')
+# 1. Search compound by name
+
+results = pcp.get_compounds(
+    "aspirin",
+    "name"
+)
+
+if len(results) == 0:
+    raise ValueError("No compound found")
+
 compound = results[0]
 
-print(f"IUPAC Name: {compound.iupac_name}")
-print(f"SMILES: {compound.isomeric_smiles}")
-print(f"Molecular Formula: {compound.molecular_formula}")
-print(f"Molecular Weight: {compound.molecular_weight}")
+# 2. Display basic information
 
-# Get properties
+print("Compound Information\n")
+print(f"IUPAC Name:        {compound.iupac_name}")
+print(f"SMILES:            {compound.isomeric_smiles}")
+print(f"Molecular Formula: {compound.molecular_formula}")
+print(f"Molecular Weight:  {compound.molecular_weight}")
+
+# 3. Retrieve selected properties
+
 properties = pcp.get_properties(
-    ['MolecularWeight', 'XLogP', 'TPSA', 'Complexity'],
-    'aspirin',
-    'name'
+    [
+        "MolecularWeight",
+        "XLogP",
+        "TPSA",
+        "Complexity"
+    ],
+    "aspirin",
+    "name"
 )
-print(properties)
+
+# 4. Display properties
+
+print("\nSelected Properties\n")
+
+for key, value in properties[0].items():
+    print(f"{key}: {value}")
 ```
 
 #### ChEMBL
 
-buscar exemplo
+```python
+# ChEMBL example:
+# Search for aspirin and retrieve related bioactivity data
 
+import pandas as pd
+from chembl_webresource_client.new_client import new_client
+
+# 1. Search for a molecule by name
+
+molecule = new_client.molecule
+
+results = molecule.search("aspirin")
+
+aspirin = results[0]
+
+print("Molecule information")
+print("ChEMBL ID:", aspirin["molecule_chembl_id"])
+print("Preferred name:", aspirin["pref_name"])
+print("Molecular formula:", aspirin["molecule_properties"]["full_molformula"])
+print("Molecular weight:", aspirin["molecule_properties"]["full_mwt"])
+
+# 2. Retrieve bioactivity data for aspirin
+
+activity = new_client.activity
+
+activities = activity.filter(
+    molecule_chembl_id=aspirin["molecule_chembl_id"]
+).only(
+    "target_chembl_id",
+    "target_pref_name",
+    "standard_type",
+    "standard_value",
+    "standard_units"
+)
+
+# Convert first 10 records to DataFrame
+df = pd.DataFrame(list(activities[:10]))
+
+print("\nBioactivity data")
+print(df)
+```
 
 
 ### 4.2 Data Preprocessing
@@ -1281,26 +1771,39 @@ buscar exemplo
 #### Molecular Standardization
 
 ```python
+from rdkit import Chem
 from rdkit.Chem import SaltRemover
 
 def standardize_molecule(smiles):
-    """Standardize molecular representation"""
+    """Remove salts and return canonical SMILES."""
+
     mol = Chem.MolFromSmiles(smiles)
+
     if mol is None:
         return None
-    
-    # Remove salts
+
+    # Remove common salts or counterions
     remover = SaltRemover.SaltRemover()
-    mol = remover.StripMol(mol)
-    
-    # Get canonical SMILES
+    mol = remover.StripMol(mol, dontRemoveEverything=True)
+
+    # Return canonical SMILES
     canonical_smiles = Chem.MolToSmiles(mol)
-    
+
     return canonical_smiles
 
-# Process dataset
-smiles_list = ["CC(=O)O.Na", "CCO", "[NH3+]CC[O-]"]
-standardized = [standardize_molecule(s) for s in smiles_list]
+
+# Example molecules
+smiles_list = [
+    "CC(=O)[O-].[Na+]",  # Sodium acetate
+    "CCO",               # Ethanol
+    "[NH3+]CC[O-]"       # Zwitterionic form
+]
+
+standardized = [
+    standardize_molecule(smiles)
+    for smiles in smiles_list
+]
+
 print(standardized)
 ```
 
@@ -1346,11 +1849,10 @@ def scaffold_split(smiles_list, test_size=0.2):
     return train_idx, test_idx
 ```
 
----
+
 
 ## 5. Practical Exercise: Solubility Prediction
 
-Hasta aca
 ### Complete Workflow
 
 ```python
@@ -1447,7 +1949,7 @@ print(feature_importance_df.head())
 - R²: ~0.75-0.85
 - Key features: LogP, molecular weight, polar surface area
 
----
+
 
 ## 6. Example with SELFIES
 
@@ -1731,7 +2233,7 @@ print(f"Adjacency matrix shape: {adj.shape}")
 print(f"Actual atoms: {n_atoms}")
 ```
 
-## 9. Practical Exercise: Complete ML Pipeline
+## 6. Practical Exercise: Complete ML Pipeline
 
 ### Task
 Build a complete machine learning pipeline to predict molecular solubility. The dataset can be downloaded from:
@@ -2101,7 +2603,6 @@ print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
 - Scikit-learn User Guide - https://scikit-learn.org/stable/user_guide.html
 - DeepChem Tutorials - https://deepchem.io/
 
----
 
 ## Homework Assignment
 
@@ -2134,66 +2635,3 @@ print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
    - Review neural networks basics (Day 0)
    - Think about limitations of traditional ML for molecules
    - Prepare questions for Day 2 on deep learning
-
----
-
-## Appendix: Quick Reference Tables
-
-### Molecular Descriptor Ranges
-
-| Descriptor | Range | Interpretation | Drug-like Range |
-|------------|-------|----------------|-----------------|
-| **Molecular Weight** | 0-∞ | Size | 150-500 g/mol |
-| **LogP** | -∞ to +∞ | Lipophilicity | 0-5 |
-| **TPSA** | 0-∞ Ų | Polar surface | 20-140 Ų |
-| **H-Bond Donors** | 0-∞ | H-bond donors | 0-5 |
-| **H-Bond Acceptors** | 0-∞ | H-bond acceptors | 0-10 |
-| **Rotatable Bonds** | 0-∞ | Flexibility | 0-10 |
-| **QED** | 0-1 | Drug-likeness | > 0.5 |
-
-### Model Selection Guide
-
-| Model | Best For | Pros | Cons |
-|-------|----------|------|------|
-| **Random Forest** | General purpose | Easy, robust, feature importance | Slower prediction |
-| **SVM** | Small datasets | Good generalization | Slow training, needs scaling |
-| **Gaussian Process** | Active learning | Uncertainty estimates | Very slow for large data |
-| **Gradient Boosting** | Best performance | Highest accuracy | Prone to overfitting |
-
-### Common RDKit Functions
-
-```python
-# Molecule creation
-mol = Chem.MolFromSmiles("CCO")
-
-# Validation
-is_valid = mol is not None
-
-# Canonical SMILES
-canonical = Chem.MolToSmiles(mol)
-
-# Add/remove hydrogens
-mol_h = Chem.AddHs(mol)
-mol_no_h = Chem.RemoveHs(mol)
-
-# 3D coordinates
-AllChem.EmbedMolecule(mol)
-
-# Descriptors
-mw = Descriptors.MolWt(mol)
-logp = Descriptors.MolLogP(mol)
-tpsa = Descriptors.TPSA(mol)
-
-# Fingerprints
-fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, 2048)
-
-# Similarity
-similarity = DataStructs.TanimotoSimilarity(fp1, fp2)
-
-# Substructure search
-pattern = Chem.MolFromSmarts("[OH]")
-has_match = mol.HasSubstructMatch(pattern)
-
-# Visualization
-img = Draw.MolToImage(mol, size=(300, 300))
-```
