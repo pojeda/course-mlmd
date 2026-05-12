@@ -235,7 +235,7 @@ Its derivative is:
 $$
 f'(x) =
 \begin{cases}
-1, & x > 0 \
+1, & x > 0 \\
 0, & x \leq 0
 \end{cases}
 $$
@@ -378,7 +378,6 @@ def softmax(x):
 ```
 
 
-
 #### Activation Function Selection Guide
 
 | Layer Type                                  | Recommended Activation | Reason                                                  |
@@ -392,143 +391,295 @@ def softmax(x):
 
 ### 1.4 Loss Functions and Backpropagation
 
-**Loss Functions** quantify how well the model's predictions match the true values.
+Loss functions measure how well a neural network's predictions match the true target values. During training, 
+the model adjusts its parameters to minimize the loss, thereby improving prediction accuracy.
 
-**Mean Squared Error (MSE) - Regression**
-```
-L(y, ŷ) = (1/n) × Σ(y_i - ŷ_i)²
-```
+The choice of loss function depends on the type of problem being solved, such as regression or classification.
 
-**Characteristics:**
-- Penalizes large errors more heavily
-- Sensitive to outliers
-- Smooth gradient
+
+
+#### Mean Squared Error (MSE) — Regression
+
+Mean Squared Error is one of the most common loss functions for regression tasks. It computes the average squared 
+difference between predicted and true values:
+
+$$
+L(y, \hat{y}) =
+\frac{1}{n}
+\sum_{i=1}^{n}
+(y_i - \hat{y}_i)^2
+$$
+
+where:
+
+* $y_i$ is the true value,
+* $\hat{y}_i$ is the predicted value,
+* $n$ is the number of samples.
+
+##### Characteristics
+
+* Penalizes large prediction errors more strongly because of the squared term
+* Produces smooth and differentiable gradients
+* Sensitive to outliers
+
+##### Typical Use Cases
+
+* Molecular property prediction
+* Solubility estimation
+* Binding affinity prediction
 
 ```python
 def mse_loss(y_true, y_pred):
-    return np.mean((y_true - y_pred)**2)
+    return np.mean((y_true - y_pred) ** 2)
 
 def mse_derivative(y_true, y_pred):
-    return 2 * (y_pred - y_true) / y_true.shape[0]
+    return 2 * (y_pred - y_true) / y_true.size
 ```
 
-**Mean Absolute Error (MAE) - Robust Regression**
-```
-L(y, ŷ) = (1/n) × Σ|y_i - ŷ_i|
-```
+#### Mean Absolute Error (MAE) — Robust Regression
 
-**Advantages:**
-- Less sensitive to outliers
-- All errors weighted equally
+Mean Absolute Error computes the average absolute difference between predictions and targets:
 
-```python
+$$
+L(y, \hat{y}) =
+\frac{1}{n}
+\sum_{i=1}^{n}
+|y_i - \hat{y}_i|
+$$
+
+##### Advantages
+
+* Less sensitive to outliers than MSE
+* Treats all prediction errors equally
+
+##### Disadvantages
+
+* Non-smooth derivative near zero can slow optimization
+* Gradients do not increase for large errors
+
+##### Typical Use Cases
+
+* Noisy experimental datasets
+* Robust molecular property prediction
+
+```python 
 def mae_loss(y_true, y_pred):
     return np.mean(np.abs(y_true - y_pred))
 ```
 
-**Binary Cross-Entropy - Binary Classification**
-```
-L(y, ŷ) = -(1/n) × Σ[y_i × log(ŷ_i) + (1-y_i) × log(1-ŷ_i)]
-```
 
-**Used when:**
-- Predicting probability of single class
-- Output: sigmoid activation
+#### Binary Cross-Entropy — Binary Classification
+
+Binary Cross-Entropy (BCE) is commonly used for binary classification problems where the model 
+predicts the probability of belonging to a single class.
+
+$$
+L(y, \hat{y}) =
+-\frac{1}{n}
+\sum_{i=1}^{n}
+\left[
+y_i \log(\hat{y}_i)
++
+(1-y_i)\log(1-\hat{y}_i)
+\right]
+$$
+
+##### Typical Use Cases
+
+* Toxic vs. non-toxic prediction
+* Active vs. inactive compounds
+* Disease classification
+
+##### Common Output Activation
+
+* Sigmoid activation function
 
 ```python
 def binary_crossentropy(y_true, y_pred):
     epsilon = 1e-15  # Prevent log(0)
     y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
-    return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+
+    return -np.mean(
+        y_true * np.log(y_pred) +
+        (1 - y_true) * np.log(1 - y_pred)
+    )
 ```
 
-**Categorical Cross-Entropy - Multi-Class Classification**
-```
-L(y, ŷ) = -(1/n) × Σ Σ y_ij × log(ŷ_ij)
-```
+#### Categorical Cross-Entropy — Multi-Class Classification
 
-**Used when:**
-- Multiple mutually exclusive classes
-- Output: softmax activation
+Categorical Cross-Entropy is used when predicting one class among several mutually exclusive categories.
+
+$$
+L(y, \hat{y}) =
+-\frac{1}{n}
+\sum_{i=1}^{n}
+\sum_{j=1}^{C}
+y_{ij}\log(\hat{y}_{ij})
+$$
+
+where:
+
+* $C$ is the number of classes,
+* $y_{ij}$ is the true label indicator,
+* $\hat{y}_{ij}$ is the predicted probability for class $j$.
+
+##### Typical Use Cases
+
+* Molecular functional group classification
+* Protein family prediction
+* Multi-class toxicity prediction
+
+##### Common Output Activation
+
+* Softmax activation function
 
 ```python
 def categorical_crossentropy(y_true, y_pred):
     epsilon = 1e-15
     y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
+
     return -np.sum(y_true * np.log(y_pred)) / y_true.shape[0]
 ```
 
-**Backpropagation Algorithm**
+### Backpropagation
 
-Backpropagation computes gradients of the loss with respect to all parameters using the chain rule.
+Backpropagation is the algorithm used to train neural networks by computing the gradients of the loss 
+function with respect to all model parameters.
 
-**Algorithm Steps:**
+The algorithm relies on the **chain rule of calculus** to efficiently propagate errors backward through 
+the network.
 
-1. **Forward Pass**: Compute predictions and loss
-2. **Output Layer Gradient**: ∂L/∂a^[L]
-3. **Backward Pass**: Compute gradients layer by layer
-4. **Parameter Update**: Update weights and biases
 
-**Mathematical Derivation:**
+#### Main Steps of Backpropagation
 
-For layer l:
-```
-dZ^[l] = dA^[l] ⊙ f'(Z^[l])
-dW^[l] = (1/m) × dZ^[l] × A^[l-1]^T
-db^[l] = (1/m) × Σ dZ^[l]
-dA^[l-1] = W^[l]^T × dZ^[l]
+1. **Forward Pass**
 
-Where:
-- ⊙ represents element-wise multiplication
-- f' is the derivative of activation function
-- m is the number of training examples
-```
+   * Compute activations layer by layer
+   * Generate predictions
+   * Evaluate the loss function
 
-**Complete Backpropagation Implementation:**
+2. **Loss Gradient Computation**
 
-```python
+   * Compute the gradient of the loss with respect to the output activations
+
+3. **Backward Pass**
+
+   * Propagate gradients backward through each layer
+   * Compute gradients for weights and biases
+
+4. **Parameter Update**
+
+   * Update parameters using gradient descent or an optimization algorithm such as Adam
+
+
+#### Mathematical Formulation
+
+For layer $l$:
+
+##### Error Term
+
+$$
+d\mathbf{Z}^{[l]}
+=================
+d\mathbf{A}^{[l]}
+\odot
+f'\left(\mathbf{Z}^{[l]}\right)
+$$
+
+where $\odot$ denotes element-wise multiplication.
+
+
+##### Weight Gradient
+
+$$
+d\mathbf{W}^{[l]}
+=================
+\frac{1}{m}
+d\mathbf{Z}^{[l]}
+\left(\mathbf{A}^{[l-1]}\right)^T
+$$
+
+##### Bias Gradient
+
+$$
+d\mathbf{b}^{[l]}
+=================
+\frac{1}{m}
+\sum d\mathbf{Z}^{[l]}
+$$
+
+##### Propagated Gradient
+
+$$
+d\mathbf{A}^{[l-1]}
+===================
+\left(\mathbf{W}^{[l]}\right)^T
+d\mathbf{Z}^{[l]}
+$$
+
+where:
+
+* $m$ is the number of training samples,
+* $f'$ is the derivative of the activation function,
+* $\mathbf{W}^{[l]}$ and $\mathbf{b}^{[l]}$ are the weights and biases of layer $l$.
+
+
+#### Example: Backpropagation for a Three-Layer Network
+
+The following implementation computes gradients for a neural network with two hidden ReLU layers 
+and a linear output layer.
+
+```python 
 def backward_propagation(X, Y, cache, parameters):
     """
-    Implements backpropagation for 3-layer network
-    
+    Backpropagation for a 3-layer neural network.
+
+    Architecture:
+        Input -> ReLU -> ReLU -> Linear Output
+
     Args:
         X: input features
-        Y: true labels
-        cache: forward propagation cache
-        parameters: model parameters (W1, b1, W2, b2, W3, b3)
-    
+        Y: true target values
+        cache: stored activations and pre-activations
+        parameters: dictionary containing weights and biases
+
     Returns:
-        gradients: dictionary containing dW1, db1, dW2, db2, dW3, db3
+        gradients: dictionary of parameter gradients
     """
+
     m = X.shape[1]
-    
+
     # Retrieve cached values
     A1, A2, A3 = cache['A1'], cache['A2'], cache['A3']
     Z1, Z2 = cache['Z1'], cache['Z2']
-    
-    # Output layer (Layer 3)
-    dZ3 = A3 - Y  # For MSE loss with linear activation
-    dW3 = (1/m) * np.dot(dZ3, A2.T)
-    db3 = (1/m) * np.sum(dZ3, axis=1, keepdims=True)
-    
+
+    # Output layer gradient
+    # Linear output with MSE loss
+    dZ3 = A3 - Y
+
+    dW3 = (1 / m) * np.dot(dZ3, A2.T)
+    db3 = (1 / m) * np.sum(dZ3, axis=1, keepdims=True)
+
     # Hidden layer 2
     dA2 = np.dot(parameters['W3'].T, dZ3)
     dZ2 = dA2 * relu_derivative(Z2)
-    dW2 = (1/m) * np.dot(dZ2, A1.T)
-    db2 = (1/m) * np.sum(dZ2, axis=1, keepdims=True)
-    
+
+    dW2 = (1 / m) * np.dot(dZ2, A1.T)
+    db2 = (1 / m) * np.sum(dZ2, axis=1, keepdims=True)
+
     # Hidden layer 1
     dA1 = np.dot(parameters['W2'].T, dZ2)
     dZ1 = dA1 * relu_derivative(Z1)
-    dW1 = (1/m) * np.dot(dZ1, X.T)
-    db1 = (1/m) * np.sum(dZ1, axis=1, keepdims=True)
-    
+
+    dW1 = (1 / m) * np.dot(dZ1, X.T)
+    db1 = (1 / m) * np.sum(dZ1, axis=1, keepdims=True)
+
     gradients = {
         'dW1': dW1, 'db1': db1,
         'dW2': dW2, 'db2': db2,
         'dW3': dW3, 'db3': db3
     }
-    
+
     return gradients
 ```
 
