@@ -266,11 +266,11 @@ def relu_derivative(x):
 Leaky ReLU introduces a small slope for negative inputs:
 
 $$
-f(x) =
-\begin{cases}
+f(x) = \left {
+\begin{array}
 x, & x > 0 \
 \alpha x, & x \leq 0
-\end{cases}
+\end{array} \right .
 $$
 
 where $\alpha$ is typically 0.01.
