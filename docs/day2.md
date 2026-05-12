@@ -11,7 +11,8 @@
 
 Deep learning has transformed molecular property prediction by enabling models to learn complex representations from raw 
 molecular data automatically. Unlike traditional machine learning methods, which rely heavily on hand-crafted descriptors, 
-deep learning models can learn directly from molecular representations such as SMILES strings, molecular graphs, and 3D atomic coordinates.
+deep learning models can learn directly from molecular representations such as SMILES strings, molecular graphs, and 3D atomic 
+coordinates.
 
 **Key Advantages**
 
@@ -4478,14 +4479,14 @@ debug_training_step(model, batch_x, batch_y, criterion, optimizer)
 
 **Core Concepts:**
 
-1. **Deep Learning Advantages for Molecules**
+### 1. **Deep Learning Advantages for Molecules**
 
    - Automatic feature learning from raw molecular representations
    - Captures complex non-linear relationships
    - Enables transfer learning and multi-task learning
    - State-of-the-art performance on many molecular property prediction tasks
 
-2. **Model Selection Guidelines**
+### 2. **Model Selection Guidelines**
 
    - **Feedforward NN**: Best for general-purpose molecular property prediction with fingerprints
    - **1D CNN**: Excellent for SMILES when local patterns (functional groups) matter
@@ -4493,7 +4494,7 @@ debug_training_step(model, batch_x, batch_y, criterion, optimizer)
    - **Multi-Task**: Use when predicting multiple related properties
    - **Transfer Learning**: Critical when data is limited (<5K samples)
 
-3. **Architecture Best Practices**
+### 3. **Architecture Best Practices**
 
    - Start simple (2-3 layers) and add complexity only if needed
    - Use ReLU activation for hidden layers
@@ -4501,7 +4502,7 @@ debug_training_step(model, batch_x, batch_y, criterion, optimizer)
    - Use Adam optimizer with learning rate 1e-3 as default
    - Implement early stopping (patience=15-20)
 
-4. **Training Strategies**
+### 4. **Training Strategies**
 
    - Always split data into train/val/test (70/15/15)
    - Normalize inputs for faster convergence
@@ -4509,14 +4510,14 @@ debug_training_step(model, batch_x, batch_y, criterion, optimizer)
    - Monitor multiple metrics (RMSE, MAE, R²)
    - Save best model based on validation loss
 
-5. **Performance Optimization**
+### 5. **Performance Optimization**
 
    - Deep learning typically provides 10-20% improvement over Random Forest
    - Transfer learning can improve performance by 15-30% with limited data
    - Multi-task learning helps when tasks are related
    - Ensemble methods (combining multiple models) can add another 5-10%
 
-6. **Hyperparameter Importance Ranking**
+### 6. **Hyperparameter Importance Ranking**
 
    1. Learning rate (most critical)
    2. Batch size
@@ -4524,7 +4525,7 @@ debug_training_step(model, batch_x, batch_y, criterion, optimizer)
    4. Dropout rate
    5. Optimizer choice (Adam usually best)
 
-7. **Common Pitfalls to Avoid**
+### 7. **Common Pitfalls to Avoid**
 
    - Training without validation set
    - Not normalizing inputs
@@ -4533,14 +4534,14 @@ debug_training_step(model, batch_x, batch_y, criterion, optimizer)
    - Not checking for data leakage
    - Forgetting to set model.eval() during inference
 
-8. **Model Interpretation Matters**
+### 8. **Model Interpretation Matters**
 
    - Use gradient-based methods for feature importance
    - Integrated gradients provide better attributions
    - Attention mechanisms add interpretability
    - Always validate interpretations with domain knowledge
 
-9. **Production Considerations**
+### 9. **Production Considerations**
 
    - Save model architecture and weights separately
    - Version control for models and data
@@ -4548,7 +4549,7 @@ debug_training_step(model, batch_x, batch_y, criterion, optimizer)
    - Implement confidence scoring for predictions
    - Document training procedures and hyperparameters
 
-10. **Research Directions**
+### 10. **Research Directions**
 
     - Graph Neural Networks for molecular graphs (Day 3)
     - 3D conformation-based models
