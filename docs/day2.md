@@ -218,23 +218,39 @@ def forward_propagation(X, parameters):
 
 ### 1.3 Activation Functions
 
-Activation functions introduce non-linearity, enabling neural networks to learn complex patterns.
+Activation functions introduce non-linearity into neural networks, allowing them to learn complex and highly non-linear 
+relationships in data. Without activation functions, a deep neural network would behave like a linear model regardless of its depth.
 
-**ReLU (Rectified Linear Unit)**
-```
-f(x) = max(0, x)
-f'(x) = 1 if x > 0, else 0
-```
 
-**Advantages:**
-- Computationally efficient
-- Helps mitigate vanishing gradient problem
-- Induces sparsity (many neurons output 0)
-- Default choice for hidden layers
+#### ReLU (Rectified Linear Unit)
 
-**Disadvantages:**
-- Dead ReLU problem (neurons stuck at 0)
-- Not zero-centered
+The ReLU activation function is defined as:
+
+$$
+f(x) = \max(0, x)
+$$
+
+Its derivative is:
+
+$$
+f'(x) =
+\begin{cases}
+1, & x > 0 \
+0, & x \leq 0
+\end{cases}
+$$
+
+##### Advantages
+
+* Computationally efficient and easy to implement
+* Helps reduce the vanishing gradient problem
+* Encourages sparse activations since negative inputs produce zero output
+* Common default choice for hidden layers in deep networks
+
+##### Disadvantages
+
+* Can suffer from the **dead ReLU problem**, where neurons permanently output zero
+* Outputs are not zero-centered
 
 ```python
 def relu(x):
@@ -244,44 +260,55 @@ def relu_derivative(x):
     return (x > 0).astype(float)
 ```
 
-**Visualization Concept:**
-```
-   |     /
-   |    /
-   |   /
-   |  /
-___|/_________
-   0
-```
 
-**Leaky ReLU**
-```
-f(x) = max(0.01x, x)
-```
+#### Leaky ReLU
 
-**Advantages:**
-- Prevents dead neurons
-- Small gradient for negative values
+Leaky ReLU introduces a small slope for negative inputs:
+
+$$
+f(x) =
+\begin{cases}
+x, & x > 0 \
+\alpha x, & x \leq 0
+\end{cases}
+$$
+
+where $\alpha$ is typically 0.01.
+
+##### Advantages
+
+* Reduces the risk of dead neurons
+* Maintains a small gradient for negative values
 
 ```python
 def leaky_relu(x, alpha=0.01):
     return np.where(x > 0, x, alpha * x)
 ```
 
-**Sigmoid**
-```
-f(x) = 1 / (1 + e^(-x))
-f'(x) = f(x) × (1 - f(x))
-```
+#### Sigmoid
 
-**Use Cases:**
-- Binary classification output layer
-- Gate mechanisms in LSTM/GRU
+The sigmoid activation function maps inputs to values between 0 and 1:
 
-**Disadvantages:**
-- Vanishing gradient problem
-- Not zero-centered
-- Computationally expensive
+$$
+f(x) = \frac{1}{1 + e^{-x}}
+$$
+
+Its derivative is:
+
+$$
+f'(x) = f(x)\left(1 - f(x)\right)
+$$
+
+##### Common Use Cases
+
+* Output layer for binary classification
+* Gate functions in recurrent architectures such as LSTMs and GRUs
+
+##### Disadvantages
+
+* Suffers from the vanishing gradient problem for large positive or negative inputs
+* Outputs are not zero-centered
+* More computationally expensive than ReLU
 
 ```python
 def sigmoid(x):
@@ -292,15 +319,35 @@ def sigmoid_derivative(x):
     return s * (1 - s)
 ```
 
-**Tanh (Hyperbolic Tangent)**
-```
-f(x) = (e^x - e^(-x)) / (e^x + e^(-x))
-f'(x) = 1 - f(x)²
-```
 
-**Advantages:**
-- Zero-centered (better than sigmoid)
-- Stronger gradients than sigmoid
+#### Tanh (Hyperbolic Tangent)
+
+The hyperbolic tangent function is defined as:
+
+$$
+f(x) = \tanh(x)
+$$
+
+which can also be written as:
+
+$$
+f(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}
+$$
+
+Its derivative is:
+
+$$
+f'(x) = 1 - \tanh^2(x)
+$$
+
+##### Advantages
+
+* Zero-centered outputs improve optimization compared to sigmoid
+* Produces stronger gradients near zero
+
+##### Disadvantages
+
+* Still affected by vanishing gradients for large input magnitudes
 
 ```python
 def tanh(x):
@@ -310,14 +357,18 @@ def tanh_derivative(x):
     return 1 - np.tanh(x)**2
 ```
 
-**Softmax (Multi-Class Output)**
-```
-f(x_i) = e^(x_i) / Σ(e^(x_j))
-```
+#### Softmax (Multi-Class Output)
 
-**Properties:**
-- Outputs sum to 1 (probability distribution)
-- Used for multi-class classification
+Softmax converts raw outputs into a probability distribution over multiple classes:
+
+$$
+f(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}}
+$$
+
+##### Properties
+
+* Output probabilities sum to 1
+* Commonly used in the output layer for multi-class classification
 
 ```python
 def softmax(x):
@@ -325,16 +376,18 @@ def softmax(x):
     return exp_x / np.sum(exp_x, axis=0, keepdims=True)
 ```
 
-**Activation Function Selection Guide:**
 
-| Layer Type | Recommended Activation | Reason |
-|------------|----------------------|--------|
-| Hidden layers (general) | ReLU | Fast, effective, prevents vanishing gradients |
-| Hidden layers (negative values important) | Leaky ReLU / ELU | Allows negative activations |
-| Output (regression) | Linear | Unrestricted output range |
-| Output (binary classification) | Sigmoid | Output in [0, 1] range |
-| Output (multi-class) | Softmax | Probability distribution |
-| Recurrent networks | Tanh | Zero-centered, bounded |
+
+#### Activation Function Selection Guide
+
+| Layer Type                                  | Recommended Activation | Reason                                                  |
+| ------------------------------------------- | ---------------------- | ------------------------------------------------------- |
+| Hidden layers (general)                     | ReLU                   | Fast, simple, and effective for deep networks           |
+| Hidden layers (negative features important) | Leaky ReLU / ELU       | Preserves gradients for negative inputs                 |
+| Output (regression)                         | Linear                 | Allows unrestricted output values                       |
+| Output (binary classification)              | Sigmoid                | Produces probabilities in the range ([0,1])             |
+| Output (multi-class classification)         | Softmax                | Generates a probability distribution across classes     |
+| Recurrent neural networks                   | Tanh                   | Zero-centered and bounded activations improve stability |
 
 ### 1.4 Loss Functions and Backpropagation
 
