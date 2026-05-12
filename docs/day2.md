@@ -576,6 +576,30 @@ the network.
 
 For layer $l$:
 
+$$
+\mathbf{Z}^{[l]}
+=
+\mathbf{W}^{[l]}
+\mathbf{A}^{[l-1]}
++
+\mathbf{b}^{[l]}
+$$
+
+$$
+\mathbf{A}^{[l]}
+=
+f\left(\mathbf{Z}^{[l]}\right)
+$$
+
+where:
+
+* $\mathbf{W}^{[l]}$ is the weight matrix,
+* $\mathbf{b}^{[l]}$ is the bias vector,
+* $\mathbf{A}^{[l-1]}$ are the activations from the previous layer,
+* $f$ is the activation function.
+
+
+
 ##### Error Term
 
 $$
