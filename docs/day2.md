@@ -629,7 +629,8 @@ $$
 d\mathbf{b}^{[l]}
 =
 \frac{1}{m}
-\sum d\mathbf{Z}^{[l]}
+\sum_{i=1}^{m}
+d\mathbf{Z}^{[l](i)}
 $$
 
 ##### Propagated Gradient
@@ -709,224 +710,564 @@ def backward_propagation(X, Y, cache, parameters):
 
 ### 1.5 Optimization Algorithms
 
-Optimization algorithms update model parameters to minimize the loss function.
+Optimization algorithms are responsible for updating the parameters of a neural network in order to 
+minimize the loss function. During training, the optimizer uses gradients computed through backpropagation 
+to determine how the weights and biases should change to improve model performance.
 
-**Gradient Descent (Batch)**
+Efficient optimization is essential in deep learning because neural networks often contain millions of 
+parameters and highly non-convex loss surfaces.
 
-Updates parameters using the entire dataset:
-```
-W := W - α × ∂L/∂W
-b := b - α × ∂L/∂b
 
-Where α is the learning rate
-```
+#### Gradient Descent
 
-**Pros**: Stable convergence, exact gradient
-**Cons**: Slow for large datasets, memory intensive
+Gradient descent is the foundational optimization method used in machine learning. The main idea is to 
+update parameters in the direction opposite to the gradient of the loss function.
 
-```python
+For a parameter matrix $\mathbf{W}$ and bias vector $\mathbf{b}$:
+
+$$
+\mathbf{W}
+\leftarrow
+\mathbf{W}
+-\alpha
+\frac{\partial L}{\partial \mathbf{W}}
+$$
+
+$$
+\mathbf{b}
+\leftarrow
+\mathbf{b}
+-\alpha
+\frac{\partial L}{\partial \mathbf{b}}
+$$
+
+where:
+
+* $L$ is the loss function,
+* $\alpha$ is the learning rate,
+* $\frac{\partial L}{\partial \mathbf{W}}$ and $\frac{\partial L}{\partial \mathbf{b}}$ are 
+gradients computed through backpropagation.
+
+The learning rate controls the step size of each parameter update:
+
+* Large learning rates may cause unstable training or divergence.
+* Small learning rates can lead to very slow convergence.
+
+#### Batch Gradient Descent
+
+Batch gradient descent computes gradients using the **entire training dataset** before updating the parameters.
+
+##### Advantages
+
+* Produces stable and accurate gradient estimates
+* Converges smoothly for convex optimization problems
+
+##### Disadvantages
+
+* Computationally expensive for large datasets
+* Requires loading the full dataset into memory
+* Updates occur infrequently
+
+```python 
 def gradient_descent(parameters, gradients, learning_rate):
     """
-    Update parameters using batch gradient descent
+    Update parameters using batch gradient descent.
     """
+
     for key in parameters.keys():
         parameters[key] -= learning_rate * gradients['d' + key]
+
     return parameters
 ```
 
-**Stochastic Gradient Descent (SGD)**
 
-Updates parameters using one sample at a time:
-```
-W := W - α × ∂L_i/∂W  (for single sample i)
-```
+#### Stochastic Gradient Descent (SGD)
 
-**Pros**: Fast updates, can escape local minima
-**Cons**: Noisy updates, unstable convergence
+Stochastic Gradient Descent updates parameters using a **single training example** at a time.
 
-**Mini-Batch Gradient Descent**
+For sample $i$:
 
-Compromise between batch and stochastic (typically 32-256 samples):
+$$
+\mathbf{W}
+\leftarrow
+\mathbf{W}
+-\alpha
+\frac{\partial L_i}{\partial \mathbf{W}}
+$$
+
+##### Advantages
+
+* Fast parameter updates
+* Requires less memory
+* Noise in the updates may help escape shallow local minima or saddle points
+
+##### Disadvantages
+
+* Highly noisy optimization trajectory
+* Less stable convergence
+* Training loss fluctuates significantly
+
+SGD is commonly combined with momentum and learning rate scheduling to improve convergence.
+
+
+#### Mini-Batch Gradient Descent
+
+Mini-batch gradient descent is the most widely used training strategy in deep learning. Instead of using 
+the full dataset or a single sample, the optimizer updates parameters using small batches of training examples.
+
+Typical batch sizes range from (32) to (256).
+
+##### Benefits
+
+* More computationally efficient on GPUs
+* More stable than pure SGD
+* Faster than full batch gradient descent
+* Provides a good balance between convergence quality and computational cost
 
 ```python
-def mini_batch_gradient_descent(X, Y, parameters, batch_size=32, learning_rate=0.01):
+def mini_batch_gradient_descent(
+    X,
+    Y,
+    parameters,
+    batch_size=32,
+    learning_rate=0.01
+):
     """
-    Mini-batch gradient descent implementation
+    Mini-batch gradient descent implementation.
     """
+
     m = X.shape[1]
     num_batches = m // batch_size
-    
+
     for i in range(num_batches):
-        # Get mini-batch
+
+        # Create mini-batch
         start = i * batch_size
         end = start + batch_size
+
         X_batch = X[:, start:end]
         Y_batch = Y[:, start:end]
-        
+
         # Forward propagation
-        A3, cache = forward_propagation(X_batch, parameters)
-        
-        # Backward propagation
-        gradients = backward_propagation(X_batch, Y_batch, cache, parameters)
-        
-        # Update parameters
-        parameters = gradient_descent(parameters, gradients, learning_rate)
-    
+        predictions, cache = forward_propagation(X_batch, parameters)
+
+        # Backpropagation
+        gradients = backward_propagation(
+            X_batch,
+            Y_batch,
+            cache,
+            parameters
+        )
+
+        # Parameter update
+        parameters = gradient_descent(
+            parameters,
+            gradients,
+            learning_rate
+        )
+
     return parameters
 ```
 
-**Momentum**
 
-Accelerates SGD by accumulating velocity in relevant direction:
-```
-v := β × v + (1-β) × ∂L/∂W
-W := W - α × v
+#### Momentum
 
-Common β values: 0.9, 0.99
-```
+Momentum improves SGD by accumulating a running average of previous gradients. This helps accelerate 
+optimization in consistent directions while reducing oscillations.
 
-**Benefits:**
-- Smooths out oscillations
-- Faster convergence
-- Better navigation of ravines
+The velocity update is:
+
+$$
+\mathbf{v}
+\leftarrow
+\beta \mathbf{v}
++
+(1-\beta)
+\frac{\partial L}{\partial \mathbf{W}}
+$$
+
+The parameters are then updated using the velocity term:
+
+$$
+\mathbf{W}
+\leftarrow
+\mathbf{W}
+-\alpha \mathbf{v}
+$$
+
+where:
+
+* $\mathbf{v}$ is the velocity term,
+* $\beta$ is the momentum coefficient, typically (0.9) or (0.99).
+
+##### Benefits
+
+* Faster convergence
+* Reduced oscillations
+* Improved optimization in narrow valleys of the loss surface
 
 ```python
-def momentum_optimizer(parameters, gradients, velocity, beta=0.9, learning_rate=0.01):
+def momentum_optimizer(
+    parameters,
+    gradients,
+    velocity,
+    beta=0.9,
+    learning_rate=0.01
+):
     """
-    Parameters update with momentum
+    Parameter update with momentum.
     """
+
     for key in parameters.keys():
+
         # Update velocity
-        velocity['v' + key] = beta * velocity['v' + key] + (1 - beta) * gradients['d' + key]
+        velocity['v' + key] = (
+            beta * velocity['v' + key]
+            + (1 - beta) * gradients['d' + key]
+        )
+
         # Update parameters
-        parameters[key] -= learning_rate * velocity['v' + key]
-    
+        parameters[key] -= (
+            learning_rate * velocity['v' + key]
+        )
+
     return parameters, velocity
 ```
 
-**RMSprop (Root Mean Square Propagation)**
 
-Adapts learning rate per parameter based on recent gradients:
-```
-s := β × s + (1-β) × (∂L/∂W)²
-W := W - α × (∂L/∂W) / √(s + ε)
+#### RMSprop (Root Mean Square Propagation)
 
-Where ε is a small constant for numerical stability (typically 1e-8)
-```
+RMSprop adapts the learning rate individually for each parameter based on the recent magnitude of gradients.
 
-**Benefits:**
-- Adaptive learning rates
-- Works well for non-stationary objectives
-- Good for RNNs
+The moving average of squared gradients is computed as:
+
+$$
+\mathbf{s}
+\leftarrow
+\beta \mathbf{s}
++
+(1-\beta)
+\left(
+\frac{\partial L}{\partial \mathbf{W}}
+\right)^2
+$$
+
+The parameter update becomes:
+
+$$
+\mathbf{W}
+\leftarrow
+\mathbf{W}
+-\alpha
+\frac{
+\frac{\partial L}{\partial \mathbf{W}}
+}{
+\sqrt{\mathbf{s} + \epsilon}
+}
+$$
+
+where:
+
+* $\epsilon$ is a small constant for numerical stability, typically $10^{-8}$.
+
+##### Benefits
+
+* Automatically adjusts learning rates
+* Works well for non-stationary objectives
+* Particularly useful for recurrent neural networks
 
 ```python
-def rmsprop_optimizer(parameters, gradients, cache, beta=0.999, learning_rate=0.001, epsilon=1e-8):
+def rmsprop_optimizer(
+    parameters,
+    gradients,
+    cache,
+    beta=0.9,
+    learning_rate=0.001,
+    epsilon=1e-8
+):
     """
-    RMSprop optimization
+    RMSprop optimization.
     """
+
     for key in parameters.keys():
-        # Update cache (squared gradients)
-        cache['s' + key] = beta * cache['s' + key] + (1 - beta) * gradients['d' + key]**2
+
+        # Update squared gradient cache
+        cache['s' + key] = (
+            beta * cache['s' + key]
+            + (1 - beta) * gradients['d' + key] ** 2
+        )
+
         # Update parameters
-        parameters[key] -= learning_rate * gradients['d' + key] / (np.sqrt(cache['s' + key]) + epsilon)
-    
+        parameters[key] -= (
+            learning_rate
+            * gradients['d' + key]
+            / (np.sqrt(cache['s' + key]) + epsilon)
+        )
+
     return parameters, cache
 ```
 
-**Adam (Adaptive Moment Estimation)**
 
-Combines momentum and RMSprop:
-```
-m := β₁ × m + (1-β₁) × ∂L/∂W          (momentum)
-v := β₂ × v + (1-β₂) × (∂L/∂W)²       (RMSprop)
-m̂ := m / (1-β₁^t)                      (bias correction)
-v̂ := v / (1-β₂^t)                      (bias correction)
-W := W - α × m̂ / (√v̂ + ε)
+#### Adam (Adaptive Moment Estimation)
 
-Common values: β₁=0.9, β₂=0.999, ε=1e-8
-```
+Adam combines the ideas of momentum and RMSprop. It maintains:
 
-**Benefits:**
-- Most popular optimizer for deep learning
-- Works well with sparse gradients
-- Combines benefits of momentum and RMSprop
-- Bias correction for initialization
+* A moving average of gradients (first moment)
+* A moving average of squared gradients (second moment)
+
+### First Moment Estimate
+
+$$
+\mathbf{m}
+\leftarrow
+\beta_1 \mathbf{m}
++
+(1-\beta_1)
+\frac{\partial L}{\partial \mathbf{W}}
+$$
+
+##### Second Moment Estimate
+
+$$
+\mathbf{v}
+\leftarrow
+\beta_2 \mathbf{v}
++
+(1-\beta_2)
+\left(
+\frac{\partial L}{\partial \mathbf{W}}
+\right)^2
+$$
+
+##### Bias Correction
+
+$$
+\hat{\mathbf{m}}
+=
+\frac{\mathbf{m}}{1-\beta_1^t}
+$$
+
+$$
+\hat{\mathbf{v}}
+=
+\frac{\mathbf{v}}{1-\beta_2^t}
+$$
+
+##### Parameter Update
+
+$$
+\mathbf{W}
+\leftarrow
+\mathbf{W}
+-\alpha
+\frac{
+\hat{\mathbf{m}}
+}{
+\sqrt{\hat{\mathbf{v}}} + \epsilon
+}
+$$
+
+Typical hyperparameter values are:
+
+$$
+\beta_1 = 0.9,
+\quad
+\beta_2 = 0.999,
+\quad
+\epsilon = 10^{-8}
+$$
+
+##### Benefits
+
+* Fast and robust convergence
+* Works well with sparse gradients
+* Excellent default optimizer for many deep learning applications
 
 ```python
-def adam_optimizer(parameters, gradients, adam_cache, t, beta1=0.9, beta2=0.999, 
-                   learning_rate=0.001, epsilon=1e-8):
+def adam_optimizer(
+    parameters,
+    gradients,
+    adam_cache,
+    t,
+    beta1=0.9,
+    beta2=0.999,
+    learning_rate=0.001,
+    epsilon=1e-8
+):
     """
-    Adam optimization with bias correction
-    
-    Args:
-        t: iteration number (for bias correction)
+    Adam optimization with bias correction.
     """
+
     for key in parameters.keys():
-        # Update momentum
-        adam_cache['m' + key] = beta1 * adam_cache['m' + key] + (1 - beta1) * gradients['d' + key]
-        
-        # Update RMSprop
-        adam_cache['v' + key] = beta2 * adam_cache['v' + key] + (1 - beta2) * gradients['d' + key]**2
-        
+
+        # First moment
+        adam_cache['m' + key] = (
+            beta1 * adam_cache['m' + key]
+            + (1 - beta1) * gradients['d' + key]
+        )
+
+        # Second moment
+        adam_cache['v' + key] = (
+            beta2 * adam_cache['v' + key]
+            + (1 - beta2) * gradients['d' + key] ** 2
+        )
+
         # Bias correction
-        m_corrected = adam_cache['m' + key] / (1 - beta1**t)
-        v_corrected = adam_cache['v' + key] / (1 - beta2**t)
-        
-        # Update parameters
-        parameters[key] -= learning_rate * m_corrected / (np.sqrt(v_corrected) + epsilon)
-    
+        m_corrected = (
+            adam_cache['m' + key]
+            / (1 - beta1 ** t)
+        )
+
+        v_corrected = (
+            adam_cache['v' + key]
+            / (1 - beta2 ** t)
+        )
+
+        # Parameter update
+        parameters[key] -= (
+            learning_rate
+            * m_corrected
+            / (np.sqrt(v_corrected) + epsilon)
+        )
+
     return parameters, adam_cache
 ```
 
-**AdamW (Adam with Weight Decay)**
 
-Adam with decoupled weight decay regularization:
-```
-W := W - α × (m̂ / (√v̂ + ε) + λ × W)
 
-Where λ is the weight decay coefficient
-```
+#### AdamW (Adam with Weight Decay)
 
-**Benefits:**
-- Better generalization than Adam
-- Proper weight decay implementation
-- State-of-the-art for many tasks
+AdamW improves Adam by decoupling weight decay regularization from the gradient update.
+
+The parameter update becomes:
+
+$$
+\mathbf{W}
+\leftarrow
+\mathbf{W}
+-
+\alpha
+\left(
+\frac{
+\hat{\mathbf{m}}
+}{
+\sqrt{\hat{\mathbf{v}}} + \epsilon
+}
++
+\lambda \mathbf{W}
+\right)
+$$
+
+where:
+
+* $\lambda$ is the weight decay coefficient.
+
+##### Benefits
+
+* Better generalization performance
+* More effective regularization
+* Commonly used in transformer architectures and modern deep learning models
 
 ```python
-# Using PyTorch implementation
 import torch.optim as optim
 
-optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=0.01)
+optimizer = optim.AdamW(
+    model.parameters(),
+    lr=0.001,
+    weight_decay=0.01
+)
 ```
 
-**Optimizer Selection Guide:**
 
-| Scenario | Recommended Optimizer | Learning Rate |
-|----------|----------------------|---------------|
-| General purpose / starting point | Adam | 1e-3 |
-| Large dataset, need speed | SGD with momentum | 1e-2 (with decay) |
-| RNNs / sequence models | Adam or RMSprop | 1e-3 to 1e-4 |
-| Fine-tuning pretrained models | AdamW | 1e-5 to 1e-4 |
-| Non-stationary problems | RMSprop | 1e-3 |
-| When overfitting occurs | AdamW or SGD | Lower rates |
+#### Optimizer Selection Guide
 
-**Learning Rate Scheduling:**
+| Scenario                      | Recommended Optimizer | Typical Learning Rate  |
+| ----------------------------- | --------------------- | ---------------------- |
+| General-purpose training      | Adam                  | $10^{-3}$              |
+| Very large datasets           | SGD with momentum     | $10^{-2}$ with decay   |
+| Recurrent neural networks     | Adam or RMSprop       | $10^{-3}$ to $10^{-4}$ |
+| Fine-tuning pretrained models | AdamW                 | $10^{-5}$ to $10^{-4}$ |
+| Sparse gradients              | Adam                  | $10^{-3}$              |
+| Strong regularization needed  | AdamW or SGD          | Lower learning rates   |
 
-```python
-# Learning rate decay
+
+
+#### Learning Rate Scheduling
+
+Learning rate scheduling gradually changes the learning rate during training to improve convergence and generalization.
+
+
+
+#### Exponential Decay
+
+$$
+\alpha_t
+=\alpha_0
+\gamma^t
+$$
+
+where:
+
+* $\alpha_0$ is the initial learning rate,
+* $\gamma$ is the decay factor.
+
+```python 
 def lr_decay(initial_lr, epoch, decay_rate=0.95):
     return initial_lr * (decay_rate ** epoch)
-
-# Step decay
-def step_decay(initial_lr, epoch, drop=0.5, epochs_drop=10):
-    return initial_lr * (drop ** np.floor(epoch / epochs_drop))
-
-# Cosine annealing
-def cosine_annealing(initial_lr, epoch, total_epochs):
-    return initial_lr * 0.5 * (1 + np.cos(np.pi * epoch / total_epochs))
 ```
 
----
+
+#### Step Decay
+
+The learning rate is reduced at fixed intervals.
+
+```python
+def step_decay(
+    initial_lr,
+    epoch,
+    drop=0.5,
+    epochs_drop=10
+):
+    return initial_lr * (
+        drop ** np.floor(epoch / epochs_drop)
+    )
+```
+
+#### Cosine Annealing
+
+Cosine annealing gradually decreases the learning rate following a cosine curve:
+
+$$
+\alpha_t
+=
+\frac{\alpha_0}{2}
+\left(
+1 +
+\cos\left(
+\frac{\pi t}{T}
+\right)
+\right)
+$$
+
+where:
+
+* $t$ is the current epoch,
+* $T$ is the total number of epochs.
+
+```python
+def cosine_annealing(
+    initial_lr,
+    epoch,
+    total_epochs
+):
+    return (
+        initial_lr
+        * 0.5
+        * (1 + np.cos(np.pi * epoch / total_epochs))
+    )
+```
+
+
 
 ## 2. Feedforward Neural Networks
 
