@@ -1509,344 +1509,649 @@ This often:
 **Complete Training Pipeline:**
 
 ```python
+import copy
+import numpy as np
+import matplotlib.pyplot as plt
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-import numpy as np
+
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-from rdkit import Chem
-from rdkit.Chem import AllChem
-import pandas as pd
-from tqdm import tqdm
 
-# ============================================================================
-# 1. DATA PREPARATION
-# ============================================================================
+from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors
+
+
+class MolecularFNN(nn.Module):
+    """Feedforward neural network for molecular property prediction."""
+
+    def __init__(self, input_dim=2048, hidden_dims=(512, 256, 128),
+                 output_dim=1, dropout_rate=0.3):
+        super().__init__()
+
+        layers = []
+        prev_dim = input_dim
+
+        for hidden_dim in hidden_dims:
+            layers.append(nn.Linear(prev_dim, hidden_dim))
+            layers.append(nn.BatchNorm1d(hidden_dim))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout_rate))
+            prev_dim = hidden_dim
+
+        layers.append(nn.Linear(prev_dim, output_dim))
+        self.network = nn.Sequential(*layers)
+
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for module in self.modules():
+            if isinstance(module, nn.Linear):
+                nn.init.kaiming_normal_(
+                    module.weight,
+                    mode="fan_in",
+                    nonlinearity="relu"
+                )
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+
+    def forward(self, x):
+        return self.network(x)
+
 
 class MolecularDataset(Dataset):
-    """Custom Dataset for molecular data"""
-    
+    """Dataset that converts SMILES strings into Morgan fingerprints."""
+
     def __init__(self, smiles_list, labels, radius=2, n_bits=2048):
-        """
-        Args:
-            smiles_list: List of SMILES strings
-            labels: Array of target values
-            radius: Morgan fingerprint radius
-            n_bits: Fingerprint length
-        """
-        self.fingerprints = []
-        self.labels = []
-        
+        fingerprints = []
+        valid_labels = []
+
         for smiles, label in zip(smiles_list, labels):
-            mol = Chem.MolFromSmiles(smiles)
-            if mol is not None:
-                # Generate Morgan fingerprint
-                fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits)
-                self.fingerprints.append(np.array(fp))
-                self.labels.append(label)
-        
-        self.fingerprints = torch.FloatTensor(np.array(self.fingerprints))
-        self.labels = torch.FloatTensor(np.array(self.labels)).reshape(-1, 1)
-    
+            mol = Chem.MolFromSmiles(str(smiles))
+
+            if mol is None:
+                continue
+
+            fp = AllChem.GetMorganFingerprintAsBitVect(
+                mol,
+                radius,
+                nBits=n_bits
+            )
+
+            fingerprints.append(np.asarray(fp, dtype=np.float32))
+            valid_labels.append(label)
+
+        if len(fingerprints) == 0:
+            raise ValueError("No valid molecules were found in the dataset.")
+
+        self.fingerprints = torch.tensor(
+            np.asarray(fingerprints),
+            dtype=torch.float32
+        )
+
+        self.labels = torch.tensor(
+            np.asarray(valid_labels),
+            dtype=torch.float32
+        ).view(-1, 1)
+
     def __len__(self):
         return len(self.fingerprints)
-    
+
     def __getitem__(self, idx):
         return self.fingerprints[idx], self.labels[idx]
 
-# ============================================================================
-# 2. TRAINING FUNCTION
-# ============================================================================
 
 def train_epoch(model, train_loader, criterion, optimizer, device):
-    """Train for one epoch"""
     model.train()
-    total_loss = 0
-    
+    total_loss = 0.0
+
     for batch_x, batch_y in train_loader:
-        batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-        
-        # Forward pass
+        batch_x = batch_x.to(device)
+        batch_y = batch_y.to(device)
+
         optimizer.zero_grad()
         predictions = model(batch_x)
         loss = criterion(predictions, batch_y)
-        
-        # Backward pass
+
         loss.backward()
         optimizer.step()
-        
-        total_loss += loss.item()
-    
-    return total_loss / len(train_loader)
 
-# ============================================================================
-# 3. VALIDATION FUNCTION
-# ============================================================================
+        total_loss += loss.item() * batch_x.size(0)
+
+    return total_loss / len(train_loader.dataset)
+
 
 def validate(model, val_loader, criterion, device):
-    """Validate the model"""
     model.eval()
-    total_loss = 0
+
+    total_loss = 0.0
     all_predictions = []
     all_labels = []
-    
+
     with torch.no_grad():
         for batch_x, batch_y in val_loader:
-            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-            
+            batch_x = batch_x.to(device)
+            batch_y = batch_y.to(device)
+
             predictions = model(batch_x)
             loss = criterion(predictions, batch_y)
-            
-            total_loss += loss.item()
-            all_predictions.extend(predictions.cpu().numpy())
-            all_labels.extend(batch_y.cpu().numpy())
-    
-    avg_loss = total_loss / len(val_loader)
-    
-    # Calculate metrics
-    all_predictions = np.array(all_predictions).flatten()
-    all_labels = np.array(all_labels).flatten()
-    
+
+            total_loss += loss.item() * batch_x.size(0)
+
+            all_predictions.append(predictions.cpu().numpy())
+            all_labels.append(batch_y.cpu().numpy())
+
+    avg_loss = total_loss / len(val_loader.dataset)
+
+    all_predictions = np.concatenate(all_predictions).ravel()
+    all_labels = np.concatenate(all_labels).ravel()
+
     rmse = np.sqrt(mean_squared_error(all_labels, all_predictions))
     mae = mean_absolute_error(all_labels, all_predictions)
     r2 = r2_score(all_labels, all_predictions)
-    
+
     return avg_loss, rmse, mae, r2
 
-# ============================================================================
-# 4. COMPLETE TRAINING PIPELINE
-# ============================================================================
 
-def train_molecular_model(smiles_train, y_train, smiles_val, y_val, 
-                          config=None):
-    """
-    Complete training pipeline for molecular property prediction
-    
-    Args:
-        smiles_train: Training SMILES
-        y_train: Training labels
-        smiles_val: Validation SMILES
-        y_val: Validation labels
-        config: Configuration dictionary
-    
-    Returns:
-        trained_model: Best model
-        history: Training history
-    """
-    # Default configuration
+def train_molecular_model(smiles_train, y_train, smiles_val, y_val, config=None):
     if config is None:
         config = {
-            'input_dim': 2048,
-            'hidden_dims': [512, 256, 128],
-            'output_dim': 1,
-            'dropout_rate': 0.3,
-            'learning_rate': 0.001,
-            'batch_size': 64,
-            'epochs': 100,
-            'patience': 15,
-            'device': 'cuda' if torch.cuda.is_available() else 'cpu'
+            "input_dim": 2048,
+            "hidden_dims": (512, 256, 128),
+            "output_dim": 1,
+            "dropout_rate": 0.3,
+            "learning_rate": 1e-3,
+            "batch_size": 64,
+            "epochs": 100,
+            "patience": 15,
+            "device": "cuda" if torch.cuda.is_available() else "cpu",
         }
-    
-    device = torch.device(config['device'])
+
+    device = torch.device(config["device"])
     print(f"Using device: {device}")
-    
-    # Create datasets
-    print("Creating datasets...")
-    train_dataset = MolecularDataset(smiles_train, y_train)
-    val_dataset = MolecularDataset(smiles_val, y_val)
-    
-    # Create data loaders
-    train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], 
-                             shuffle=True, num_workers=0)
-    val_loader = DataLoader(val_dataset, batch_size=config['batch_size'], 
-                           shuffle=False, num_workers=0)
-    
-    # Initialize model
-    model = MolecularFNN(
-        input_dim=config['input_dim'],
-        hidden_dims=config['hidden_dims'],
-        output_dim=config['output_dim'],
-        dropout_rate=config['dropout_rate']
-    ).to(device)
-    
-    # Loss and optimizer
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=config['learning_rate'])
-    
-    # Learning rate scheduler
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=5, verbose=True
+
+    train_dataset = MolecularDataset(
+        smiles_train,
+        y_train,
+        n_bits=config["input_dim"]
     )
-    
-    # Training history
+
+    val_dataset = MolecularDataset(
+        smiles_val,
+        y_val,
+        n_bits=config["input_dim"]
+    )
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=config["batch_size"],
+        shuffle=True
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=config["batch_size"],
+        shuffle=False
+    )
+
+    model = MolecularFNN(
+        input_dim=config["input_dim"],
+        hidden_dims=config["hidden_dims"],
+        output_dim=config["output_dim"],
+        dropout_rate=config["dropout_rate"]
+    ).to(device)
+
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
+
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="min",
+        factor=0.5,
+        patience=5
+    )
+
     history = {
-        'train_loss': [], 'val_loss': [], 
-        'val_rmse': [], 'val_mae': [], 'val_r2': []
+        "train_loss": [],
+        "val_loss": [],
+        "val_rmse": [],
+        "val_mae": [],
+        "val_r2": [],
     }
-    
-    # Early stopping
-    best_val_loss = float('inf')
+
+    best_val_loss = float("inf")
+    best_model_state = copy.deepcopy(model.state_dict())
     patience_counter = 0
-    best_model_state = None
-    
-    # Training loop
+
     print("\nStarting training...")
-    for epoch in range(config['epochs']):
-        # Train
-        train_loss = train_epoch(model, train_loader, criterion, optimizer, device)
-        
-        # Validate
-        val_loss, val_rmse, val_mae, val_r2 = validate(model, val_loader, criterion, device)
-        
-        # Learning rate scheduling
+
+    for epoch in range(config["epochs"]):
+        train_loss = train_epoch(
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device
+        )
+
+        val_loss, val_rmse, val_mae, val_r2 = validate(
+            model,
+            val_loader,
+            criterion,
+            device
+        )
+
         scheduler.step(val_loss)
-        
-        # Save history
-        history['train_loss'].append(train_loss)
-        history['val_loss'].append(val_loss)
-        history['val_rmse'].append(val_rmse)
-        history['val_mae'].append(val_mae)
-        history['val_r2'].append(val_r2)
-        
-        # Print progress
-        if (epoch + 1) % 10 == 0:
-            print(f"Epoch {epoch+1}/{config['epochs']}")
-            print(f"  Train Loss: {train_loss:.4f}")
-            print(f"  Val Loss: {val_loss:.4f}, RMSE: {val_rmse:.4f}, "
-                  f"MAE: {val_mae:.4f}, R²: {val_r2:.4f}")
-        
-        # Early stopping
+
+        history["train_loss"].append(train_loss)
+        history["val_loss"].append(val_loss)
+        history["val_rmse"].append(val_rmse)
+        history["val_mae"].append(val_mae)
+        history["val_r2"].append(val_r2)
+
         if val_loss < best_val_loss:
             best_val_loss = val_loss
+            best_model_state = copy.deepcopy(model.state_dict())
             patience_counter = 0
-            best_model_state = model.state_dict().copy()
         else:
             patience_counter += 1
-            if patience_counter >= config['patience']:
-                print(f"\nEarly stopping at epoch {epoch+1}")
-                break
-    
-    # Load best model
+
+        if (epoch + 1) % 10 == 0:
+            current_lr = optimizer.param_groups[0]["lr"]
+            print(f"Epoch {epoch + 1}/{config['epochs']}")
+            print(f"  Train Loss: {train_loss:.4f}")
+            print(
+                f"  Val Loss: {val_loss:.4f}, "
+                f"RMSE: {val_rmse:.4f}, "
+                f"MAE: {val_mae:.4f}, "
+                f"R²: {val_r2:.4f}, "
+                f"LR: {current_lr:.2e}"
+            )
+
+        if patience_counter >= config["patience"]:
+            print(f"\nEarly stopping at epoch {epoch + 1}")
+            break
+
     model.load_state_dict(best_model_state)
-    
+
     print("\nTraining complete!")
     print(f"Best validation loss: {best_val_loss:.4f}")
-    
+
     return model, history
 
-# ============================================================================
-# 5. EXAMPLE USAGE
-# ============================================================================
 
-# Generate synthetic data for demonstration
-def generate_synthetic_data(n_samples=1000):
-    """Generate synthetic molecular data"""
-    np.random.seed(42)
-    
-    # Simple SMILES for demonstration (in practice, use real dataset)
-    base_smiles = ['CCO', 'CC(C)O', 'CCCO', 'CC(C)CO', 'CCCCO']
-    smiles_list = np.random.choice(base_smiles, n_samples)
-    
-    # Synthetic labels (in practice, use real property values)
-    labels = np.random.randn(n_samples) * 2 + 5
-    
-    return smiles_list, labels
+def generate_synthetic_data(n_samples=1000, random_state=42):
+    """
+    Generate synthetic molecular data with a learnable target.
 
-# Generate data
+    The target is molecular weight plus Gaussian noise.
+    """
+
+    rng = np.random.default_rng(random_state)
+
+    base_smiles = np.array([
+        "CCO",
+        "CC(C)O",
+        "CCCO",
+        "CC(C)CO",
+        "CCCCO",
+        "c1ccccc1",
+        "CC(=O)O",
+        "CCN",
+        "CCCl",
+        "CCBr",
+    ])
+
+    smiles_list = rng.choice(base_smiles, size=n_samples)
+
+    labels = []
+
+    for smiles in smiles_list:
+        mol = Chem.MolFromSmiles(smiles)
+        mw = Descriptors.MolWt(mol)
+        noisy_target = mw + rng.normal(0, 2.0)
+        labels.append(noisy_target)
+
+    return smiles_list, np.asarray(labels, dtype=np.float32)
+
+
 smiles, labels = generate_synthetic_data(1000)
 
-# Split data
 smiles_train, smiles_temp, y_train, y_temp = train_test_split(
-    smiles, labels, test_size=0.3, random_state=42
+    smiles,
+    labels,
+    test_size=0.3,
+    random_state=42
 )
+
 smiles_val, smiles_test, y_val, y_test = train_test_split(
-    smiles_temp, y_temp, test_size=0.5, random_state=42
+    smiles_temp,
+    y_temp,
+    test_size=0.5,
+    random_state=42
 )
 
-# Train model
-model, history = train_molecular_model(smiles_train, y_train, smiles_val, y_val)
+model, history = train_molecular_model(
+    smiles_train,
+    y_train,
+    smiles_val,
+    y_val
+)
 
-# Visualize training history
-import matplotlib.pyplot as plt
 
 plt.figure(figsize=(12, 4))
 
 plt.subplot(1, 3, 1)
-plt.plot(history['train_loss'], label='Train Loss')
-plt.plot(history['val_loss'], label='Val Loss')
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
+plt.plot(history["train_loss"], label="Train Loss")
+plt.plot(history["val_loss"], label="Validation Loss")
+plt.xlabel("Epoch")
+plt.ylabel("MSE Loss")
 plt.legend()
-plt.title('Training and Validation Loss')
+plt.title("Training and Validation Loss")
 
 plt.subplot(1, 3, 2)
-plt.plot(history['val_rmse'], label='RMSE')
-plt.plot(history['val_mae'], label='MAE')
-plt.xlabel('Epoch')
-plt.ylabel('Error')
+plt.plot(history["val_rmse"], label="RMSE")
+plt.plot(history["val_mae"], label="MAE")
+plt.xlabel("Epoch")
+plt.ylabel("Error")
 plt.legend()
-plt.title('Validation Errors')
+plt.title("Validation Errors")
 
 plt.subplot(1, 3, 3)
-plt.plot(history['val_r2'])
-plt.xlabel('Epoch')
-plt.ylabel('R² Score')
-plt.title('Validation R²')
+plt.plot(history["val_r2"])
+plt.xlabel("Epoch")
+plt.ylabel("R² Score")
+plt.title("Validation R²")
 
 plt.tight_layout()
-plt.savefig('training_history.png', dpi=150, bbox_inches='tight')
+plt.savefig("training_history.png", dpi=150, bbox_inches="tight")
 plt.show()
 ```
 
-### 2.3 Best Practices and Tips
 
-**1. Data Preprocessing**
 
-- **Normalize inputs**: Scale features to similar ranges
-  ```python
-  from sklearn.preprocessing import StandardScaler
-  
-  scaler = StandardScaler()
-  X_train_scaled = scaler.fit_transform(X_train)
-  X_val_scaled = scaler.transform(X_val)
-  ```
+## 2.3 Practical Recommendations and Training Guidelines
 
-- **Handle missing values**: Remove or impute before training
-- **Remove duplicates**: Ensure no data leakage between train/val/test sets
+Training neural networks for molecular property prediction requires more than selecting a model architecture. 
+Data quality, preprocessing, optimization settings, and regularization strategies strongly influence model 
+performance and generalization.
 
-**2. Architecture Selection**
+The following guidelines summarize common best practices for building stable and reliable molecular deep learning models.
 
-- **Start simple**: Begin with 2-3 hidden layers
-- **Increase gradually**: Add complexity only if needed
-- **Monitor overfitting**: If train loss << val loss, model too complex
 
-**3. Hyperparameter Tuning Priority**
+### 1. Data Preparation and Preprocessing
 
-| Priority | Hyperparameter | Impact | Typical Range |
-|----------|----------------|--------|---------------|
-| HIGH | Learning rate | Critical for convergence | 1e-4 to 1e-2 |
-| HIGH | Batch size | Memory and convergence speed | 32, 64, 128, 256 |
-| MEDIUM | Number of layers | Model capacity | 2-5 |
-| MEDIUM | Neurons per layer | Model capacity | 64, 128, 256, 512 |
-| MEDIUM | Dropout rate | Regularization | 0.1-0.5 |
-| LOW | Optimizer | Usually Adam works | Adam, AdamW |
-| LOW | Activation function | ReLU usually best | ReLU, Leaky ReLU |
+Careful preprocessing is essential because neural networks are highly sensitive to inconsistent or noisy inputs.
 
-**4. Regularization Techniques**
+
+#### Feature Scaling
+
+Many molecular descriptors have very different numerical ranges. For example:
+
+* molecular weight may range from (10) to (1000),
+* partial charges may lie between (-1) and (1),
+* counts of functional groups are often small integers.
+
+Large scale differences can make optimization unstable.
+
+A common solution is **standardization**:
+
+$$
+x_{\text{scaled}}
+=
+\frac{x - \mu}{\sigma}
+$$
+
+where:
+
+* $\mu$ is the mean,
+* $\sigma$ is the standard deviation.
+
+This transformation produces approximately zero-mean, unit-variance features.
 
 ```python
-# L2 Regularization (Weight Decay)
-optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+from sklearn.preprocessing import StandardScaler
 
-# Dropout (already in model architecture)
+scaler = StandardScaler()
+
+X_train_scaled = scaler.fit_transform(X_train)
+
+# Use the same statistics for validation/test data
+X_val_scaled = scaler.transform(X_val)
+X_test_scaled = scaler.transform(X_test)
+```
+
+### Important Note
+
+Fingerprint vectors such as Morgan fingerprints are binary:
+
+$$
+x_i \in {0,1}
+$$
+
+and are often used directly without scaling. Feature normalization is more important for continuous descriptors.
+
+
+#### Missing Values
+
+Neural networks cannot process undefined numerical values such as:
+
+```text
+NaN
+inf
+None
+```
+
+Missing values should be:
+
+* removed,
+* imputed,
+* or replaced using domain-specific rules.
+
+Example:
+
+```python
+from sklearn.impute import SimpleImputer
+
+imputer = SimpleImputer(strategy="median")
+
+X_train = imputer.fit_transform(X_train)
+X_val = imputer.transform(X_val)
+```
+
+
+#### Duplicate Removal and Data Leakage
+
+Duplicate molecules appearing across training and validation sets can produce overly optimistic performance estimates.
+
+Data leakage occurs when the model indirectly sees validation information during training.
+
+Always ensure:
+
+$$
+\text{Train set} \cap \text{Validation set} = \emptyset
+$$
+
+and similarly for the test set.
+
+For molecular datasets, scaffold-based splitting is often more reliable than random splitting because 
+structurally similar molecules may otherwise appear in multiple sets.
+
+
+
+### 2. Choosing an Appropriate Architecture
+
+Model complexity should match dataset size and task difficulty.
+
+
+#### Start with Simple Architectures
+
+A practical starting point is:
+
+```text
+Input → 256 → 128 → Output
+```
+
+or:
+
+```text
+Input → 512 → 256 → 128 → Output
+```
+
+Simple models are:
+
+* easier to debug,
+* faster to train,
+* less prone to overfitting.
+
+#### Increase Complexity Gradually
+
+If the model underfits, complexity can be increased by:
+
+* adding more layers,
+* increasing hidden dimensions,
+* using richer molecular representations.
+
+Increasing complexity too early often leads to unstable training.
+
+
+#### Detecting Overfitting
+
+Overfitting occurs when the model memorizes training data instead of learning generalizable patterns.
+
+Typical behavior:
+
+$$
+L_{\text{train}} \ll L_{\text{validation}}
+$$
+
+Signs include:
+
+* training loss continues decreasing,
+* validation loss increases,
+* validation metrics stagnate or worsen.
+
+Possible solutions:
+
+* increase dropout,
+* add weight decay,
+* reduce network size,
+* collect more data.
+
+
+### 3. Hyperparameter Tuning
+
+Some hyperparameters affect training much more strongly than others.
+
+| Priority | Hyperparameter      | Typical Values         | Effect                     |
+| -------- | ------------------- | ---------------------- | -------------------------- |
+| High     | Learning rate       | (10^{-4}) to (10^{-2}) | Optimization stability     |
+| High     | Batch size          | 32–256                 | Speed and gradient noise   |
+| Medium   | Hidden layers       | 2–5                    | Model capacity             |
+| Medium   | Hidden dimension    | 64–512                 | Representation power       |
+| Medium   | Dropout rate        | 0.1–0.5                | Regularization strength    |
+| Low      | Optimizer           | Adam, AdamW            | Usually less critical      |
+| Low      | Activation function | ReLU, Leaky ReLU       | Small effect in most cases |
+
+
+#### Learning Rate
+
+The learning rate is usually the most important hyperparameter.
+
+Parameter updates follow:
+
+$$
+\theta
+\leftarrow
+\theta
+-\alpha
+\nabla_\theta L
+$$
+
+where:
+
+* $\alpha$ is the learning rate.
+
+Typical behavior:
+
+| Learning Rate | Effect                      |
+| ------------- | --------------------------- |
+| Too large     | Divergence or unstable loss |
+| Too small     | Very slow convergence       |
+| Appropriate   | Stable optimization         |
+
+
+
+### 4. Regularization Techniques
+
+Regularization helps improve generalization and reduce overfitting.
+
+
+#### Weight Decay (L2 Regularization)
+
+Weight decay penalizes large parameter values:
+
+$$
+L_{\text{total}}
+=
+L_{\text{data}}
++
+\lambda ||W||_2^2
+$$
+
+where:
+
+* $\lambda$ controls regularization strength.
+
+Example:
+
+```python
+optimizer = optim.Adam(
+    model.parameters(),
+    lr=1e-3,
+    weight_decay=1e-5
+)
+```
+
+#### Dropout
+
+Dropout randomly disables neurons during training.
+
+If the dropout probability is:
+
+$$
+p = 0.3
+$$
+
+then (30%) of neurons are randomly ignored during each iteration.
+
+```python
 nn.Dropout(p=0.3)
+```
 
-# Batch Normalization (already in model architecture)
+#### Batch Normalization
+
+Batch normalization stabilizes intermediate activations:
+
+```python 
 nn.BatchNorm1d(hidden_dim)
+```
 
-# Early Stopping (implemented in training loop)
+Benefits include:
+
+* faster convergence,
+* improved gradient flow,
+* reduced sensitivity to initialization.
+
+
+#### Early Stopping
+
+Early stopping terminates training when validation performance stops improving.
+
+```python
 if val_loss < best_val_loss:
     best_val_loss = val_loss
     patience_counter = 0
@@ -1854,83 +2159,247 @@ else:
     patience_counter += 1
 ```
 
-**5. Debugging Checklist**
+Training stops when:
 
-- **Problem**: Loss is NaN
-  - **Solution**: Reduce learning rate, check for invalid inputs, add gradient clipping
-  ```python
-  torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-  ```
+$$
+\text{patience counter} \geq p
+$$
 
-- **Problem**: Loss not decreasing
-  - **Solution**: Increase learning rate, check data preprocessing, verify labels
+where (p) is the patience threshold.
 
-- **Problem**: Training loss decreasing but validation loss increasing
-  - **Solution**: Overfitting - increase dropout, add L2 regularization, reduce model size
 
-- **Problem**: Both losses high and not improving
-  - **Solution**: Underfitting - increase model capacity, decrease regularization, train longer
+### 5. Troubleshooting Common Training Problems
 
-**6. Monitoring Training**
+
+#### Problem: Loss Becomes NaN
+
+Possible causes:
+
+* learning rate too large,
+* exploding gradients,
+* invalid numerical inputs,
+* division by zero.
+
+A common solution is gradient clipping:
+
+```python 
+torch.nn.utils.clip_grad_norm_(
+    model.parameters(),
+    max_norm=1.0
+)
+```
+
+Gradient clipping constrains:
+
+$$
+||g|| \leq c
+$$
+
+where $c$ is the clipping threshold.
+
+
+#### Problem: Loss Does Not Decrease
+
+Possible causes:
+
+* poor learning rate,
+* incorrect labels,
+* preprocessing issues,
+* insufficient model capacity.
+
+Potential fixes:
+
+* adjust learning rate,
+* verify labels,
+* inspect feature distributions,
+* simplify debugging with a smaller dataset.
+
+
+
+#### Problem: Validation Loss Increases While Training Loss Decreases
+
+This is a classic sign of overfitting.
+
+Possible solutions:
+
+* stronger dropout,
+* larger weight decay,
+* smaller architecture,
+* earlier stopping.
+
+
+
+#### Problem: Both Training and Validation Loss Remain High
+
+This often indicates underfitting.
+
+Possible solutions:
+
+* increase model capacity,
+* reduce regularization,
+* train longer,
+* improve molecular features.
+
+
+### 6. Monitoring the Training Process
+
+Monitoring training curves helps identify optimization problems early.
+
+TensorBoard is commonly used for real-time visualization.
 
 ```python
-# Use TensorBoard for real-time monitoring
 from torch.utils.tensorboard import SummaryWriter
 
-writer = SummaryWriter('runs/experiment_1')
+writer = SummaryWriter("runs/experiment_1")
 
-# During training loop
-writer.add_scalar('Loss/train', train_loss, epoch)
-writer.add_scalar('Loss/val', val_loss, epoch)
-writer.add_scalar('Metrics/RMSE', val_rmse, epoch)
-writer.add_scalar('Metrics/R2', val_r2, epoch)
+writer.add_scalar("Loss/train", train_loss, epoch)
+writer.add_scalar("Loss/validation", val_loss, epoch)
 
-# View with: tensorboard --logdir=runs
+writer.add_scalar("Metrics/RMSE", val_rmse, epoch)
+writer.add_scalar("Metrics/R2", val_r2, epoch)
 ```
 
-**7. Model Saving and Loading**
+Launch TensorBoard with:
+
+```text
+tensorboard --logdir=runs
+```
+
+Useful plots include:
+
+* training vs. validation loss,
+* learning rate schedules,
+* gradient norms,
+* evaluation metrics.
+
+
+
+### 7. Saving and Reloading Models
+
+Saving checkpoints allows training to resume later and preserves the best model.
 
 ```python
-# Save complete model state
 torch.save({
-    'epoch': epoch,
-    'model_state_dict': model.state_dict(),
-    'optimizer_state_dict': optimizer.state_dict(),
-    'loss': best_val_loss,
-    'history': history
-}, 'best_model.pth')
-
-# Load model
-checkpoint = torch.load('best_model.pth')
-model.load_state_dict(checkpoint['model_state_dict'])
-optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    "epoch": epoch,
+    "model_state_dict": model.state_dict(),
+    "optimizer_state_dict": optimizer.state_dict(),
+    "loss": best_val_loss,
+    "history": history
+}, "best_model.pth")
 ```
 
-**8. Tips for Molecular Data**
-
-- **Use appropriate fingerprints**: Morgan (most common), MACCS, RDKit fingerprints
-- **Consider molecular size**: Normalize by molecular weight or atom count if relevant
-- **Handle invalid SMILES**: Filter out molecules that RDKit cannot parse
-- **Augmentation**: Consider SMILES enumeration for data augmentation
+Reloading:
 
 ```python
-# SMILES enumeration for augmentation
+checkpoint = torch.load("best_model.pth")
+
+model.load_state_dict(
+    checkpoint["model_state_dict"]
+)
+
+optimizer.load_state_dict(
+    checkpoint["optimizer_state_dict"]
+)
+```
+
+This restores:
+
+* model weights,
+* optimizer state,
+* training history,
+* and training epoch.
+
+
+### 8. Recommendations for Molecular Data
+
+Molecular machine learning introduces additional considerations beyond standard deep learning workflows.
+
+
+#### Molecular Representations
+
+Different fingerprint types capture different chemical information.
+
+Common choices include:
+
+| Fingerprint         | Characteristics                |
+| ------------------- | ------------------------------ |
+| Morgan fingerprints | Circular substructure encoding |
+| MACCS keys          | Predefined structural patterns |
+| RDKit fingerprints  | Path-based features            |
+
+Morgan fingerprints are often the best starting point for general molecular tasks.
+
+#### Molecular Size Effects
+
+Some molecular properties scale with molecule size.
+
+In certain tasks, normalization by:
+
+* molecular weight,
+* heavy atom count,
+* or molecular volume
+
+may improve learning stability.
+
+
+#### Invalid SMILES Strings
+
+RDKit cannot parse malformed molecular representations.
+
+Always validate molecules before training.
+
+```python
+mol = Chem.MolFromSmiles(smiles)
+
+if mol is None:
+    continue
+```
+
+
+#### SMILES Enumeration for Data Augmentation
+
+A molecule can have multiple equivalent SMILES representations.
+
+Example:
+
+```text
+CCO
+OCC
+```
+
+represent the same molecule.
+
+SMILES randomization can augment datasets and improve robustness.
+
+```python
 from rdkit import Chem
 
 def enumerate_smiles(smiles, n_variants=5):
-    """Generate different SMILES representations of same molecule"""
+    """
+    Generate randomized SMILES strings
+    for the same molecule.
+    """
+
     mol = Chem.MolFromSmiles(smiles)
+
     if mol is None:
         return [smiles]
-    
-    variants = []
+
+    variants = set()
+
     for _ in range(n_variants):
-        variants.append(Chem.MolToSmiles(mol, doRandom=True))
-    
-    return list(set(variants))
+
+        randomized = Chem.MolToSmiles(
+            mol,
+            doRandom=True
+        )
+
+        variants.add(randomized)
+
+    return list(variants)
 ```
 
----
+This strategy is especially useful for sequence-based models trained directly on SMILES strings.
 
 ## 3. Multi-Task Learning
 
