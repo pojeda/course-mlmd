@@ -2911,8 +2911,7 @@ This changes the total loss:
 
 $$
 L_{\text{total}}
-================
-
+=
 1.0L_{\text{solubility}}
 +
 2.0L_{\text{BBB}}
