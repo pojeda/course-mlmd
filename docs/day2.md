@@ -552,22 +552,22 @@ the network.
 
 #### Main Steps of Backpropagation
 
-1. **Forward Pass**
+#### 1. **Forward Pass**
 
    * Compute activations layer by layer
    * Generate predictions
    * Evaluate the loss function
 
-2. **Loss Gradient Computation**
+#### 2. **Loss Gradient Computation**
 
    * Compute the gradient of the loss with respect to the output activations
 
-3. **Backward Pass**
+#### 3. **Backward Pass**
 
    * Propagate gradients backward through each layer
    * Compute gradients for weights and biases
 
-4. **Parameter Update**
+#### 4. **Parameter Update**
 
    * Update parameters using gradient descent or an optimization algorithm such as Adam
 
@@ -580,7 +580,7 @@ For layer $l$:
 
 $$
 d\mathbf{Z}^{[l]}
-=================
+=
 d\mathbf{A}^{[l]}
 \odot
 f'\left(\mathbf{Z}^{[l]}\right)
@@ -593,7 +593,7 @@ where $\odot$ denotes element-wise multiplication.
 
 $$
 d\mathbf{W}^{[l]}
-=================
+=
 \frac{1}{m}
 d\mathbf{Z}^{[l]}
 \left(\mathbf{A}^{[l-1]}\right)^T
@@ -603,7 +603,7 @@ $$
 
 $$
 d\mathbf{b}^{[l]}
-=================
+=
 \frac{1}{m}
 \sum d\mathbf{Z}^{[l]}
 $$
@@ -612,7 +612,7 @@ $$
 
 $$
 d\mathbf{A}^{[l-1]}
-===================
+=
 \left(\mathbf{W}^{[l]}\right)^T
 d\mathbf{Z}^{[l]}
 $$
