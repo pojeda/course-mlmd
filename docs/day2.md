@@ -78,50 +78,116 @@ By training on FDA-approved drugs, the model learns:
 - Features related to blood-brain barrier permeability
 ```
 
-
 ### 1.2 Neural Network Basics
 
-A neural network consists of interconnected layers of artificial neurons that transform input data through learned weights and biases.
+A neural network is a computational model composed of interconnected layers of artificial neurons that learn to 
+transform input data into meaningful predictions through adjustable weights and biases.
 
-**Architecture Components:**
+A **feedforward neural network** processes information sequentially from the input layer to the output layer 
+without feedback connections or recurrent cycles.
 
-**Input Layer**: Receives molecular features (fingerprints, descriptors, or embeddings)
-- Size determined by feature dimension
-- No activation function applied
 
-**Hidden Layers**: Transform inputs through non-linear operations
-- Each neuron computes: **z = Σ(w_i × x_i) + b**
-- Applies activation function: **a = f(z)**
-- Multiple layers enable hierarchical feature learning
+## Architecture Components
 
-**Output Layer**: Produces final predictions
-- Regression: Single neuron with linear activation
-- Binary classification: Single neuron with sigmoid activation
-- Multi-class: Multiple neurons with softmax activation
+### Input Layer
 
-**Mathematical Foundation:**
+The input layer receives molecular representations such as fingerprints, molecular descriptors, embeddings, 
+or graph-based features.
 
-For a single neuron:
-```
-Input: x = [x₁, x₂, ..., xₙ]
-Weights: w = [w₁, w₂, ..., wₙ]
-Bias: b
+* Its size is determined by the dimensionality of the input features.
+* No activation function is typically applied at this stage.
 
-Linear transformation: z = w₁x₁ + w₂x₂ + ... + wₙxₙ + b = w^T x + b
-Activation: a = f(z)
-```
+### Hidden Layers
 
-For a layer:
-```
-Z^[l] = W^[l] × A^[l-1] + b^[l]
-A^[l] = f(Z^[l])
+Hidden layers perform non-linear transformations that enable the network to learn complex patterns and 
+hierarchical representations.
 
-Where:
-- l = layer index
-- W^[l] = weight matrix for layer l
-- A^[l-1] = activations from previous layer
-- b^[l] = bias vector for layer l
-```
+Each neuron computes:
+
+$$
+z = \sum_{i=1}^{n} w_i x_i + b
+$$
+
+where:
+
+* $x_i$ are the input features,
+* $w_i$ are the learnable weights,
+* $b$ is the bias term.
+
+The neuron output is then obtained through an activation function:
+
+$$
+a = f(z)
+$$
+
+Using multiple hidden layers allows the network to progressively learn higher-level abstractions from molecular data.
+
+### Output Layer
+
+The output layer generates the final prediction.
+
+* **Regression tasks:** typically use a single neuron with a linear activation function.
+* **Binary classification:** commonly uses a sigmoid activation function.
+* **Multi-class classification:** generally uses a softmax activation function.
+
+
+## Mathematical Foundation
+
+### Single Neuron
+
+Given an input vector:
+
+$$
+\mathbf{x} = [x_1, x_2, \dots, x_n]
+$$
+
+a weight vector:
+
+$$
+\mathbf{w} = [w_1, w_2, \dots, w_n]
+$$
+
+and a bias term (b), the neuron computes the linear transformation:
+
+$$
+z = w_1x_1 + w_2x_2 + \cdots + w_nx_n + b
+$$
+
+which can be written compactly as:
+
+$$
+z = \mathbf{w}^T \mathbf{x} + b
+$$
+
+The activation value is then:
+
+$$
+a = f(z)
+$$
+
+where (f) is a non-linear activation function.
+
+
+### Neural Network Layer
+
+For layer (l), the computations are:
+
+$$
+\mathbf{Z}^{[l]} = \mathbf{W}^{[l]} \mathbf{A}^{[l-1]} + \mathbf{b}^{[l]}
+$$
+
+$$
+\mathbf{A}^{[l]} = f\left(\mathbf{Z}^{[l]}\right)
+$$
+
+where:
+
+* $l$ is the layer index,
+* $\mathbf{W}^{[l]}$ is the weight matrix for layer (l),
+* $\mathbf{A}^{[l-1]}$ represents the activations from the previous layer,
+* $\mathbf{b}^{[l]}$ is the bias vector,
+* $f$ is the activation function applied element-wise.
+
 
 **Forward Propagation Example:**
 
