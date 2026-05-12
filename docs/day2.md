@@ -1271,132 +1271,238 @@ def cosine_annealing(
 
 ## 2. Feedforward Neural Networks
 
-### 2.1 Architecture Design
+## 2.1 Feedforward Neural Network Architecture Design
 
-A feedforward neural network (FNN) is the simplest type of artificial neural network where information moves in only one direction—forward—from input to output.
+A **feedforward neural network (FNN)** is one of the most fundamental neural network architectures in deep learning. In 
+an FNN, information flows sequentially from the input layer through one or more hidden layers to the output layer, 
+without recurrent or feedback connections.
 
-**Design Principles:**
+Mathematically, the transformation at layer $l$ is:
 
-**Layer Size Guidelines:**
-- **Input layer**: Size = number of molecular features (e.g., 2048 for Morgan fingerprints)
-- **Hidden layers**: Start with 128-256 neurons, gradually decrease
-- **Output layer**: 
-  - Regression: 1 neuron
-  - Binary classification: 1 neuron
-  - Multi-class: Number of classes
+$$
+\mathbf{A}^{[l]}
+=
+f\left(
+\mathbf{W}^{[l]}\mathbf{A}^{[l-1]}
++
+\mathbf{b}^{[l]}
+\right)
+$$
 
-**Architecture Patterns:**
+where:
 
-**Pattern 1: Pyramid Structure** (Recommended for most molecular tasks)
+* $\mathbf{A}^{[l-1]}$ are the activations from the previous layer,
+* $\mathbf{W}^{[l]}$ is the weight matrix,
+* $\mathbf{b}^{[l]}$ is the bias vector,
+* $f(\cdot)$ is the activation function.
+
+For molecular machine learning, feedforward networks are commonly applied to molecular fingerprints, 
+physicochemical descriptors, or learned molecular embeddings.
+
+
+### Design Principles
+
+Designing an effective neural network architecture requires balancing:
+
+* model complexity,
+* computational cost,
+* generalization ability,
+* and training stability.
+
+A network that is too small may underfit the data, while an excessively large network may overfit and memorize the training set.
+
+
+#### Layer Size Guidelines
+
+##### Input Layer
+
+The input dimension corresponds to the number of molecular features.
+
+Examples:
+
+* Morgan fingerprints: (1024)–(4096) bits
+* Molecular descriptors: tens to hundreds of features
+* Learned embeddings: variable dimensionality
+
+Example:
+
+$$
+\text{Input dimension} = 2048
+$$
+
+for a (2048)-bit Morgan fingerprint.
+
+
+##### Hidden Layers
+
+Hidden layers learn increasingly abstract representations of molecular structure-property relationships.
+
+General recommendations:
+
+* Start with (128)–(512) neurons per layer
+* Gradually reduce dimensionality in deeper layers
+* Use ReLU-family activations for stable optimization
+
+A common strategy is:
+
+$$
+512 \rightarrow 256 \rightarrow 128
+$$
+
+which progressively compresses the learned representation.
+
+##### Output Layer
+
+The output layer depends on the prediction task.
+
+| Task                       | Output Neurons    | Activation |
+| -------------------------- | ----------------- | ---------- |
+| Regression                 | 1                 | Linear     |
+| Binary classification      | 1                 | Sigmoid    |
+| Multi-class classification | Number of classes | Softmax    |
+
+Examples:
+
+* Solubility prediction → single linear neuron
+* Toxic/non-toxic classification → sigmoid output
+* Protein family classification → softmax output
+
+
+### Common Architecture Patterns
+
+
+
+#### Pattern 1: Pyramid Architecture
+
+Recommended for many molecular property prediction tasks.
+
+```text
+Input (2048)
+    ↓
+Hidden Layer (512)
+    ↓
+Hidden Layer (256)
+    ↓
+Hidden Layer (128)
+    ↓
+Output (1)
 ```
-Input (2048) → Hidden1 (512) → Hidden2 (256) → Hidden3 (128) → Output (1)
+
+##### Characteristics
+
+* Gradually compresses information
+* Encourages hierarchical feature learning
+* Reduces parameter count in deeper layers
+* Often improves generalization
+
+This architecture works well when the input space is high-dimensional, such as molecular fingerprints.
+
+#### Pattern 2: Bottleneck (Hourglass) Architecture
+
+```text
+Input (2048)
+    ↓
+Hidden Layer (256)
+    ↓
+Bottleneck Layer (128)
+    ↓
+Hidden Layer (256)
+    ↓
+Output (1)
 ```
-- Progressively reduces dimensionality
-- Learns hierarchical features
 
-**Pattern 2: Hourglass Structure**
+##### Characteristics
+
+* Forces the network to learn compact latent representations
+* Useful for feature extraction and dimensionality reduction
+* Often used in autoencoders and representation learning
+
+The bottleneck layer acts as a compressed representation of the molecule.
+
+
+#### Pattern 3: Constant-Width Architecture
+
+```text
+Input (2048)
+    ↓
+Hidden Layer (256)
+    ↓
+Hidden Layer (256)
+    ↓
+Hidden Layer (256)
+    ↓
+Output (1)
 ```
-Input (2048) → Hidden1 (256) → Hidden2 (128) → Hidden3 (256) → Output (1)
-```
-- Creates bottleneck representation
-- Useful for learning compressed features
 
-**Pattern 3: Constant Width**
-```
-Input (2048) → Hidden1 (256) → Hidden2 (256) → Hidden3 (256) → Output (1)
-```
-- Maintains capacity throughout
-- Good for complex non-linear mappings
+##### Characteristics
 
-**Depth vs Width Trade-off:**
+* Maintains representational capacity across layers
+* Useful for highly non-linear mappings
+* Easier to tune than aggressively shrinking architectures
 
-| Architecture | Pros | Cons | Best For |
-|--------------|------|------|----------|
-| Deep & Narrow (5+ layers, 64-128 neurons) | Hierarchical features, fewer parameters | Harder to train, vanishing gradients | Complex patterns, large datasets |
-| Shallow & Wide (2-3 layers, 512+ neurons) | Easier to train, stable | More parameters, less hierarchical | Simple patterns, small datasets |
-| Balanced (3-4 layers, 128-256 neurons) | Good trade-off | - | General purpose, recommended starting point |
+This design is often effective when the dataset is large and the target function is complex.
 
-**Complete Architecture Implementation:**
 
-```python
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+### Depth vs. Width Trade-Off
 
-class MolecularFNN(nn.Module):
-    """
-    Feedforward Neural Network for molecular property prediction
-    """
-    def __init__(self, input_dim=2048, hidden_dims=[512, 256, 128], 
-                 output_dim=1, dropout_rate=0.3):
-        """
-        Args:
-            input_dim: Size of input features (e.g., fingerprint length)
-            hidden_dims: List of hidden layer sizes
-            output_dim: Number of output neurons (1 for regression)
-            dropout_rate: Dropout probability for regularization
-        """
-        super(MolecularFNN, self).__init__()
-        
-        # Build layers dynamically
-        layers = []
-        prev_dim = input_dim
-        
-        for hidden_dim in hidden_dims:
-            layers.append(nn.Linear(prev_dim, hidden_dim))
-            layers.append(nn.BatchNorm1d(hidden_dim))  # Batch normalization
-            layers.append(nn.ReLU())
-            layers.append(nn.Dropout(dropout_rate))
-            prev_dim = hidden_dim
-        
-        # Output layer
-        layers.append(nn.Linear(prev_dim, output_dim))
-        
-        self.network = nn.Sequential(*layers)
-        
-        # Initialize weights
-        self._initialize_weights()
-    
-    def _initialize_weights(self):
-        """He initialization for ReLU networks"""
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-    
-    def forward(self, x):
-        """
-        Forward pass
-        
-        Args:
-            x: Input tensor of shape (batch_size, input_dim)
-        
-        Returns:
-            Output predictions of shape (batch_size, output_dim)
-        """
-        return self.network(x)
-    
-    def get_embeddings(self, x):
-        """
-        Extract learned representations from second-to-last layer
-        Useful for visualization and transfer learning
-        """
-        for layer in self.network[:-1]:  # All layers except final
-            x = layer(x)
-        return x
+The architecture depth and width strongly affect learning behavior.
 
-# Example instantiation
-model = MolecularFNN(
-    input_dim=2048,           # Morgan fingerprint size
-    hidden_dims=[512, 256, 128],
-    output_dim=1,             # Single regression output
-    dropout_rate=0.3
-)
+| Architecture Type      | Advantages                                           | Disadvantages                                         | Best Use Cases                                  |
+| ---------------------- | ---------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------- |
+| Deep and narrow        | Learns hierarchical features with fewer parameters   | Harder to optimize, more prone to vanishing gradients | Large datasets, complex molecular relationships |
+| Shallow and wide       | Easier optimization and faster convergence           | Larger parameter count, weaker hierarchy learning     | Smaller datasets, simpler problems              |
+| Balanced architectures | Good compromise between expressiveness and stability | May not fully optimize extreme cases                  | Recommended starting point                      |
 
-print(model)
-print(f"\nTotal parameters: {sum(p.numel() for p in model.parameters()):,}")
-```
+A practical starting architecture for molecular property prediction is:
+
+$$
+2048 \rightarrow 512 \rightarrow 256 \rightarrow 128 \rightarrow 1
+$$
+
+
+### Regularization Strategies
+
+Deep neural networks can easily overfit molecular datasets, especially when training data are limited.
+
+Common regularization methods include:
+
+* Dropout
+* Weight decay
+* Early stopping
+* Batch normalization
+
+#### Dropout
+
+Dropout randomly disables neurons during training to reduce co-adaptation.
+
+If the dropout probability is (p), each neuron is retained with probability:
+
+$$
+1 - p
+$$
+
+Typical values:
+
+$$
+p = 0.2 \text{ to } 0.5
+$$
+
+
+#### Batch Normalization
+
+Batch normalization standardizes activations within a mini-batch:
+
+$$
+\hat{x}
+=\frac{x - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}
+$$
+
+This often:
+
+* stabilizes training,
+* improves gradient flow,
+* and enables larger learning rates.
+
 
 ### 2.2 Full Training Example
 
