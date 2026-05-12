@@ -2400,105 +2400,159 @@ def enumerate_smiles(smiles, n_variants=5):
 ```
 
 This strategy is especially useful for sequence-based models trained directly on SMILES strings.
-
+ 
 ## 3. Multi-Task Learning
 
 ### 3.1 Why and When to Use Multi-Task Learning
 
-Multi-task learning (MTL) is a machine learning paradigm where a model simultaneously learns multiple related tasks, sharing representations between tasks.
+**Multi-task learning (MTL)** is a modeling strategy in which a single neural network learns several related prediction 
+tasks at the same time. Instead of training one model for each molecular property, an MTL model shares part of its internal 
+representation across tasks and then uses task-specific output layers.
 
-**Key Benefits:**
+In molecular machine learning, this is useful because many properties depend on overlapping chemical features. For 
+example, polarity, molecular size, hydrogen bonding, and lipophilicity can influence solubility, permeability, and toxicity.
 
-1. **Improved Generalization**: Shared representations act as implicit regularization
-2. **Data Efficiency**: Tasks with more data help tasks with less data
-3. **Related Features**: Capture common patterns across molecular properties
-4. **Transfer Learning**: Learn general molecular representations
-5. **Computational Efficiency**: One model predicts multiple properties
+A multi-task model can be written as:
 
-**When to Use MTL:**
+$$
+\hat{y}*t = f_t(h*\theta(x))
+$$
 
-**Ideal Scenarios:**
-- **Related Properties**: Predicting solubility, LogP, and permeability (all related to molecular polarity)
-- **Limited Data**: Some tasks have abundant data, others have scarce data
-- **Shared Features**: Tasks depend on similar molecular features
-- **Multiple Endpoints**: Drug discovery (ADMET properties all relevant)
+where:
 
-**Not Recommended:**
-- **Unrelated Tasks**: Predicting solubility and catalytic activity (different mechanisms)
-- **Conflicting Objectives**: Tasks requiring opposite feature representations
-- **Single Task is Sufficient**: When only one property matters
+* $x$ is the molecular input representation,
+* $h_\theta(x)$ is the shared molecular representation,
+* $f_t$ is the task-specific prediction head for task $t$,
+* $\hat{y}_t$ is the prediction for task $t$.
 
-**Examples in Drug Discovery:**
 
+
+#### Benefits of Multi-Task Learning
+
+##### 1. **Better generalization**
+
+   Shared layers act as a form of regularization. The model cannot specialize too strongly to one task because 
+   it must learn features useful across several tasks.
+
+##### 2. **Improved data efficiency**
+
+   Tasks with many labeled examples can help improve representations for tasks with fewer labels.
+
+##### 3. **Shared chemical structure-property patterns**
+
+   Related endpoints may depend on similar molecular features, such as aromaticity, polarity, molecular weight, or hydrogen bonding.
+
+##### 4. **Transferable molecular representations**
+
+   The shared network can learn general molecular features that are useful for downstream prediction tasks.
+
+##### 5. **Computational efficiency**
+
+   One model can predict several properties in a single forward pass.
+
+
+
+#### When Multi-Task Learning Works Well
+
+MTL is most useful when the tasks are related.
+
+##### Good Use Cases
+
+```text
+ADMET prediction:
+├── Aqueous solubility
+├── Lipophilicity
+├── Caco-2 permeability
+├── BBB permeability
+├── CYP450 inhibition
+├── hERG inhibition
+└── Hepatotoxicity
 ```
-Task Group 1: ADMET Properties
-├─ Absorption (Caco-2 permeability)
-├─ Distribution (BBB permeability, plasma protein binding)
-├─ Metabolism (CYP450 inhibition, metabolic stability)
-├─ Excretion (clearance, half-life)
-└─ Toxicity (hERG inhibition, hepatotoxicity)
 
-Task Group 2: Physical Properties
-├─ Solubility (aqueous, LogS)
-├─ Lipophilicity (LogP, LogD)
-└─ Permeability (PAMPA, Caco-2)
+These tasks are not identical, but they often depend on overlapping molecular features.
 
-Task Group 3: Biological Activity
-├─ Target binding (IC50, Ki)
-├─ Cell viability (CC50)
-└─ Selectivity across targets
+##### Less Suitable Cases
+
+MTL may not help when tasks are unrelated or conflicting.
+
+Examples:
+
+* Predicting solubility and catalytic activity
+* Predicting BBB permeability and an unrelated physical assay
+* Combining tasks where one requires features that harm another task
+
+This problem is sometimes called **negative transfer**, where learning one task reduces performance on another.
+
+
+
+### 3.2 Multi-Task Model Architectures
+
+## Hard Parameter Sharing
+
+The most common MTL architecture uses **hard parameter sharing**. The hidden layers are shared across 
+all tasks, while each task has its own output head.
+
+```text
+                    Molecular Features
+                           |
+                    Shared Network
+                           |
+        ---------------------------------------
+        |                  |                  |
+ Solubility Head     BBB Head          Toxicity Head
+        |                  |                  |
+  Regression         Regression        Classification
 ```
 
-### 3.2 Multi-Task Architecture
+The shared network learns general molecular representations, while each task-specific head learns how to use 
+those representations for one endpoint.
 
-**Hard Parameter Sharing** (Most Common)
 
-All tasks share hidden layers, separate output heads:
-
-```
-              Input (Molecular Features)
-                       |
-            Shared Hidden Layers
-                   /   |   \
-           Task 1  Task 2  Task 3
-          Output  Output  Output
-```
-
-**Complete Implementation:**
+#### Corrected PyTorch Implementation
 
 ```python
 import torch
 import torch.nn as nn
 
+
 class MultiTaskMolecularModel(nn.Module):
     """
-    Multi-task neural network for molecular property prediction
+    Multi-task neural network for molecular property prediction.
+
+    The model contains:
+    1. Shared hidden layers
+    2. One task-specific output head per task
     """
-    def __init__(self, input_dim=2048, shared_dims=[512, 256], 
-                 task_configs=None, dropout_rate=0.3):
-        """
-        Args:
-            input_dim: Size of input features
-            shared_dims: List of shared hidden layer sizes
-            task_configs: List of dicts with task specifications
-                         [{'name': 'task1', 'output_dim': 1, 'task_type': 'regression'}, ...]
-            dropout_rate: Dropout probability
-        """
-        super(MultiTaskMolecularModel, self).__init__()
-        
+
+    def __init__(
+        self,
+        input_dim=2048,
+        shared_dims=(512, 256),
+        task_configs=None,
+        dropout_rate=0.3
+    ):
+        super().__init__()
+
         if task_configs is None:
             task_configs = [
-                {'name': 'solubility', 'output_dim': 1, 'task_type': 'regression'},
-                {'name': 'toxicity', 'output_dim': 1, 'task_type': 'classification'}
+                {
+                    "name": "solubility",
+                    "output_dim": 1,
+                    "task_type": "regression"
+                },
+                {
+                    "name": "toxicity",
+                    "output_dim": 1,
+                    "task_type": "binary_classification"
+                }
             ]
-        
+
         self.task_configs = task_configs
-        self.task_names = [task['name'] for task in task_configs]
-        
-        # Shared layers
+        self.task_names = [task["name"] for task in task_configs]
+
         shared_layers = []
         prev_dim = input_dim
-        
+
         for hidden_dim in shared_dims:
             shared_layers.extend([
                 nn.Linear(prev_dim, hidden_dim),
@@ -2507,61 +2561,65 @@ class MultiTaskMolecularModel(nn.Module):
                 nn.Dropout(dropout_rate)
             ])
             prev_dim = hidden_dim
-        
+
         self.shared_network = nn.Sequential(*shared_layers)
-        
-        # Task-specific heads
+
         self.task_heads = nn.ModuleDict()
-        
+
         for task in task_configs:
-            task_name = task['name']
-            output_dim = task['output_dim']
-            
-            # Task-specific layers (2 layers)
-            task_head = nn.Sequential(
+            task_name = task["name"]
+            output_dim = task["output_dim"]
+
+            self.task_heads[task_name] = nn.Sequential(
                 nn.Linear(prev_dim, 128),
                 nn.ReLU(),
                 nn.Dropout(dropout_rate),
                 nn.Linear(128, output_dim)
             )
-            
-            self.task_heads[task_name] = task_head
-    
+
     def forward(self, x):
-        """
-        Forward pass through shared network and all task heads
-        
-        Args:
-            x: Input tensor (batch_size, input_dim)
-        
-        Returns:
-            Dictionary of predictions for each task
-        """
-        # Shared representations
         shared_features = self.shared_network(x)
-        
-        # Task-specific predictions
+
         outputs = {}
+
         for task_name in self.task_names:
             outputs[task_name] = self.task_heads[task_name](shared_features)
-        
-        return outputs
-    
-    def get_shared_features(self, x):
-        """Extract shared representations for visualization or transfer learning"""
-        return self.shared_network(x)
 
-# Example instantiation
+        return outputs
+
+    def get_shared_features(self, x):
+        return self.shared_network(x)
+```
+
+Example configuration:
+
+```python
 task_configs = [
-    {'name': 'solubility', 'output_dim': 1, 'task_type': 'regression'},
-    {'name': 'bbb_permeability', 'output_dim': 1, 'task_type': 'regression'},
-    {'name': 'toxicity', 'output_dim': 1, 'task_type': 'classification'},
-    {'name': 'cyp450_inhibition', 'output_dim': 5, 'task_type': 'multi-class'}
+    {
+        "name": "solubility",
+        "output_dim": 1,
+        "task_type": "regression"
+    },
+    {
+        "name": "bbb_permeability",
+        "output_dim": 1,
+        "task_type": "regression"
+    },
+    {
+        "name": "toxicity",
+        "output_dim": 1,
+        "task_type": "binary_classification"
+    },
+    {
+        "name": "cyp450_inhibition",
+        "output_dim": 5,
+        "task_type": "multiclass_classification"
+    }
 ]
 
 model = MultiTaskMolecularModel(
     input_dim=2048,
-    shared_dims=[512, 256],
+    shared_dims=(512, 256),
     task_configs=task_configs,
     dropout_rate=0.3
 )
@@ -2569,453 +2627,457 @@ model = MultiTaskMolecularModel(
 print(model)
 ```
 
-**Soft Parameter Sharing** (Advanced)
+Important correction: for binary classification, the model should output **raw logits**, not sigmoid 
+probabilities. Use `BCEWithLogitsLoss`, which internally applies the sigmoid operation in a numerically stable way.
 
-Each task has its own network, but networks are constrained to be similar:
 
-```python
-class SoftParameterSharingModel(nn.Module):
-    """
-    Soft parameter sharing: separate networks with similarity constraints
-    """
-    def __init__(self, input_dim, hidden_dims, num_tasks):
-        super(SoftParameterSharingModel, self).__init__()
-        
-        # Create separate networks for each task
-        self.task_networks = nn.ModuleList([
-            self._build_network(input_dim, hidden_dims)
-            for _ in range(num_tasks)
-        ])
-    
-    def _build_network(self, input_dim, hidden_dims):
-        layers = []
-        prev_dim = input_dim
-        for hidden_dim in hidden_dims:
-            layers.extend([
-                nn.Linear(prev_dim, hidden_dim),
-                nn.ReLU()
-            ])
-            prev_dim = hidden_dim
-        layers.append(nn.Linear(prev_dim, 1))
-        return nn.Sequential(*layers)
-    
-    def forward(self, x):
-        outputs = []
-        for network in self.task_networks:
-            outputs.append(network(x))
-        return torch.cat(outputs, dim=1)
-    
-    def compute_similarity_loss(self, lambda_reg=0.01):
-        """
-        Regularization term to keep task networks similar
-        """
-        similarity_loss = 0
-        num_tasks = len(self.task_networks)
-        
-        for i in range(num_tasks):
-            for j in range(i + 1, num_tasks):
-                # L2 distance between parameters
-                for p1, p2 in zip(self.task_networks[i].parameters(), 
-                                 self.task_networks[j].parameters()):
-                    similarity_loss += torch.norm(p1 - p2, p=2)
-        
-        return lambda_reg * similarity_loss
-```
+### 3.3 Multi-Task Loss Function
 
-### 3.3 Training Strategies
+The total loss is usually a weighted sum of task-specific losses:
 
-**Multi-Task Loss Function:**
+$$
+L_{\text{total}}
+=
+\sum_{t=1}^{T}
+\lambda_t L_t
+$$
+
+where:
+
+* $T$ is the number of tasks,
+* $L_t$ is the loss for task (t),
+* $\lambda_t$ is the weight assigned to task (t).
+
+Different tasks require different loss functions:
+
+| Task Type                 |                Output Shape | Loss Function       |
+| ------------------------- | --------------------------: | ------------------- |
+| Regression                |           `(batch_size, 1)` | `MSELoss`           |
+| Binary classification     |           `(batch_size, 1)` | `BCEWithLogitsLoss` |
+| Multiclass classification | `(batch_size, num_classes)` | `CrossEntropyLoss`  |
+
+Corrected loss function:
 
 ```python
 def compute_multitask_loss(outputs, labels, task_configs, task_weights=None):
     """
-    Compute weighted combination of task-specific losses
-    
-    Args:
-        outputs: Dict of predictions {task_name: predictions}
-        labels: Dict of true labels {task_name: labels}
-        task_configs: List of task configurations
-        task_weights: Dict of loss weights {task_name: weight}
-    
-    Returns:
-        total_loss: Combined loss
-        task_losses: Dict of individual task losses
+    Compute a weighted multi-task loss.
+
+    labels should be a dictionary:
+        {
+            "solubility": tensor of shape (batch_size, 1),
+            "toxicity": tensor of shape (batch_size, 1),
+            "cyp450_inhibition": tensor of shape (batch_size,)
+        }
+
+    Missing labels can be represented by None.
     """
+
     if task_weights is None:
-        task_weights = {task['name']: 1.0 for task in task_configs}
-    
+        task_weights = {
+            task["name"]: 1.0 for task in task_configs
+        }
+
+    total_loss = 0.0
     task_losses = {}
-    total_loss = 0
-    
+
     for task in task_configs:
-        task_name = task['name']
-        task_type = task['task_type']
-        
-        # Skip if no labels for this task in batch
+        task_name = task["name"]
+        task_type = task["task_type"]
+
         if task_name not in labels or labels[task_name] is None:
             continue
-        
+
         pred = outputs[task_name]
         true = labels[task_name]
-        
-        # Select appropriate loss function
-        if task_type == 'regression':
+
+        if task_type == "regression":
+            true = true.float().view_as(pred)
             loss = nn.MSELoss()(pred, true)
-        elif task_type == 'classification':
+
+        elif task_type == "binary_classification":
+            true = true.float().view_as(pred)
             loss = nn.BCEWithLogitsLoss()(pred, true)
-        elif task_type == 'multi-class':
+
+        elif task_type == "multiclass_classification":
+            true = true.long().view(-1)
             loss = nn.CrossEntropyLoss()(pred, true)
+
         else:
             raise ValueError(f"Unknown task type: {task_type}")
-        
+
         task_losses[task_name] = loss.item()
-        total_loss += task_weights[task_name] * loss
-    
+        total_loss = total_loss + task_weights[task_name] * loss
+
     return total_loss, task_losses
 ```
 
-**Complete Training Loop:**
+
+
+### 3.4 Corrected Multi-Task Training Loop
 
 ```python
-def train_multitask_model(model, train_loader, val_loader, task_configs, 
-                         num_epochs=100, device='cuda'):
+import copy
+import torch.optim as optim
+
+
+def move_labels_to_device(batch_labels, device):
+    moved_labels = {}
+
+    for key, value in batch_labels.items():
+        if value is None:
+            moved_labels[key] = None
+        else:
+            moved_labels[key] = value.to(device)
+
+    return moved_labels
+
+
+def train_multitask_model(
+    model,
+    train_loader,
+    val_loader,
+    task_configs,
+    num_epochs=100,
+    device=None,
+    learning_rate=1e-3,
+    patience=15
+):
     """
-    Complete multi-task training pipeline
+    Train a multi-task molecular prediction model.
     """
+
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    device = torch.device(device)
     model = model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5)
-    
-    # Initialize task weights (can be learned or fixed)
-    task_weights = {task['name']: 1.0 for task in task_configs}
-    
-    history = {'train_loss': [], 'val_loss': [], 'task_losses': {}}
-    best_val_loss = float('inf')
-    
+
+    optimizer = optim.AdamW(
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=1e-5
+    )
+
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="min",
+        patience=5,
+        factor=0.5
+    )
+
+    task_weights = {
+        task["name"]: 1.0 for task in task_configs
+    }
+
+    history = {
+        "train_loss": [],
+        "val_loss": [],
+        "task_losses": {
+            task["name"]: [] for task in task_configs
+        }
+    }
+
+    best_val_loss = float("inf")
+    best_model_state = copy.deepcopy(model.state_dict())
+    patience_counter = 0
+
     for epoch in range(num_epochs):
-        # Training
         model.train()
-        train_loss = 0
-        train_task_losses = {task['name']: 0 for task in task_configs}
-        
+        train_loss = 0.0
+
         for batch_x, batch_labels in train_loader:
             batch_x = batch_x.to(device)
-            batch_labels = {k: v.to(device) if v is not None else None 
-                          for k, v in batch_labels.items()}
-            
+            batch_labels = move_labels_to_device(batch_labels, device)
+
             optimizer.zero_grad()
+
             outputs = model(batch_x)
-            
+
             loss, task_losses = compute_multitask_loss(
-                outputs, batch_labels, task_configs, task_weights
+                outputs,
+                batch_labels,
+                task_configs,
+                task_weights
             )
-            
+
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
-            
-            train_loss += loss.item()
-            for task_name, task_loss in task_losses.items():
-                train_task_losses[task_name] += task_loss
-        
-        # Validation
+
+            train_loss += loss.item() * batch_x.size(0)
+
+        train_loss /= len(train_loader.dataset)
+
         model.eval()
-        val_loss = 0
-        val_task_losses = {task['name']: 0 for task in task_configs}
-        
+        val_loss = 0.0
+        val_task_loss_sums = {
+            task["name"]: 0.0 for task in task_configs
+        }
+        val_task_counts = {
+            task["name"]: 0 for task in task_configs
+        }
+
         with torch.no_grad():
             for batch_x, batch_labels in val_loader:
                 batch_x = batch_x.to(device)
-                batch_labels = {k: v.to(device) if v is not None else None 
-                              for k, v in batch_labels.items()}
-                
+                batch_labels = move_labels_to_device(batch_labels, device)
+
                 outputs = model(batch_x)
+
                 loss, task_losses = compute_multitask_loss(
-                    outputs, batch_labels, task_configs, task_weights
+                    outputs,
+                    batch_labels,
+                    task_configs,
+                    task_weights
                 )
-                
-                val_loss += loss.item()
+
+                val_loss += loss.item() * batch_x.size(0)
+
                 for task_name, task_loss in task_losses.items():
-                    val_task_losses[task_name] += task_loss
-        
-        # Average losses
-        train_loss /= len(train_loader)
-        val_loss /= len(val_loader)
-        
-        # Learning rate scheduling
+                    val_task_loss_sums[task_name] += task_loss
+                    val_task_counts[task_name] += 1
+
+        val_loss /= len(val_loader.dataset)
+
         scheduler.step(val_loss)
-        
-        # Print progress
-        if (epoch + 1) % 10 == 0:
-            print(f"Epoch {epoch+1}/{num_epochs}")
-            print(f"  Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
-            for task in task_configs:
-                task_name = task['name']
-                print(f"  {task_name}: {val_task_losses[task_name]/len(val_loader):.4f}")
-        
-        # Save best model
+
+        history["train_loss"].append(train_loss)
+        history["val_loss"].append(val_loss)
+
+        for task in task_configs:
+            task_name = task["name"]
+
+            if val_task_counts[task_name] > 0:
+                avg_task_loss = (
+                    val_task_loss_sums[task_name]
+                    / val_task_counts[task_name]
+                )
+            else:
+                avg_task_loss = None
+
+            history["task_losses"][task_name].append(avg_task_loss)
+
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), 'best_multitask_model.pth')
-    
+            best_model_state = copy.deepcopy(model.state_dict())
+            patience_counter = 0
+        else:
+            patience_counter += 1
+
+        if (epoch + 1) % 10 == 0:
+            print(f"Epoch {epoch + 1}/{num_epochs}")
+            print(f"  Train Loss: {train_loss:.4f}")
+            print(f"  Val Loss:   {val_loss:.4f}")
+
+            for task in task_configs:
+                task_name = task["name"]
+                task_loss = history["task_losses"][task_name][-1]
+
+                if task_loss is not None:
+                    print(f"  {task_name}: {task_loss:.4f}")
+
+        if patience_counter >= patience:
+            print(f"Early stopping at epoch {epoch + 1}")
+            break
+
+    model.load_state_dict(best_model_state)
+
     return model, history
 ```
 
-### 3.4 Task Balancing Techniques
 
-Balancing multiple tasks is crucial for effective multi-task learning.
 
-**1. Manual Weight Tuning**
+### 3.5 Task Balancing
+
+Task balancing is important because different losses may have different magnitudes. For example, a 
+regression loss may be much larger than a classification loss, causing the model to focus too strongly 
+on the regression task.
+
+#### Manual Weighting
+
+Manual task weighting is the simplest approach:
 
 ```python
-# Simple fixed weights
 task_weights = {
-    'solubility': 1.0,
-    'bbb_permeability': 2.0,  # Prioritize this task
-    'toxicity': 1.5,
-    'cyp450_inhibition': 1.0
+    "solubility": 1.0,
+    "bbb_permeability": 2.0,
+    "toxicity": 1.5,
+    "cyp450_inhibition": 1.0
 }
 ```
 
-**2. Uncertainty Weighting** (Kendall et al., 2018)
+This changes the total loss:
 
-Learns task weights based on homoscedastic uncertainty:
+$$
+L_{\text{total}}
+================
+
+1.0L_{\text{solubility}}
++
+2.0L_{\text{BBB}}
++
+1.5L_{\text{toxicity}}
++
+1.0L_{\text{CYP450}}
+$$
+
+
+#### Uncertainty-Based Weighting
+
+Uncertainty weighting learns one weight per task. A simplified version is:
 
 ```python
 class MultiTaskLossWithUncertainty(nn.Module):
     """
-    Automatically learns task weights based on uncertainty
+    Learn task weights using trainable log-variance parameters.
     """
-    def __init__(self, num_tasks):
-        super(MultiTaskLossWithUncertainty, self).__init__()
-        # Log variance for each task (learned parameters)
-        self.log_vars = nn.Parameter(torch.zeros(num_tasks))
-    
-    def forward(self, losses):
-        """
-        Args:
-            losses: List of individual task losses
-        
-        Returns:
-            Weighted total loss
-        """
-        total_loss = 0
-        for i, loss in enumerate(losses):
-            precision = torch.exp(-self.log_vars[i])
-            total_loss += precision * loss + self.log_vars[i]
-        
+
+    def __init__(self, task_names):
+        super().__init__()
+        self.task_names = task_names
+        self.log_vars = nn.ParameterDict({
+            task_name: nn.Parameter(torch.zeros(()))
+            for task_name in task_names
+        })
+
+    def forward(self, task_losses):
+        total_loss = 0.0
+
+        for task_name, loss in task_losses.items():
+            log_var = self.log_vars[task_name]
+            precision = torch.exp(-log_var)
+
+            total_loss = total_loss + precision * loss + log_var
+
         return total_loss
-
-# Usage in training
-uncertainty_loss = MultiTaskLossWithUncertainty(num_tasks=4)
-optimizer = optim.Adam(list(model.parameters()) + list(uncertainty_loss.parameters()))
 ```
 
-**3. Gradient Normalization (GradNorm)**
+This method is useful when tasks have very different noise levels or loss scales.
 
-Balances tasks by normalizing gradient magnitudes:
 
-```python
-def compute_gradnorm_weights(model, losses, alpha=1.5):
-    """
-    Compute task weights using GradNorm algorithm
-    
-    Args:
-        model: Neural network model
-        losses: List of task losses
-        alpha: Hyperparameter for balancing (default: 1.5)
-    
-    Returns:
-        Updated task weights
-    """
-    # Get gradients for last shared layer
-    shared_params = list(model.shared_network.parameters())[-1]
-    
-    gradients = []
-    for loss in losses:
-        grad = torch.autograd.grad(loss, shared_params, retain_graph=True)[0]
-        gradients.append(torch.norm(grad))
-    
-    # Compute inverse training rate
-    loss_ratios = [loss / losses[0] for loss in losses]
-    mean_loss_ratio = sum(loss_ratios) / len(loss_ratios)
-    
-    # Compute target gradients
-    target_grads = [mean_loss_ratio * (ratio ** alpha) for ratio in loss_ratios]
-    
-    # Compute weights
-    weights = [target / grad for target, grad in zip(target_grads, gradients)]
-    
-    # Normalize
-    weights = [w / sum(weights) * len(weights) for w in weights]
-    
-    return weights
-```
 
-**4. Dynamic Task Prioritization**
+### 3.6 Evaluating Multi-Task Models
 
-Adjust weights during training based on task performance:
+Each task should be evaluated with metrics appropriate for its prediction type.
+
+Corrected evaluation function:
 
 ```python
-class DynamicTaskWeighting:
-    """
-    Dynamically adjust task weights during training
-    """
-    def __init__(self, num_tasks, initial_weights=None):
-        if initial_weights is None:
-            self.weights = [1.0] * num_tasks
-        else:
-            self.weights = initial_weights
-        
-        self.loss_history = [[] for _ in range(num_tasks)]
-    
-    def update_weights(self, epoch, task_losses, strategy='inverse_performance'):
-        """
-        Update weights based on task performance
-        
-        Strategies:
-        - 'inverse_performance': Higher weight for worse-performing tasks
-        - 'uncertainty': Higher weight for high-variance tasks
-        - 'curriculum': Gradually increase difficulty
-        """
-        for i, loss in enumerate(task_losses):
-            self.loss_history[i].append(loss)
-        
-        if epoch < 5:  # Wait for some history
-            return self.weights
-        
-        if strategy == 'inverse_performance':
-            # Give more weight to tasks with higher recent loss
-            recent_losses = [np.mean(history[-5:]) for history in self.loss_history]
-            self.weights = [loss / sum(recent_losses) * len(recent_losses) 
-                           for loss in recent_losses]
-        
-        elif strategy == 'uncertainty':
-            # Give more weight to high-variance tasks
-            variances = [np.var(history[-10:]) for history in self.loss_history]
-            self.weights = [var / sum(variances) * len(variances) 
-                           for var in variances]
-        
-        return self.weights
-```
+import numpy as np
+from sklearn.metrics import (
+    mean_squared_error,
+    mean_absolute_error,
+    r2_score,
+    roc_auc_score,
+    accuracy_score,
+    f1_score
+)
 
-### 3.5 Performance Comparison
 
-**Evaluation Metrics for Multi-Task Learning:**
+def evaluate_multitask_model(model, test_loader, task_configs, device=None):
+    """
+    Evaluate a multi-task model using task-specific metrics.
+    """
 
-```python
-def evaluate_multitask_model(model, test_loader, task_configs, device='cuda'):
-    """
-    Comprehensive evaluation of multi-task model
-    """
-    model.eval()
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    device = torch.device(device)
     model = model.to(device)
-    
-    # Store predictions and labels
-    predictions = {task['name']: [] for task in task_configs}
-    true_labels = {task['name']: [] for task in task_configs}
-    
+    model.eval()
+
+    predictions = {
+        task["name"]: [] for task in task_configs
+    }
+
+    true_labels = {
+        task["name"]: [] for task in task_configs
+    }
+
     with torch.no_grad():
         for batch_x, batch_labels in test_loader:
             batch_x = batch_x.to(device)
             outputs = model(batch_x)
-            
-            for task in task_configs:
-                task_name = task['name']
-                if task_name in batch_labels and batch_labels[task_name] is not None:
-                    predictions[task_name].extend(
-                        outputs[task_name].cpu().numpy()
-                    )
-                    true_labels[task_name].extend(
-                        batch_labels[task_name].cpu().numpy()
-                    )
-    
-    # Compute metrics for each task
-    results = {}
-    
-    for task in task_configs:
-        task_name = task['name']
-        task_type = task['task_type']
-        
-        pred = np.array(predictions[task_name]).flatten()
-        true = np.array(true_labels[task_name]).flatten()
-        
-        if task_type == 'regression':
-            from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-            
-            results[task_name] = {
-                'RMSE': np.sqrt(mean_squared_error(true, pred)),
-                'MAE': mean_absolute_error(true, pred),
-                'R2': r2_score(true, pred)
-            }
-        
-        elif task_type == 'classification':
-            from sklearn.metrics import roc_auc_score, accuracy_score, f1_score
-            
-            pred_binary = (pred > 0).astype(int)
-            
-            results[task_name] = {
-                'ROC-AUC': roc_auc_score(true, pred),
-                'Accuracy': accuracy_score(true, pred_binary),
-                'F1': f1_score(true, pred_binary)
-            }
-    
-    return results
 
-# Compare with single-task models
-def compare_single_vs_multitask(smiles_data, labels_dict, task_configs):
-    """
-    Train single-task models and compare with multi-task model
-    """
-    results = {'single_task': {}, 'multi_task': {}}
-    
-    # Train single-task models
+            for task in task_configs:
+                task_name = task["name"]
+
+                if task_name not in batch_labels:
+                    continue
+
+                if batch_labels[task_name] is None:
+                    continue
+
+                pred = outputs[task_name].cpu().numpy()
+                true = batch_labels[task_name].cpu().numpy()
+
+                predictions[task_name].append(pred)
+                true_labels[task_name].append(true)
+
+    results = {}
+
     for task in task_configs:
-        task_name = task['name']
-        print(f"\nTraining single-task model for {task_name}...")
-        
-        single_model = MolecularFNN(input_dim=2048, output_dim=1)
-        # Train single_model (code similar to previous examples)
-        # ...
-        results['single_task'][task_name] = evaluate_model(single_model, test_data)
-    
-    # Train multi-task model
-    print("\nTraining multi-task model...")
-    multitask_model = MultiTaskMolecularModel(task_configs=task_configs)
-    # Train multitask_model
-    # ...
-    results['multi_task'] = evaluate_multitask_model(multitask_model, test_data, task_configs)
-    
-    # Print comparison
-    print("\n" + "="*60)
-    print("SINGLE-TASK vs MULTI-TASK COMPARISON")
-    print("="*60)
-    
-    for task in task_configs:
-        task_name = task['name']
-        print(f"\n{task_name.upper()}:")
-        print(f"  Single-task RMSE: {results['single_task'][task_name]['RMSE']:.4f}")
-        print(f"  Multi-task RMSE:  {results['multi_task'][task_name]['RMSE']:.4f}")
-        
-        improvement = ((results['single_task'][task_name]['RMSE'] - 
-                       results['multi_task'][task_name]['RMSE']) / 
-                       results['single_task'][task_name]['RMSE'] * 100)
-        print(f"  Improvement: {improvement:.2f}%")
-    
+        task_name = task["name"]
+        task_type = task["task_type"]
+
+        if len(predictions[task_name]) == 0:
+            results[task_name] = None
+            continue
+
+        pred = np.concatenate(predictions[task_name])
+        true = np.concatenate(true_labels[task_name])
+
+        if task_type == "regression":
+            pred = pred.ravel()
+            true = true.ravel()
+
+            results[task_name] = {
+                "RMSE": np.sqrt(mean_squared_error(true, pred)),
+                "MAE": mean_absolute_error(true, pred),
+                "R2": r2_score(true, pred)
+            }
+
+        elif task_type == "binary_classification":
+            logits = pred.ravel()
+            probabilities = 1.0 / (1.0 + np.exp(-logits))
+            pred_binary = (probabilities >= 0.5).astype(int)
+            true = true.ravel().astype(int)
+
+            results[task_name] = {
+                "ROC_AUC": roc_auc_score(true, probabilities),
+                "Accuracy": accuracy_score(true, pred_binary),
+                "F1": f1_score(true, pred_binary)
+            }
+
+        elif task_type == "multiclass_classification":
+            pred_class = np.argmax(pred, axis=1)
+            true = true.ravel().astype(int)
+
+            results[task_name] = {
+                "Accuracy": accuracy_score(true, pred_class),
+                "F1_macro": f1_score(true, pred_class, average="macro")
+            }
+
     return results
 ```
 
-**Expected Results:**
+Important correction: for binary classification, `BCEWithLogitsLoss` expects logits, so 
+evaluation should convert logits to probabilities using sigmoid.
 
-| Task | Single-Task RMSE | Multi-Task RMSE | Improvement |
-|------|------------------|-----------------|-------------|
-| Solubility | 0.85 | 0.72 | 15.3% |
-| BBB Permeability | 0.92 | 0.79 | 14.1% |
-| Toxicity (AUC) | 0.78 | 0.84 | 7.7% |
-| CYP450 Inhibition | 0.88 | 0.81 | 8.0% |
+### 3.7 Summary
 
-Multi-task learning typically shows 10-20% improvement, especially for tasks with limited data.
+Multi-task learning is useful when molecular prediction tasks share chemical information. A good MTL model has:
 
----
+* shared layers for common molecular representations,
+* task-specific heads for individual endpoints,
+* task-specific loss functions,
+* appropriate balancing between tasks,
+* and separate evaluation metrics for regression and classification tasks.
+
+A practical starting point is hard parameter sharing with equal task weights. More advanced methods, 
+such as uncertainty weighting or gradient balancing, can be added later if some tasks dominate training.
+
 
 ## 4. Convolutional Neural Networks
 
@@ -3492,7 +3554,6 @@ class HybridMolecularModel(nn.Module):
         return final_pred
 ```
 
----
 
 ## 5. Recurrent Neural Networks
 
@@ -3873,7 +3934,7 @@ def compare_cnn_lstm_gru(smiles_train, y_train, smiles_val, y_val):
 - **Use GRU** when: Want RNN benefits with fewer parameters, faster training
 - **Use LSTM+Attention** when: Need interpretability, best performance, sufficient data
 
----
+
 
 ## 6. Transfer Learning
 
@@ -4444,7 +4505,7 @@ def compare_transfer_learning_strategies(smiles_train, y_train, smiles_val, y_va
 4. ChemBERTa performs best due to massive pre-training on 77M molecules
 5. Multi-task pre-training excellent when related properties available
 
----
+
 
 ## 7. Complete Practical Exercise
 
@@ -4464,318 +4525,391 @@ Blood-Brain Barrier (BBB) permeability is crucial for CNS drugs. We'll predict l
 ### 7.2 Full Pipeline
 
 ```python
-# ============================================================================
-# COMPLETE BBB PERMEABILITY PREDICTION PIPELINE
-# ============================================================================
+# BBB permeability example
 
+import time
+import copy
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
+
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors
-import matplotlib.pyplot as plt
-import seaborn as sns
 from tqdm import tqdm
-import time
 
-# Set random seeds for reproducibility
+
 np.random.seed(42)
 torch.manual_seed(42)
 
-# ============================================================================
 # 1. DATA LOADING AND PREPROCESSING
-# ============================================================================
 
-def load_bbb_data(filepath='bbb_permeability.csv'):
+def generate_synthetic_bbb_data(n_samples=2000, random_state=42):
     """
-    Load BBB permeability dataset
-    
-    Expected columns: SMILES, logBB
-    """
-    try:
-        df = pd.read_csv(filepath)
-    except:
-        # Generate synthetic data for demonstration
-        print("Generating synthetic BBB data...")
-        df = generate_synthetic_bbb_data(2000)
-    
-    # Remove invalid SMILES
-    valid_indices = []
-    for idx, smiles in enumerate(df['SMILES']):
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is not None:
-            valid_indices.append(idx)
-    
-    df = df.iloc[valid_indices].reset_index(drop=True)
-    
-    print(f"Loaded {len(df)} valid molecules")
-    print(f"logBB range: [{df['logBB'].min():.2f}, {df['logBB'].max():.2f}]")
-    
-    return df
+    Generate synthetic BBB permeability data.
 
-def generate_synthetic_bbb_data(n_samples=2000):
+    The synthetic logBB target is based on simple molecular descriptors:
+    higher logP increases BBB permeability, while higher TPSA and molecular
+    weight tend to reduce BBB permeability.
     """
-    Generate synthetic BBB data for demonstration
-    """
-    # Common drug-like SMILES templates
-    templates = [
-        "CCO", "CC(C)O", "CCCO", "CC(C)CO", "CCCCO",
-        "c1ccccc1", "c1ccccc1C", "c1ccccc1O", "c1ccccc1N",
-        "CC(=O)O", "CC(=O)N", "CCNC", "CCN(C)C",
-        "c1ccc(cc1)C(=O)O", "c1ccc(cc1)N"
-    ]
-    
+
+    rng = np.random.default_rng(random_state)
+
+    templates = np.array([
+        "CCO",
+        "CC(C)O",
+        "CCCO",
+        "CC(C)CO",
+        "CCCCO",
+        "c1ccccc1",
+        "Cc1ccccc1",
+        "Oc1ccccc1",
+        "Nc1ccccc1",
+        "CC(=O)O",
+        "CC(=O)N",
+        "CCNC",
+        "CCN(C)C",
+        "O=C(O)c1ccccc1",
+        "Nc1ccc(O)cc1",
+        "CCOC(=O)c1ccccc1",
+        "CCN(CC)CC",
+        "CC(C)NCC(O)c1ccccc1",
+        "COc1ccccc1",
+        "CC(C)c1ccccc1"
+    ])
+
     smiles_list = []
     logbb_list = []
-    
+
     for _ in range(n_samples):
-        # Random combination of templates
-        smiles = np.random.choice(templates)
-        
-        # Calculate simple features for synthetic logBB
+        smiles = rng.choice(templates)
         mol = Chem.MolFromSmiles(smiles)
-        if mol:
-            mw = Descriptors.MolWt(mol)
-            logp = Descriptors.MolLogP(mol)
-            tpsa = Descriptors.TPSA(mol)
-            
-            # Synthetic logBB based on known correlations
-            logbb = 0.1 * logp - 0.01 * tpsa - 0.003 * mw + np.random.normal(0, 0.3)
-            logbb = np.clip(logbb, -3, 2)
-            
-            smiles_list.append(smiles)
-            logbb_list.append(logbb)
-    
-    df = pd.DataFrame({'SMILES': smiles_list, 'logBB': logbb_list})
+
+        if mol is None:
+            continue
+
+        mw = Descriptors.MolWt(mol)
+        logp = Descriptors.MolLogP(mol)
+        tpsa = Descriptors.TPSA(mol)
+        hbd = Descriptors.NumHDonors(mol)
+
+        logbb = (
+            0.35 * logp
+            - 0.015 * tpsa
+            - 0.002 * mw
+            - 0.20 * hbd
+            + rng.normal(0, 0.25)
+        )
+
+        logbb = np.clip(logbb, -3.0, 2.0)
+
+        smiles_list.append(smiles)
+        logbb_list.append(logbb)
+
+    return pd.DataFrame({
+        "SMILES": smiles_list,
+        "logBB": logbb_list
+    })
+
+
+def load_bbb_data(filepath="bbb_permeability.csv"):
+    """
+    Load a BBB permeability dataset.
+
+    Expected columns:
+        SMILES, logBB
+    """
+
+    try:
+        df = pd.read_csv(filepath)
+        print(f"Loaded data from {filepath}")
+    except FileNotFoundError:
+        print("File not found. Generating synthetic BBB data...")
+        df = generate_synthetic_bbb_data(2000)
+
+    required_columns = {"SMILES", "logBB"}
+
+    if not required_columns.issubset(df.columns):
+        raise ValueError("Dataset must contain columns: SMILES and logBB")
+
+    valid_rows = []
+
+    for _, row in df.iterrows():
+        mol = Chem.MolFromSmiles(str(row["SMILES"]))
+
+        if mol is not None and np.isfinite(row["logBB"]):
+            valid_rows.append(row)
+
+    df = pd.DataFrame(valid_rows).reset_index(drop=True)
+
+    print(f"Loaded {len(df)} valid molecules")
+    print(f"logBB range: [{df['logBB'].min():.2f}, {df['logBB'].max():.2f}]")
+
     return df
 
-# ============================================================================
 # 2. FEATURE EXTRACTION
-# ============================================================================
 
 def compute_molecular_fingerprints(smiles_list, radius=2, n_bits=2048):
     """
-    Compute Morgan fingerprints for molecules
+    Compute Morgan fingerprints.
+
+    Output shape:
+        (number_of_molecules, n_bits)
     """
+
     fingerprints = []
-    
+
     for smiles in tqdm(smiles_list, desc="Computing fingerprints"):
-        mol = Chem.MolFromSmiles(smiles)
-        if mol:
-            fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits)
-            fingerprints.append(np.array(fp))
-        else:
-            fingerprints.append(np.zeros(n_bits))
-    
-    return np.array(fingerprints)
+        mol = Chem.MolFromSmiles(str(smiles))
 
-def compute_molecular_descriptors(smiles_list):
-    """
-    Compute RDKit molecular descriptors
-    """
-    descriptors_list = []
-    
-    descriptor_functions = [
-        Descriptors.MolWt,
-        Descriptors.MolLogP,
-        Descriptors.NumHDonors,
-        Descriptors.NumHAcceptors,
-        Descriptors.TPSA,
-        Descriptors.NumRotatableBonds,
-        Descriptors.NumAromaticRings,
-        Descriptors.FractionCsp3
-    ]
-    
-    for smiles in tqdm(smiles_list, desc="Computing descriptors"):
-        mol = Chem.MolFromSmiles(smiles)
-        if mol:
-            desc = [func(mol) for func in descriptor_functions]
-            descriptors_list.append(desc)
+        if mol is None:
+            fp_array = np.zeros(n_bits, dtype=np.float32)
         else:
-            descriptors_list.append([0] * len(descriptor_functions))
-    
-    return np.array(descriptors_list)
+            fp = AllChem.GetMorganFingerprintAsBitVect(
+                mol,
+                radius,
+                nBits=n_bits
+            )
+            fp_array = np.asarray(fp, dtype=np.float32)
 
-# ============================================================================
+        fingerprints.append(fp_array)
+
+    return np.asarray(fingerprints, dtype=np.float32)
+
 # 3. DEEP LEARNING MODEL
-# ============================================================================
 
 class BBBPermeabilityModel(nn.Module):
     """
-    Neural network for BBB permeability prediction
+    Feedforward neural network for BBB permeability prediction.
     """
+
     def __init__(self, input_dim=2048):
-        super(BBBPermeabilityModel, self).__init__()
-        
+        super().__init__()
+
         self.network = nn.Sequential(
             nn.Linear(input_dim, 512),
             nn.BatchNorm1d(512),
             nn.ReLU(),
             nn.Dropout(0.3),
-            
+
             nn.Linear(512, 256),
             nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Dropout(0.3),
-            
+
             nn.Linear(256, 128),
             nn.BatchNorm1d(128),
             nn.ReLU(),
             nn.Dropout(0.2),
-            
+
             nn.Linear(128, 1)
         )
-    
+
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for module in self.modules():
+            if isinstance(module, nn.Linear):
+                nn.init.kaiming_normal_(
+                    module.weight,
+                    mode="fan_in",
+                    nonlinearity="relu"
+                )
+                nn.init.zeros_(module.bias)
+
     def forward(self, x):
         return self.network(x)
 
+
 class BBBDataset(Dataset):
-    """Dataset for BBB permeability"""
+    """
+    PyTorch dataset for BBB permeability prediction.
+    """
+
     def __init__(self, features, labels):
-        self.features = torch.FloatTensor(features)
-        self.labels = torch.FloatTensor(labels).reshape(-1, 1)
-    
+        self.features = torch.tensor(features, dtype=torch.float32)
+        self.labels = torch.tensor(labels, dtype=torch.float32).view(-1, 1)
+
     def __len__(self):
         return len(self.features)
-    
+
     def __getitem__(self, idx):
         return self.features[idx], self.labels[idx]
 
-# ============================================================================
 # 4. TRAINING FUNCTION
-# ============================================================================
 
-def train_deep_learning_model(X_train, y_train, X_val, y_val, 
-                              num_epochs=100, batch_size=64, lr=0.001):
+def train_deep_learning_model(
+    X_train,
+    y_train,
+    X_val,
+    y_val,
+    num_epochs=100,
+    batch_size=64,
+    lr=1e-3,
+    patience=20
+):
     """
-    Train deep learning model for BBB permeability
+    Train the neural network model.
     """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    
-    # Create datasets and dataloaders
+
     train_dataset = BBBDataset(X_train, y_train)
     val_dataset = BBBDataset(X_val, y_val)
-    
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size)
-    
-    # Initialize model
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False
+    )
+
     model = BBBPermeabilityModel(input_dim=X_train.shape[1]).to(device)
-    
-    # Loss and optimizer
+
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10, factor=0.5)
-    
-    # Training history
+    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
+
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="min",
+        patience=10,
+        factor=0.5
+    )
+
     history = {
-        'train_loss': [], 'val_loss': [],
-        'val_rmse': [], 'val_mae': [], 'val_r2': []
+        "train_loss": [],
+        "val_loss": [],
+        "val_rmse": [],
+        "val_mae": [],
+        "val_r2": []
     }
-    
-    best_val_loss = float('inf')
+
+    best_val_loss = float("inf")
+    best_model_state = copy.deepcopy(model.state_dict())
     patience_counter = 0
-    patience = 20
-    
+
     start_time = time.time()
-    
-    # Training loop
+
     for epoch in range(num_epochs):
-        # Training
         model.train()
-        train_loss = 0
-        
+        train_loss = 0.0
+
         for batch_x, batch_y in train_loader:
-            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-            
+            batch_x = batch_x.to(device)
+            batch_y = batch_y.to(device)
+
             optimizer.zero_grad()
+
             predictions = model(batch_x)
             loss = criterion(predictions, batch_y)
+
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
-            
-            train_loss += loss.item()
-        
-        # Validation
+
+            train_loss += loss.item() * batch_x.size(0)
+
+        train_loss /= len(train_loader.dataset)
+
         model.eval()
-        val_loss = 0
+        val_loss = 0.0
         all_preds = []
         all_labels = []
-        
+
         with torch.no_grad():
             for batch_x, batch_y in val_loader:
-                batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+                batch_x = batch_x.to(device)
+                batch_y = batch_y.to(device)
+
                 predictions = model(batch_x)
                 loss = criterion(predictions, batch_y)
-                
-                val_loss += loss.item()
-                all_preds.extend(predictions.cpu().numpy())
-                all_labels.extend(batch_y.cpu().numpy())
-        
-        # Calculate metrics
-        train_loss /= len(train_loader)
-        val_loss /= len(val_loader)
-        
-        all_preds = np.array(all_preds).flatten()
-        all_labels = np.array(all_labels).flatten()
-        
+
+                val_loss += loss.item() * batch_x.size(0)
+
+                all_preds.append(predictions.cpu().numpy())
+                all_labels.append(batch_y.cpu().numpy())
+
+        val_loss /= len(val_loader.dataset)
+
+        all_preds = np.concatenate(all_preds).ravel()
+        all_labels = np.concatenate(all_labels).ravel()
+
         val_rmse = np.sqrt(mean_squared_error(all_labels, all_preds))
         val_mae = mean_absolute_error(all_labels, all_preds)
         val_r2 = r2_score(all_labels, all_preds)
-        
-        # Update history
-        history['train_loss'].append(train_loss)
-        history['val_loss'].append(val_loss)
-        history['val_rmse'].append(val_rmse)
-        history['val_mae'].append(val_mae)
-        history['val_r2'].append(val_r2)
-        
-        # Learning rate scheduling
+
+        history["train_loss"].append(train_loss)
+        history["val_loss"].append(val_loss)
+        history["val_rmse"].append(val_rmse)
+        history["val_mae"].append(val_mae)
+        history["val_r2"].append(val_r2)
+
         scheduler.step(val_loss)
-        
-        # Print progress
-        if (epoch + 1) % 10 == 0:
-            print(f"Epoch {epoch+1}/{num_epochs}")
-            print(f"  Train Loss: {train_loss:.4f}")
-            print(f"  Val Loss: {val_loss:.4f}, RMSE: {val_rmse:.4f}, "
-                  f"MAE: {val_mae:.4f}, R²: {val_r2:.4f}")
-        
-        # Early stopping
+
         if val_loss < best_val_loss:
             best_val_loss = val_loss
+            best_model_state = copy.deepcopy(model.state_dict())
             patience_counter = 0
-            torch.save(model.state_dict(), 'best_bbb_model.pth')
         else:
             patience_counter += 1
-            if patience_counter >= patience:
-                print(f"\nEarly stopping at epoch {epoch+1}")
-                break
-    
+
+        if (epoch + 1) % 10 == 0:
+            current_lr = optimizer.param_groups[0]["lr"]
+
+            print(f"Epoch {epoch + 1}/{num_epochs}")
+            print(f"  Train Loss: {train_loss:.4f}")
+            print(
+                f"  Val Loss: {val_loss:.4f}, "
+                f"RMSE: {val_rmse:.4f}, "
+                f"MAE: {val_mae:.4f}, "
+                f"R²: {val_r2:.4f}, "
+                f"LR: {current_lr:.2e}"
+            )
+
+        if patience_counter >= patience:
+            print(f"\nEarly stopping at epoch {epoch + 1}")
+            break
+
     training_time = time.time() - start_time
-    
-    # Load best model
-    model.load_state_dict(torch.load('best_bbb_model.pth'))
-    
+
+    model.load_state_dict(best_model_state)
+
+    torch.save(
+        {
+            "model_state_dict": best_model_state,
+            "input_dim": X_train.shape[1],
+            "best_val_loss": best_val_loss,
+            "history": history
+        },
+        "best_bbb_model.pth"
+    )
+
     return model, history, training_time
 
-# ============================================================================
+
 # 5. RANDOM FOREST BASELINE
-# ============================================================================
 
 def train_random_forest_model(X_train, y_train, X_val, y_val):
     """
-    Train Random Forest baseline model
+    Train a Random Forest baseline.
     """
+
     start_time = time.time()
-    
-    # Train Random Forest
+
     rf_model = RandomForestRegressor(
         n_estimators=500,
         max_depth=20,
@@ -4784,309 +4918,249 @@ def train_random_forest_model(X_train, y_train, X_val, y_val):
         random_state=42,
         n_jobs=-1
     )
-    
+
     rf_model.fit(X_train, y_train)
-    
-    # Predictions
+
     train_pred = rf_model.predict(X_train)
     val_pred = rf_model.predict(X_val)
-    
-    # Metrics
+
     train_rmse = np.sqrt(mean_squared_error(y_train, train_pred))
     val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))
     val_mae = mean_absolute_error(y_val, val_pred)
     val_r2 = r2_score(y_val, val_pred)
-    
+
     training_time = time.time() - start_time
-    
+
     print("\nRandom Forest Results:")
     print(f"  Train RMSE: {train_rmse:.4f}")
     print(f"  Val RMSE: {val_rmse:.4f}")
     print(f"  Val MAE: {val_mae:.4f}")
     print(f"  Val R²: {val_r2:.4f}")
     print(f"  Training time: {training_time:.2f}s")
-    
+
     return rf_model, {
-        'train_rmse': train_rmse,
-        'val_rmse': val_rmse,
-        'val_mae': val_mae,
-        'val_r2': val_r2,
-        'time': training_time
+        "train_rmse": train_rmse,
+        "val_rmse": val_rmse,
+        "val_mae": val_mae,
+        "val_r2": val_r2,
+        "time": training_time
     }
 
-# ============================================================================
 # 6. EVALUATION AND VISUALIZATION
-# ============================================================================
 
-def evaluate_model(model, X_test, y_test, model_type='dl'):
+def evaluate_model(model, X_test, y_test, model_type="dl"):
     """
-    Comprehensive model evaluation
+    Evaluate either a deep learning or Random Forest model.
     """
-    if model_type == 'dl':
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    if model_type == "dl":
+        device = next(model.parameters()).device
         model.eval()
-        
+
         test_dataset = BBBDataset(X_test, y_test)
-        test_loader = DataLoader(test_dataset, batch_size=64)
-        
+        test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+
         predictions = []
+
         with torch.no_grad():
             for batch_x, _ in test_loader:
                 batch_x = batch_x.to(device)
                 pred = model(batch_x)
-                predictions.extend(pred.cpu().numpy())
-        
-        predictions = np.array(predictions).flatten()
+                predictions.append(pred.cpu().numpy())
+
+        predictions = np.concatenate(predictions).ravel()
+
     else:
         predictions = model.predict(X_test)
-    
-    # Calculate metrics
+
     rmse = np.sqrt(mean_squared_error(y_test, predictions))
     mae = mean_absolute_error(y_test, predictions)
     r2 = r2_score(y_test, predictions)
-    
-    print(f"\nTest Set Evaluation:")
+
+    print("\nTest Set Evaluation:")
     print(f"  RMSE: {rmse:.4f}")
     print(f"  MAE: {mae:.4f}")
     print(f"  R²: {r2:.4f}")
-    
-    return predictions, {'rmse': rmse, 'mae': mae, 'r2': r2}
+
+    return predictions, {
+        "rmse": rmse,
+        "mae": mae,
+        "r2": r2
+    }
+
 
 def visualize_results(y_true, y_pred_dl, y_pred_rf, history):
     """
-    Create comprehensive visualization of results
+    Visualize training curves and prediction quality.
     """
+
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    
-    # 1. Training history
-    axes[0, 0].plot(history['train_loss'], label='Train Loss')
-    axes[0, 0].plot(history['val_loss'], label='Val Loss')
-    axes[0, 0].set_xlabel('Epoch')
-    axes[0, 0].set_ylabel('Loss')
-    axes[0, 0].set_title('Training History')
+
+    axes[0, 0].plot(history["train_loss"], label="Train Loss")
+    axes[0, 0].plot(history["val_loss"], label="Validation Loss")
+    axes[0, 0].set_xlabel("Epoch")
+    axes[0, 0].set_ylabel("MSE Loss")
+    axes[0, 0].set_title("Training History")
     axes[0, 0].legend()
     axes[0, 0].grid(True)
-    
-    # 2. Metrics evolution
-    axes[0, 1].plot(history['val_rmse'], label='RMSE', color='red')
-    axes[0, 1].set_xlabel('Epoch')
-    axes[0, 1].set_ylabel('RMSE')
-    axes[0, 1].set_title('Validation RMSE')
+
+    axes[0, 1].plot(history["val_rmse"], label="Validation RMSE")
+    axes[0, 1].set_xlabel("Epoch")
+    axes[0, 1].set_ylabel("RMSE")
+    axes[0, 1].set_title("Validation RMSE")
+    axes[0, 1].legend()
     axes[0, 1].grid(True)
-    
-    ax2 = axes[0, 1].twinx()
-    ax2.plot(history['val_r2'], label='R²', color='blue')
-    ax2.set_ylabel('R²')
-    
-    # 3. R² evolution
-    axes[0, 2].plot(history['val_r2'], color='green')
-    axes[0, 2].set_xlabel('Epoch')
-    axes[0, 2].set_ylabel('R² Score')
-    axes[0, 2].set_title('Validation R²')
+
+    axes[0, 2].plot(history["val_r2"], label="Validation R²")
+    axes[0, 2].set_xlabel("Epoch")
+    axes[0, 2].set_ylabel("R² Score")
+    axes[0, 2].set_title("Validation R²")
+    axes[0, 2].legend()
     axes[0, 2].grid(True)
-    
-    # 4. DL predictions scatter plot
+
+    min_val = min(y_true.min(), y_pred_dl.min(), y_pred_rf.min())
+    max_val = max(y_true.max(), y_pred_dl.max(), y_pred_rf.max())
+
     axes[1, 0].scatter(y_true, y_pred_dl, alpha=0.5)
-    axes[1, 0].plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 
-                     'r--', lw=2)
-    axes[1, 0].set_xlabel('True logBB')
-    axes[1, 0].set_ylabel('Predicted logBB')
-    axes[1, 0].set_title('Deep Learning Predictions')
+    axes[1, 0].plot([min_val, max_val], [min_val, max_val], "r--", lw=2)
+    axes[1, 0].set_xlabel("True logBB")
+    axes[1, 0].set_ylabel("Predicted logBB")
+    axes[1, 0].set_title("Deep Learning Predictions")
     axes[1, 0].grid(True)
-    
-    # 5. RF predictions scatter plot
-    axes[1, 1].scatter(y_true, y_pred_rf, alpha=0.5, color='orange')
-    axes[1, 1].plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 
-                     'r--', lw=2)
-    axes[1, 1].set_xlabel('True logBB')
-    axes[1, 1].set_ylabel('Predicted logBB')
-    axes[1, 1].set_title('Random Forest Predictions')
+
+    axes[1, 1].scatter(y_true, y_pred_rf, alpha=0.5)
+    axes[1, 1].plot([min_val, max_val], [min_val, max_val], "r--", lw=2)
+    axes[1, 1].set_xlabel("True logBB")
+    axes[1, 1].set_ylabel("Predicted logBB")
+    axes[1, 1].set_title("Random Forest Predictions")
     axes[1, 1].grid(True)
-    
-    # 6. Residuals comparison
+
     residuals_dl = y_true - y_pred_dl
     residuals_rf = y_true - y_pred_rf
-    
-    axes[1, 2].hist(residuals_dl, bins=30, alpha=0.5, label='Deep Learning')
-    axes[1, 2].hist(residuals_rf, bins=30, alpha=0.5, label='Random Forest')
-    axes[1, 2].set_xlabel('Residuals')
-    axes[1, 2].set_ylabel('Frequency')
-    axes[1, 2].set_title('Residuals Distribution')
+
+    axes[1, 2].hist(residuals_dl, bins=30, alpha=0.5, label="Deep Learning")
+    axes[1, 2].hist(residuals_rf, bins=30, alpha=0.5, label="Random Forest")
+    axes[1, 2].set_xlabel("Residual")
+    axes[1, 2].set_ylabel("Frequency")
+    axes[1, 2].set_title("Residual Distribution")
     axes[1, 2].legend()
     axes[1, 2].grid(True)
-    
+
     plt.tight_layout()
-    plt.savefig('bbb_prediction_results.png', dpi=150, bbox_inches='tight')
+    plt.savefig("bbb_prediction_results.png", dpi=150, bbox_inches="tight")
     plt.show()
 
-# ============================================================================
+
 # 7. MAIN EXECUTION
-# ============================================================================
 
 def main():
-    """
-    Main execution function
-    """
-    print("="*70)
-    print("BBB PERMEABILITY PREDICTION - COMPLETE PIPELINE")
-    print("="*70)
-    
-    # 1. Load data
+    print("=" * 70)
+    print("BBB PERMEABILITY PREDICTION PIPELINE")
+    print("=" * 70)
+
     print("\n1. Loading data...")
     df = load_bbb_data()
-    
-    # 2. Split data
+
     print("\n2. Splitting data...")
-    train_df, temp_df = train_test_split(df, test_size=0.3, random_state=42)
-    val_df, test_df = train_test_split(temp_df, test_size=0.5, random_state=42)
-    
-    print(f"  Train: {len(train_df)} molecules")
-    print(f"  Val: {len(val_df)} molecules")
-    print(f"  Test: {len(test_df)} molecules")
-    
-    # 3. Extract features
-    print("\n3. Extracting features...")
-    X_train = compute_molecular_fingerprints(train_df['SMILES'].values)
-    X_val = compute_molecular_fingerprints(val_df['SMILES'].values)
-    X_test = compute_molecular_fingerprints(test_df['SMILES'].values)
-    
-    y_train = train_df['logBB'].values
-    y_val = val_df['logBB'].values
-    y_test = test_df['logBB'].values
-    
-    # 4. Train Deep Learning model
-    print("\n4. Training Deep Learning model...")
-    dl_model, history, dl_time = train_deep_learning_model(
-        X_train, y_train, X_val, y_val,
-        num_epochs=100, batch_size=64, lr=0.001
+
+    train_df, temp_df = train_test_split(
+        df,
+        test_size=0.3,
+        random_state=42
     )
-    print(f"  Training time: {dl_time:.2f}s")
-    
-    # 5. Train Random Forest baseline
+
+    val_df, test_df = train_test_split(
+        temp_df,
+        test_size=0.5,
+        random_state=42
+    )
+
+    print(f"  Train: {len(train_df)} molecules")
+    print(f"  Validation: {len(val_df)} molecules")
+    print(f"  Test: {len(test_df)} molecules")
+
+    print("\n3. Extracting Morgan fingerprints...")
+
+    X_train = compute_molecular_fingerprints(train_df["SMILES"].values)
+    X_val = compute_molecular_fingerprints(val_df["SMILES"].values)
+    X_test = compute_molecular_fingerprints(test_df["SMILES"].values)
+
+    y_train = train_df["logBB"].values.astype(np.float32)
+    y_val = val_df["logBB"].values.astype(np.float32)
+    y_test = test_df["logBB"].values.astype(np.float32)
+
+    print("\n4. Training deep learning model...")
+
+    dl_model, history, dl_time = train_deep_learning_model(
+        X_train,
+        y_train,
+        X_val,
+        y_val,
+        num_epochs=100,
+        batch_size=64,
+        lr=1e-3
+    )
+
+    print(f"  Deep learning training time: {dl_time:.2f}s")
+
     print("\n5. Training Random Forest baseline...")
-    rf_model, rf_results = train_random_forest_model(X_train, y_train, X_val, y_val)
-    
-    # 6. Evaluate on test set
-    print("\n6. Evaluating models on test set...")
-    
+
+    rf_model, rf_results = train_random_forest_model(
+        X_train,
+        y_train,
+        X_val,
+        y_val
+    )
+
+    print("\n6. Evaluating models on the test set...")
+
     print("\nDeep Learning Model:")
-    dl_predictions, dl_metrics = evaluate_model(dl_model, X_test, y_test, 'dl')
-    
+    dl_predictions, dl_metrics = evaluate_model(
+        dl_model,
+        X_test,
+        y_test,
+        model_type="dl"
+    )
+
     print("\nRandom Forest Model:")
-    rf_predictions, rf_metrics = evaluate_model(rf_model, X_test, y_test, 'rf')
-    
-    # 7. Compare results
-    print("\n" + "="*70)
+    rf_predictions, rf_metrics = evaluate_model(
+        rf_model,
+        X_test,
+        y_test,
+        model_type="rf"
+    )
+
+    print("\n" + "=" * 70)
     print("FINAL COMPARISON")
-    print("="*70)
-    print(f"{'Metric':<15} {'Deep Learning':<20} {'Random Forest':<20} {'Improvement'}")
-    print("-"*70)
-    print(f"{'RMSE':<15} {dl_metrics['rmse']:<20.4f} {rf_metrics['rmse']:<20.4f} "
-          f"{(rf_metrics['rmse']-dl_metrics['rmse'])/rf_metrics['rmse']*100:>6.1f}%")
-    print(f"{'MAE':<15} {dl_metrics['mae']:<20.4f} {rf_metrics['mae']:<20.4f} "
-          f"{(rf_metrics['mae']-dl_metrics['mae'])/rf_metrics['mae']*100:>6.1f}%")
-    print(f"{'R²':<15} {dl_metrics['r2']:<20.4f} {rf_metrics['r2']:<20.4f} "
-          f"{(dl_metrics['r2']-rf_metrics['r2'])/rf_metrics['r2']*100:>6.1f}%")
-    print(f"{'Training Time':<15} {dl_time:<20.1f}s {rf_results['time']:<20.1f}s")
-    
-    # 8. Visualize results
-    print("\n8. Generating visualizations...")
+    print("=" * 70)
+
+    print(f"{'Metric':<15} {'Deep Learning':<20} {'Random Forest':<20}")
+    print("-" * 55)
+    print(f"{'RMSE':<15} {dl_metrics['rmse']:<20.4f} {rf_metrics['rmse']:<20.4f}")
+    print(f"{'MAE':<15} {dl_metrics['mae']:<20.4f} {rf_metrics['mae']:<20.4f}")
+    print(f"{'R²':<15} {dl_metrics['r2']:<20.4f} {rf_metrics['r2']:<20.4f}")
+    print(f"{'Time':<15} {dl_time:<20.1f}s {rf_results['time']:<20.1f}s")
+
+    print("\n7. Generating visualizations...")
     visualize_results(y_test, dl_predictions, rf_predictions, history)
-    
-    print("\n" + "="*70)
-    print("PIPELINE COMPLETE!")
-    print("="*70)
-    
+
+    print("\n" + "=" * 70)
+    print("PIPELINE COMPLETE")
+    print("=" * 70)
+
     return {
-        'dl_model': dl_model,
-        'rf_model': rf_model,
-        'dl_metrics': dl_metrics,
-        'rf_metrics': rf_metrics,
-        'history': history
+        "dl_model": dl_model,
+        "rf_model": rf_model,
+        "dl_metrics": dl_metrics,
+        "rf_metrics": rf_metrics,
+        "history": history
     }
 
-# Run the pipeline
+
 if __name__ == "__main__":
     results = main()
 ```
 
-### 7.3 Expected Output
-
-```
-======================================================================
-BBB PERMEABILITY PREDICTION - COMPLETE PIPELINE
-======================================================================
-
-1. Loading data...
-Loaded 2000 valid molecules
-logBB range: [-2.85, 1.92]
-
-2. Splitting data...
-  Train: 1400 molecules
-  Val: 300 molecules
-  Test: 300 molecules
-
-3. Extracting features...
-Computing fingerprints: 100%|██████████| 1400/1400 [00:05<00:00]
-Computing fingerprints: 100%|██████████| 300/300 [00:01<00:00]
-Computing fingerprints: 100%|██████████| 300/300 [00:01<00:00]
-
-4. Training Deep Learning model...
-Using device: cuda
-Epoch 10/100
-  Train Loss: 0.3245
-  Val Loss: 0.3678, RMSE: 0.6065, MAE: 0.4532, R²: 0.7234
-
-Epoch 20/100
-  Train Loss: 0.2156
-  Val Loss: 0.2987, RMSE: 0.5465, MAE: 0.4012, R²: 0.7789
-
-... (training continues)
-
-Early stopping at epoch 68
-  Training time: 142.35s
-
-5. Training Random Forest baseline...
-
-Random Forest Results:
-  Train RMSE: 0.1234
-  Val RMSE: 0.6234
-  Val MAE: 0.4689
-  Val R²: 0.7456
-  Training time: 56.78s
-
-6. Evaluating models on test set...
-
-Deep Learning Model:
-Test Set Evaluation:
-  RMSE: 0.5234
-  MAE: 0.3876
-  R²: 0.7923
-
-Random Forest Model:
-Test Set Evaluation:
-  RMSE: 0.5987
-  MAE: 0.4456
-  R²: 0.7534
-
-======================================================================
-FINAL COMPARISON
-======================================================================
-Metric          Deep Learning        Random Forest        Improvement
-----------------------------------------------------------------------
-RMSE            0.5234               0.5987                12.6%
-MAE             0.3876               0.4456                13.0%
-R²              0.7923               0.7534                 5.2%
-Training Time   142.4s               56.8s                
-
-8. Generating visualizations...
-
-======================================================================
-PIPELINE COMPLETE!
-======================================================================
-```
-
----
 
 ## 8. Model Interpretation
 
