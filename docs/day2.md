@@ -3707,98 +3707,139 @@ Hybrid models often outperform single-representation models because they combine
 
 ## 5. Recurrent Neural Networks
 
-Recurrent Neural Networks (RNNs) process sequential data by maintaining hidden states that capture information from previous time steps. They are ideal for SMILES strings where the order of tokens matters.
+Recurrent Neural Networks (RNNs) are designed for sequential data. Unlike feedforward networks, they process 
+one token at a time while maintaining a hidden state that stores information from previous positions in the sequence.
+
+For molecular machine learning, RNNs are useful when molecules are represented as **SMILES strings**, because 
+the order of tokens carries chemical meaning.
+
+A simplified recurrent update is:
+
+$$
+\mathbf{h}_t = f(\mathbf{W}_x \mathbf{x}_t + \mathbf{W}*h \mathbf{h}*{t-1} + \mathbf{b})
+$$
+
+where:
+
+* $\mathbf{x}_t$ is the input token at position (t),
+* $\mathbf{h}_t$ is the hidden state at position (t),
+* $\mathbf{h}_{t-1}$ is the previous hidden state.
+
+
 
 ### 5.1 LSTM for SMILES Sequences
 
-Long Short-Term Memory (LSTM) networks address the vanishing gradient problem in traditional RNNs through gating mechanisms.
+Long Short-Term Memory networks, or **LSTMs**, are improved RNNs designed to handle longer sequences. They 
+use gates to control what information is stored, forgotten, and passed forward.
 
-**LSTM Architecture:**
+This is useful for SMILES strings because important molecular patterns may depend on tokens that are far apart 
+in the sequence.
 
+Example architecture:
+
+```text
+SMILES string
+    ↓
+Tokenization
+    ↓
+Embedding layer
+    ↓
+LSTM layers
+    ↓
+Final hidden state
+    ↓
+Fully connected layers
+    ↓
+Molecular property prediction
 ```
-Input → Embedding → LSTM layers → Final hidden state → Dense → Output
-```
 
-**Complete Implementation:**
+
+
+#### LSTM Model
 
 ```python
 import torch
 import torch.nn as nn
 
+
 class SMILES_LSTM(nn.Module):
     """
-    LSTM model for SMILES-based molecular property prediction
+    LSTM model for molecular property prediction from SMILES strings.
     """
-    def __init__(self, vocab_size=50, embedding_dim=128, hidden_dim=256, 
-                 num_layers=2, output_dim=1, dropout_rate=0.3, bidirectional=True):
-        """
-        Args:
-            vocab_size: Size of SMILES vocabulary
-            embedding_dim: Dimension of character embeddings
-            hidden_dim: Size of LSTM hidden state
-            num_layers: Number of stacked LSTM layers
-            output_dim: Output size (1 for regression)
-            dropout_rate: Dropout between LSTM layers
-            bidirectional: Whether to use bidirectional LSTM
-        """
-        super(SMILES_LSTM, self).__init__()
-        
-        self.hidden_dim = hidden_dim
-        self.num_layers = num_layers
+
+    def __init__(
+        self,
+        vocab_size,
+        embedding_dim=128,
+        hidden_dim=256,
+        num_layers=2,
+        output_dim=1,
+        dropout_rate=0.3,
+        bidirectional=True,
+        padding_idx=0
+    ):
+        super().__init__()
+
         self.bidirectional = bidirectional
-        
-        # Embedding layer
-        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
-        
-        # LSTM layers
+        self.num_directions = 2 if bidirectional else 1
+
+        self.embedding = nn.Embedding(
+            num_embeddings=vocab_size,
+            embedding_dim=embedding_dim,
+            padding_idx=padding_idx
+        )
+
         self.lstm = nn.LSTM(
             input_size=embedding_dim,
             hidden_size=hidden_dim,
             num_layers=num_layers,
             batch_first=True,
-            dropout=dropout_rate if num_layers > 1 else 0,
+            dropout=dropout_rate if num_layers > 1 else 0.0,
             bidirectional=bidirectional
         )
-        
-        # Fully connected layers
-        lstm_output_dim = hidden_dim * 2 if bidirectional else hidden_dim
-        
-        self.fc = nn.Sequential(
+
+        lstm_output_dim = hidden_dim * self.num_directions
+
+        self.regressor = nn.Sequential(
             nn.Linear(lstm_output_dim, 128),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
             nn.Linear(128, output_dim)
         )
-    
+
     def forward(self, x):
         """
         Args:
-            x: Input tensor of shape (batch_size, sequence_length)
-        
-        Returns:
-            Output predictions of shape (batch_size, output_dim)
-        """
-        # Embedding: (batch_size, seq_length) -> (batch_size, seq_length, embedding_dim)
-        embedded = self.embedding(x)
-        
-        # LSTM: (batch_size, seq_length, hidden_dim * num_directions)
-        lstm_out, (hidden, cell) = self.lstm(embedded)
-        
-        # Use final hidden state
-        if self.bidirectional:
-            # Concatenate forward and backward final hidden states
-            hidden_forward = hidden[-2, :, :]
-            hidden_backward = hidden[-1, :, :]
-            final_hidden = torch.cat([hidden_forward, hidden_backward], dim=1)
-        else:
-            final_hidden = hidden[-1, :, :]
-        
-        # Fully connected layers
-        output = self.fc(final_hidden)
-        
-        return output
+            x: Tensor of token indices with shape
+               (batch_size, sequence_length)
 
-# Create model
+        Returns:
+            Prediction tensor with shape
+            (batch_size, output_dim)
+        """
+
+        embedded = self.embedding(x)
+
+        lstm_output, (hidden, cell) = self.lstm(embedded)
+
+        if self.bidirectional:
+            forward_hidden = hidden[-2]
+            backward_hidden = hidden[-1]
+            final_hidden = torch.cat(
+                [forward_hidden, backward_hidden],
+                dim=1
+            )
+        else:
+            final_hidden = hidden[-1]
+
+        output = self.regressor(final_hidden)
+
+        return output
+```
+
+Example:
+
+```python
 model = SMILES_LSTM(
     vocab_size=50,
     embedding_dim=128,
@@ -3810,281 +3851,625 @@ model = SMILES_LSTM(
 )
 
 print(model)
-print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
+
+num_parameters = sum(
+    p.numel() for p in model.parameters() if p.requires_grad
+)
+
+print(f"Trainable parameters: {num_parameters:,}")
 ```
 
-**LSTM Internals:**
+
+#### LSTM Internal Gates
+
+An LSTM uses three main gates:
+
+* **Forget gate:** decides what old information to remove.
+* **Input gate:** decides what new information to store.
+* **Output gate:** decides what information to expose as the hidden state.
+
+The main equations are:
+
+$$
+\mathbf{f}_t = \sigma(\mathbf{W}_f[\mathbf{x}*t, \mathbf{h}*{t-1}] + \mathbf{b}_f)
+$$
+
+$$
+\mathbf{i}_t = \sigma(\mathbf{W}_i[\mathbf{x}*t, \mathbf{h}*{t-1}] + \mathbf{b}_i)
+$$
+
+$$
+\tilde{\mathbf{c}}_t = \tanh(\mathbf{W}_c[\mathbf{x}*t, \mathbf{h}*{t-1}] + \mathbf{b}_c)
+$$
+
+$$
+\mathbf{c}_t = \mathbf{f}*t \odot \mathbf{c}*{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t
+$$
+
+$$
+\mathbf{o}_t = \sigma(\mathbf{W}_o[\mathbf{x}*t, \mathbf{h}*{t-1}] + \mathbf{b}_o)
+$$
+
+$$
+\mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)
+$$
+
+where $\odot$ means element-wise multiplication.
+
+
+#### Manual LSTM Cell
+
+This implementation is mainly for understanding. In practice, use `nn.LSTM`.
 
 ```python
-# Manual LSTM cell implementation for understanding
-class LSTMCell(nn.Module):
+class LSTMCellFromScratch(nn.Module):
     """
-    Single LSTM cell showing internal gates
+    Single LSTM cell showing the internal gate operations.
     """
+
     def __init__(self, input_size, hidden_size):
-        super(LSTMCell, self).__init__()
-        
-        # Gates: forget, input, output, candidate
-        self.W_f = nn.Linear(input_size + hidden_size, hidden_size)  # Forget gate
-        self.W_i = nn.Linear(input_size + hidden_size, hidden_size)  # Input gate
-        self.W_o = nn.Linear(input_size + hidden_size, hidden_size)  # Output gate
-        self.W_c = nn.Linear(input_size + hidden_size, hidden_size)  # Candidate
-    
+        super().__init__()
+
+        self.hidden_size = hidden_size
+
+        self.forget_gate = nn.Linear(
+            input_size + hidden_size,
+            hidden_size
+        )
+
+        self.input_gate = nn.Linear(
+            input_size + hidden_size,
+            hidden_size
+        )
+
+        self.output_gate = nn.Linear(
+            input_size + hidden_size,
+            hidden_size
+        )
+
+        self.candidate_layer = nn.Linear(
+            input_size + hidden_size,
+            hidden_size
+        )
+
     def forward(self, x_t, h_prev, c_prev):
-        """
-        Args:
-            x_t: Input at time t (batch_size, input_size)
-            h_prev: Previous hidden state (batch_size, hidden_size)
-            c_prev: Previous cell state (batch_size, hidden_size)
-        
-        Returns:
-            h_t: New hidden state
-            c_t: New cell state
-        """
-        # Concatenate input and previous hidden state
         combined = torch.cat([x_t, h_prev], dim=1)
-        
-        # Forget gate: decides what to forget from cell state
-        f_t = torch.sigmoid(self.W_f(combined))
-        
-        # Input gate: decides what new information to store
-        i_t = torch.sigmoid(self.W_i(combined))
-        
-        # Candidate: new candidate values for cell state
-        c_tilde = torch.tanh(self.W_c(combined))
-        
-        # Update cell state
-        c_t = f_t * c_prev + i_t * c_tilde
-        
-        # Output gate: decides what to output from cell state
-        o_t = torch.sigmoid(self.W_o(combined))
-        
-        # Update hidden state
+
+        f_t = torch.sigmoid(self.forget_gate(combined))
+        i_t = torch.sigmoid(self.input_gate(combined))
+        o_t = torch.sigmoid(self.output_gate(combined))
+
+        c_candidate = torch.tanh(self.candidate_layer(combined))
+
+        c_t = f_t * c_prev + i_t * c_candidate
         h_t = o_t * torch.tanh(c_t)
-        
+
         return h_t, c_t
 ```
 
-**Attention Mechanism for LSTM:**
+
+
+#### LSTM with Attention
+
+A standard LSTM often uses only the final hidden state. However, for SMILES strings, useful information may appear anywhere in the sequence.
+
+An attention mechanism learns which token positions are most relevant for the prediction.
+
+The attention weights are:
+
+$$
+\alpha_t =
+\frac{\exp(e_t)}
+{\sum_j \exp(e_j)}
+$$
+
+and the sequence representation is:
+
+$$
+\mathbf{c} =
+\sum_t \alpha_t \mathbf{h}_t
+$$
+
+where:
+
+* $e_t$ is the attention score for token (t),
+* $\alpha_t$ is the normalized attention weight,
+* $\mathbf{h}_t$ is the LSTM output at position (t).
 
 ```python
 class SMILES_LSTM_Attention(nn.Module):
     """
-    LSTM with attention mechanism for SMILES
+    Bidirectional LSTM with attention for SMILES-based prediction.
     """
-    def __init__(self, vocab_size, embedding_dim, hidden_dim, output_dim):
-        super(SMILES_LSTM_Attention, self).__init__()
-        
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True, bidirectional=True)
-        
-        # Attention layer
+
+    def __init__(
+        self,
+        vocab_size,
+        embedding_dim=128,
+        hidden_dim=256,
+        output_dim=1,
+        dropout_rate=0.3,
+        padding_idx=0
+    ):
+        super().__init__()
+
+        self.embedding = nn.Embedding(
+            vocab_size,
+            embedding_dim,
+            padding_idx=padding_idx
+        )
+
+        self.lstm = nn.LSTM(
+            input_size=embedding_dim,
+            hidden_size=hidden_dim,
+            batch_first=True,
+            bidirectional=True
+        )
+
         self.attention = nn.Linear(hidden_dim * 2, 1)
-        
-        # Output layer
-        self.fc = nn.Linear(hidden_dim * 2, output_dim)
-    
+
+        self.regressor = nn.Sequential(
+            nn.Linear(hidden_dim * 2, 128),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            nn.Linear(128, output_dim)
+        )
+
     def forward(self, x):
-        # Embedding and LSTM
         embedded = self.embedding(x)
-        lstm_out, _ = self.lstm(embedded)  # (batch, seq_len, hidden*2)
-        
-        # Attention weights
-        attention_scores = self.attention(lstm_out)  # (batch, seq_len, 1)
-        attention_weights = torch.softmax(attention_scores, dim=1)
-        
-        # Weighted sum of LSTM outputs
-        context = torch.sum(attention_weights * lstm_out, dim=1)  # (batch, hidden*2)
-        
-        # Output
-        output = self.fc(context)
-        
+
+        lstm_output, _ = self.lstm(embedded)
+
+        attention_scores = self.attention(lstm_output)
+
+        attention_weights = torch.softmax(
+            attention_scores,
+            dim=1
+        )
+
+        context = torch.sum(
+            attention_weights * lstm_output,
+            dim=1
+        )
+
+        output = self.regressor(context)
+
         return output, attention_weights
 ```
 
+
 ### 5.2 GRU Alternative
 
-Gated Recurrent Unit (GRU) is a simpler alternative to LSTM with fewer parameters.
+A **Gated Recurrent Unit (GRU)** is a simpler alternative to an LSTM. It uses fewer gates and does 
+not maintain a separate cell state.
 
-**GRU vs LSTM:**
+GRUs are often faster to train while giving performance similar to LSTMs on many molecular sequence tasks.
 
-| Feature | LSTM | GRU |
-|---------|------|-----|
-| **Gates** | 3 (input, forget, output) | 2 (reset, update) |
-| **Cell state** | Separate (c_t and h_t) | Unified (h_t only) |
-| **Parameters** | More | Fewer (~25% less) |
-| **Training speed** | Slower | Faster |
-| **Performance** | Slightly better on complex tasks | Comparable on most tasks |
-| **Memory** | Higher | Lower |
 
-**GRU Implementation:**
+#### GRU vs. LSTM
+
+| Feature        | LSTM                                | GRU                      |
+| -------------- | ----------------------------------- | ------------------------ |
+| Gates          | Input, forget, output               | Reset, update            |
+| Memory state   | Hidden state and cell state         | Hidden state only        |
+| Parameters     | More                                | Fewer                    |
+| Training speed | Slower                              | Faster                   |
+| Memory usage   | Higher                              | Lower                    |
+| Best use case  | Longer or more complex dependencies | Faster sequence modeling |
+
+
+
+#### GRU Model
 
 ```python
 class SMILES_GRU(nn.Module):
     """
-    GRU model for SMILES-based molecular property prediction
+    GRU model for molecular property prediction from SMILES strings.
     """
-    def __init__(self, vocab_size=50, embedding_dim=128, hidden_dim=256, 
-                 num_layers=2, output_dim=1, dropout_rate=0.3, bidirectional=True):
-        super(SMILES_GRU, self).__init__()
-        
-        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
-        
-        # GRU layers (API similar to LSTM)
+
+    def __init__(
+        self,
+        vocab_size,
+        embedding_dim=128,
+        hidden_dim=256,
+        num_layers=2,
+        output_dim=1,
+        dropout_rate=0.3,
+        bidirectional=True,
+        padding_idx=0
+    ):
+        super().__init__()
+
+        self.bidirectional = bidirectional
+        self.num_directions = 2 if bidirectional else 1
+
+        self.embedding = nn.Embedding(
+            vocab_size,
+            embedding_dim,
+            padding_idx=padding_idx
+        )
+
         self.gru = nn.GRU(
             input_size=embedding_dim,
             hidden_size=hidden_dim,
             num_layers=num_layers,
             batch_first=True,
-            dropout=dropout_rate if num_layers > 1 else 0,
+            dropout=dropout_rate if num_layers > 1 else 0.0,
             bidirectional=bidirectional
         )
-        
-        gru_output_dim = hidden_dim * 2 if bidirectional else hidden_dim
-        
-        self.fc = nn.Sequential(
+
+        gru_output_dim = hidden_dim * self.num_directions
+
+        self.regressor = nn.Sequential(
             nn.Linear(gru_output_dim, 128),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
             nn.Linear(128, output_dim)
         )
-    
+
     def forward(self, x):
         embedded = self.embedding(x)
-        gru_out, hidden = self.gru(embedded)
-        
-        # Use final hidden state
-        if self.gru.bidirectional:
-            hidden_forward = hidden[-2, :, :]
-            hidden_backward = hidden[-1, :, :]
-            final_hidden = torch.cat([hidden_forward, hidden_backward], dim=1)
+
+        gru_output, hidden = self.gru(embedded)
+
+        if self.bidirectional:
+            forward_hidden = hidden[-2]
+            backward_hidden = hidden[-1]
+            final_hidden = torch.cat(
+                [forward_hidden, backward_hidden],
+                dim=1
+            )
         else:
-            final_hidden = hidden[-1, :, :]
-        
-        output = self.fc(final_hidden)
+            final_hidden = hidden[-1]
+
+        output = self.regressor(final_hidden)
+
         return output
 ```
 
-**GRU Internals:**
+
+
+#### GRU Internal Gates
+
+A GRU uses:
+
+* **Reset gate:** controls how much past information is forgotten.
+* **Update gate:** controls how much old information is kept.
+
+The equations are:
+
+$$
+\mathbf{r}_t =
+\sigma(\mathbf{W}_r[\mathbf{x}*t,\mathbf{h}*{t-1}] + \mathbf{b}_r)
+$$
+
+$$
+\mathbf{z}_t =
+\sigma(\mathbf{W}_z[\mathbf{x}*t,\mathbf{h}*{t-1}] + \mathbf{b}_z)
+$$
+
+$$
+\tilde{\mathbf{h}}_t =
+\tanh(\mathbf{W}_h[\mathbf{x}_t,\mathbf{r}*t \odot \mathbf{h}*{t-1}] + \mathbf{b}_h)
+$$
+
+$$
+\mathbf{h}_t =
+(1-\mathbf{z}*t)\odot \mathbf{h}*{t-1}
++
+\mathbf{z}_t \odot \tilde{\mathbf{h}}_t
+$$
+
+
+#### Manual GRU Cell
 
 ```python
-class GRUCell(nn.Module):
+class GRUCellFromScratch(nn.Module):
     """
-    Single GRU cell for understanding
+    Single GRU cell showing the reset and update gates.
     """
+
     def __init__(self, input_size, hidden_size):
-        super(GRUCell, self).__init__()
-        
-        # Gates: reset and update
-        self.W_r = nn.Linear(input_size + hidden_size, hidden_size)  # Reset gate
-        self.W_z = nn.Linear(input_size + hidden_size, hidden_size)  # Update gate
-        self.W_h = nn.Linear(input_size + hidden_size, hidden_size)  # Candidate
-    
+        super().__init__()
+
+        self.reset_gate = nn.Linear(
+            input_size + hidden_size,
+            hidden_size
+        )
+
+        self.update_gate = nn.Linear(
+            input_size + hidden_size,
+            hidden_size
+        )
+
+        self.candidate_layer = nn.Linear(
+            input_size + hidden_size,
+            hidden_size
+        )
+
     def forward(self, x_t, h_prev):
-        """
-        Args:
-            x_t: Input at time t
-            h_prev: Previous hidden state
-        
-        Returns:
-            h_t: New hidden state
-        """
         combined = torch.cat([x_t, h_prev], dim=1)
-        
-        # Reset gate: decides how much past to forget
-        r_t = torch.sigmoid(self.W_r(combined))
-        
-        # Update gate: decides how much to update
-        z_t = torch.sigmoid(self.W_z(combined))
-        
-        # Candidate: new candidate hidden state
-        combined_reset = torch.cat([x_t, r_t * h_prev], dim=1)
-        h_tilde = torch.tanh(self.W_h(combined_reset))
-        
-        # Final hidden state: interpolation between prev and candidate
-        h_t = (1 - z_t) * h_prev + z_t * h_tilde
-        
+
+        r_t = torch.sigmoid(self.reset_gate(combined))
+        z_t = torch.sigmoid(self.update_gate(combined))
+
+        candidate_input = torch.cat(
+            [x_t, r_t * h_prev],
+            dim=1
+        )
+
+        h_candidate = torch.tanh(
+            self.candidate_layer(candidate_input)
+        )
+
+        h_t = (1 - z_t) * h_prev + z_t * h_candidate
+
         return h_t
 ```
 
+
 ### 5.3 Comparison with CNNs
 
-**Performance Comparison:**
+CNNs and RNNs process SMILES strings differently.
+
+A **1D CNN** detects local token patterns, such as short fragments and functional groups. An **LSTM or 
+GRU** processes the sequence step by step and can model longer-range dependencies.
+
+
+#### Conceptual Comparison
+
+| Model            | Strengths                                   | Limitations                         | Good Use Cases                              |
+| ---------------- | ------------------------------------------- | ----------------------------------- | ------------------------------------------- |
+| 1D CNN           | Fast, parallelizable, good for local motifs | Weaker long-range sequence modeling | Large-scale screening, toxicity alerts      |
+| LSTM             | Captures sequential dependencies            | Slower than CNNs                    | Longer SMILES, sequence-sensitive patterns  |
+| GRU              | Similar to LSTM but lighter                 | Slightly less expressive than LSTM  | Efficient recurrent modeling                |
+| LSTM + Attention | Highlights important tokens                 | More parameters and slower training | Interpretability, complex sequence patterns |
+
+
+#### Corrected Model Comparison Example
+
+This example assumes that `SMILESTokenizer`, `SMILESDataset`, `SMILES_CNN`, `SMILES_LSTM`, `SMILES_GRU`, 
+and `SMILES_LSTM_Attention` are already defined.
 
 ```python
-def compare_cnn_lstm_gru(smiles_train, y_train, smiles_val, y_val):
-    """
-    Compare CNN, LSTM, and GRU on same dataset
-    """
-    tokenizer = SMILESTokenizer()
-    
-    # Prepare data
-    train_dataset = SMILES_Dataset(smiles_train, y_train, tokenizer)
-    val_dataset = SMILES_Dataset(smiles_val, y_val, tokenizer)
-    
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=64)
-    
-    results = {}
-    
-    # Models to compare
-    models = {
-        '1D CNN': SMILES_CNN(vocab_size=len(tokenizer.vocab)),
-        'LSTM': SMILES_LSTM(vocab_size=len(tokenizer.vocab)),
-        'GRU': SMILES_GRU(vocab_size=len(tokenizer.vocab)),
-        'LSTM+Attention': SMILES_LSTM_Attention(vocab_size=len(tokenizer.vocab))
+import time
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from sklearn.metrics import mean_squared_error, r2_score
+
+
+def train_one_epoch(model, loader, optimizer, criterion, device):
+    model.train()
+
+    total_loss = 0.0
+    total_samples = 0
+
+    for batch_x, batch_y in loader:
+        batch_x = batch_x.to(device)
+        batch_y = batch_y.to(device)
+
+        optimizer.zero_grad()
+
+        outputs = model(batch_x)
+
+        if isinstance(outputs, tuple):
+            predictions = outputs[0]
+        else:
+            predictions = outputs
+
+        loss = criterion(predictions, batch_y)
+
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(
+            model.parameters(),
+            max_norm=1.0
+        )
+        optimizer.step()
+
+        total_loss += loss.item() * batch_x.size(0)
+        total_samples += batch_x.size(0)
+
+    return total_loss / total_samples
+
+
+def evaluate_sequence_model(model, loader, criterion, device):
+    model.eval()
+
+    total_loss = 0.0
+    total_samples = 0
+
+    predictions_list = []
+    labels_list = []
+
+    with torch.no_grad():
+        for batch_x, batch_y in loader:
+            batch_x = batch_x.to(device)
+            batch_y = batch_y.to(device)
+
+            outputs = model(batch_x)
+
+            if isinstance(outputs, tuple):
+                predictions = outputs[0]
+            else:
+                predictions = outputs
+
+            loss = criterion(predictions, batch_y)
+
+            total_loss += loss.item() * batch_x.size(0)
+            total_samples += batch_x.size(0)
+
+            predictions_list.append(predictions.cpu().numpy())
+            labels_list.append(batch_y.cpu().numpy())
+
+    predictions = np.concatenate(predictions_list).ravel()
+    labels = np.concatenate(labels_list).ravel()
+
+    rmse = np.sqrt(mean_squared_error(labels, predictions))
+    r2 = r2_score(labels, predictions)
+
+    return {
+        "loss": total_loss / total_samples,
+        "rmse": rmse,
+        "r2": r2
     }
-    
-    for name, model in models.items():
-        print(f"\nTraining {name}...")
-        
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
-        criterion = nn.MSELoss()
-        
-        # Training loop
-        train_model(model, train_loader, val_loader, criterion, optimizer, epochs=50)
-        
-        # Evaluate
-        val_metrics = evaluate_model(model, val_loader, criterion)
-        
-        results[name] = {
-            'RMSE': val_metrics['rmse'],
-            'R2': val_metrics['r2'],
-            'Parameters': sum(p.numel() for p in model.parameters()),
-            'Training time': val_metrics['time']
+
+
+def compare_cnn_lstm_gru(
+    smiles_train,
+    y_train,
+    smiles_val,
+    y_val,
+    epochs=20,
+    batch_size=64
+):
+    """
+    Compare CNN, LSTM, GRU, and LSTM with attention
+    on the same SMILES regression dataset.
+    """
+
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    tokenizer = SMILESTokenizer()
+
+    train_dataset = SMILESDataset(
+        smiles_train,
+        y_train,
+        tokenizer,
+        max_length=100
+    )
+
+    val_dataset = SMILESDataset(
+        smiles_val,
+        y_val,
+        tokenizer,
+        max_length=100
+    )
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False
+    )
+
+    vocab_size = len(tokenizer.vocab)
+
+    models = {
+        "1D CNN": SMILES_CNN(vocab_size=vocab_size),
+        "LSTM": SMILES_LSTM(vocab_size=vocab_size),
+        "GRU": SMILES_GRU(vocab_size=vocab_size),
+        "LSTM + Attention": SMILES_LSTM_Attention(
+            vocab_size=vocab_size,
+            embedding_dim=128,
+            hidden_dim=256,
+            output_dim=1
+        )
+    }
+
+    criterion = nn.MSELoss()
+
+    results = {}
+
+    for model_name, model in models.items():
+        print(f"\nTraining {model_name}...")
+
+        model = model.to(device)
+
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=1e-3,
+            weight_decay=1e-5
+        )
+
+        start_time = time.time()
+
+        for epoch in range(epochs):
+            train_loss = train_one_epoch(
+                model,
+                train_loader,
+                optimizer,
+                criterion,
+                device
+            )
+
+        elapsed_time = time.time() - start_time
+
+        val_metrics = evaluate_sequence_model(
+            model,
+            val_loader,
+            criterion,
+            device
+        )
+
+        num_parameters = sum(
+            p.numel() for p in model.parameters()
+            if p.requires_grad
+        )
+
+        results[model_name] = {
+            "RMSE": val_metrics["rmse"],
+            "R2": val_metrics["r2"],
+            "Parameters": num_parameters,
+            "Training time": elapsed_time
         }
-    
-    # Print comparison
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("MODEL COMPARISON")
-    print("="*80)
-    print(f"{'Model':<20} {'RMSE':<10} {'R2':<10} {'Parameters':<15} {'Time (s)':<10}")
-    print("-"*80)
-    
-    for name, metrics in results.items():
-        print(f"{name:<20} {metrics['RMSE']:<10.4f} {metrics['R2']:<10.4f} "
-              f"{metrics['Parameters']:<15,} {metrics['Training time']:<10.1f}")
-    
+    print("=" * 80)
+
+    print(
+        f"{'Model':<20} "
+        f"{'RMSE':<12} "
+        f"{'R2':<12} "
+        f"{'Parameters':<15} "
+        f"{'Time (s)':<12}"
+    )
+
+    print("-" * 80)
+
+    for model_name, metrics in results.items():
+        print(
+            f"{model_name:<20} "
+            f"{metrics['RMSE']:<12.4f} "
+            f"{metrics['R2']:<12.4f} "
+            f"{metrics['Parameters']:<15,} "
+            f"{metrics['Training time']:<12.1f}"
+        )
+
     return results
 ```
 
-**Typical Results:**
+#### Typical Behavior
 
-| Model | RMSE | R² | Parameters | Training Time | Inference Speed |
-|-------|------|-----|------------|---------------|-----------------|
-| 1D CNN | 0.72 | 0.85 | 1.2M | Fast (1x) | Very Fast |
-| LSTM | 0.68 | 0.87 | 2.5M | Slow (3x) | Slow |
-| GRU | 0.69 | 0.86 | 1.9M | Medium (2x) | Medium |
-| LSTM+Attention | 0.65 | 0.89 | 2.8M | Slowest (3.5x) | Slow |
+The exact numbers depend on the dataset, target property, split, vocabulary, and training settings. In general:
 
-**Recommendations:**
-
-- **Use CNN** when: Speed is priority, local patterns important, large datasets
-- **Use LSTM** when: Long-range dependencies matter, sequential information crucial
-- **Use GRU** when: Want RNN benefits with fewer parameters, faster training
-- **Use LSTM+Attention** when: Need interpretability, best performance, sufficient data
+| Model            | Speed   | Parameter Count | Strength                                         |
+| ---------------- | ------- | --------------- | ------------------------------------------------ |
+| 1D CNN           | Fastest | Moderate        | Local SMILES motifs                              |
+| GRU              | Medium  | Lower than LSTM | Efficient sequence modeling                      |
+| LSTM             | Slower  | Higher          | Long-range sequence patterns                     |
+| LSTM + Attention | Slowest | Highest         | Interpretability and flexible sequence weighting |
 
 
+#### Recommendations
+
+Use a **1D CNN** when speed is important and local molecular motifs are enough.
+
+Use a **GRU** when you want recurrent modeling with fewer parameters and faster training.
+
+Use an **LSTM** when long-range sequence dependencies may matter.
+
+Use **LSTM with attention** when interpretability is important or when the model should learn which 
+SMILES tokens contribute most strongly to the prediction.
 
 ## 6. Transfer Learning
 
