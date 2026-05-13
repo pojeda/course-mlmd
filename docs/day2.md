@@ -1271,7 +1271,7 @@ def cosine_annealing(
 
 ## 2. Feedforward Neural Networks
 
-## 2.1 Feedforward Neural Network Architecture Design
+### 2.1 Feedforward Neural Network Architecture Design
 
 A **feedforward neural network (FNN)** is one of the most fundamental neural network architectures in deep learning. In 
 an FNN, information flows sequentially from the input layer through one or more hidden layers to the output layer, 
@@ -1873,7 +1873,7 @@ plt.show()
 
 
 
-## 2.3 Practical Recommendations and Training Guidelines
+### 2.3 Practical Recommendations and Training Guidelines
 
 Training neural networks for molecular property prediction requires more than selecting a model architecture. 
 Data quality, preprocessing, optimization settings, and regularization strategies strongly influence model 
