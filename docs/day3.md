@@ -3508,7 +3508,7 @@ def ensemble_predict(data):
 
 This practical provides a complete, production-ready implementation of GAT for molecular property prediction with extensive analysis and interpretation tools.
 
----
+
 
 ## Summary
 

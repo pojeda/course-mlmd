@@ -2487,7 +2487,7 @@ This problem is sometimes called **negative transfer**, where learning one task 
 
 ### 3.2 Multi-Task Model Architectures
 
-## Hard Parameter Sharing
+#### Hard Parameter Sharing
 
 The most common MTL architecture uses **hard parameter sharing**. The hidden layers are shared across 
 all tasks, while each task has its own output head.
@@ -3078,213 +3078,374 @@ A practical starting point is hard parameter sharing with equal task weights. Mo
 such as uncertainty weighting or gradient balancing, can be added later if some tasks dominate training.
 
 
-## 4. Convolutional Neural Networks
+# 4. Convolutional Neural Networks
 
-Convolutional Neural Networks (CNNs) excel at extracting local patterns and spatial hierarchies, making them suitable for sequence and image data representations of molecules.
+Convolutional Neural Networks (CNNs) are deep learning models designed to learn local patterns and hierarchical 
+representations from structured data. In molecular machine learning, CNNs are especially useful when molecules are 
+represented as sequences (such as SMILES strings) or images (such as 2D chemical diagrams).
 
-### 4.1 1D CNNs for SMILES
+CNNs apply convolutional filters that slide across the input to detect meaningful patterns:
 
-SMILES strings can be treated as sequences where local substructures (like functional groups) are important patterns.
+$$
+y_i = \sum_{k=1}^{K} w_k x_{i+k-1} + b
+$$
 
-**Architecture Overview:**
+where:
 
+* $x$ is the input sequence or image,
+* $w$ is a learnable filter (kernel),
+* $b$ is a bias term,
+* $K$ is the kernel size.
+
+The same filter is reused across the input, allowing CNNs to efficiently detect repeated structural motifs.
+
+## 4.1 1D CNNs for SMILES Strings
+
+A SMILES string can be interpreted as a sequence of chemical tokens. Local token patterns often correspond to 
+chemically meaningful substructures such as aromatic rings, carbonyl groups, or halogens.
+
+For example:
+
+```text
+"CC(=O)O"
 ```
-SMILES: "CCO" → Embedding → Conv1D layers → Pooling → Dense → Output
+
+contains:
+
+* `"C=O"` → carbonyl group
+* `"CO"` → alcohol/ester connectivity
+
+A 1D CNN learns filters that automatically detect these recurring molecular motifs.
+
+### Architecture Overview
+
+```text
+SMILES → Tokenization → Embedding → 1D Convolutions → Pooling → Dense Layers → Prediction
 ```
 
-**Complete Implementation:**
+The model pipeline is:
+
+1. Convert SMILES tokens into integer indices.
+2. Learn dense token embeddings.
+3. Apply multiple convolutional filters of different sizes.
+4. Use pooling to retain the strongest activations.
+5. Combine extracted features for property prediction.
+
+
+### Why Multiple Filter Sizes?
+
+Different kernel sizes capture molecular patterns at different scales:
+
+| Kernel Size | Captures                                     |
+| ----------- | -------------------------------------------- |
+| 3           | Short motifs and local atom environments     |
+| 5           | Functional groups                            |
+| 7           | Larger structural fragments and ring systems |
+
+For a convolution kernel of size (K):
+
+$$
+h_i = f\left(\sum_{j=0}^{K-1} w_j x_{i+j} + b\right)
+$$
+
+where $f$ is typically a ReLU activation.
+
+### Complete Implementation
 
 ```python
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+
+#### 1D CNN FOR SMILES STRINGS
 
 class SMILES_CNN(nn.Module):
     """
-    1D Convolutional Neural Network for SMILES strings
+    1D CNN for molecular property prediction from SMILES strings
     """
-    def __init__(self, vocab_size=50, embedding_dim=128, num_filters=64, 
-                 filter_sizes=[3, 5, 7], hidden_dim=256, output_dim=1, dropout_rate=0.3):
-        """
-        Args:
-            vocab_size: Size of character vocabulary (typically 40-60 for SMILES)
-            embedding_dim: Dimension of character embeddings
-            num_filters: Number of filters per filter size
-            filter_sizes: List of filter sizes (kernel sizes)
-            hidden_dim: Size of fully connected layer
-            output_dim: Output size (1 for regression)
-            dropout_rate: Dropout probability
-        """
-        super(SMILES_CNN, self).__init__()
-        
-        # Character embedding layer
-        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
-        
-        # Multiple convolutional layers with different kernel sizes
+
+    def __init__(
+        self,
+        vocab_size,
+        embedding_dim=128,
+        num_filters=128,
+        filter_sizes=[3, 5, 7],
+        hidden_dim=256,
+        output_dim=1,
+        dropout_rate=0.3
+    ):
+        super().__init__()
+
+        # Token embedding layer
+        self.embedding = nn.Embedding(
+            num_embeddings=vocab_size,
+            embedding_dim=embedding_dim,
+            padding_idx=0
+        )
+
+        # Multiple convolution branches
         self.convs = nn.ModuleList([
-            nn.Conv1d(in_channels=embedding_dim,
-                     out_channels=num_filters,
-                     kernel_size=fs)
-            for fs in filter_sizes
+            nn.Conv1d(
+                in_channels=embedding_dim,
+                out_channels=num_filters,
+                kernel_size=kernel_size
+            )
+            for kernel_size in filter_sizes
         ])
-        
-        # Fully connected layers
-        self.fc1 = nn.Linear(len(filter_sizes) * num_filters, hidden_dim)
+
+        # Feature dimension after concatenation
+        total_filters = num_filters * len(filter_sizes)
+
+        self.batch_norm = nn.BatchNorm1d(total_filters)
+
+        self.fc1 = nn.Linear(total_filters, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, output_dim)
-        
-        # Regularization
+
         self.dropout = nn.Dropout(dropout_rate)
-        self.batch_norm = nn.BatchNorm1d(len(filter_sizes) * num_filters)
-    
+
     def forward(self, x):
         """
-        Args:
-            x: Input tensor of shape (batch_size, max_length)
-        
-        Returns:
-            Output predictions of shape (batch_size, output_dim)
+        x shape:
+        (batch_size, sequence_length)
         """
-        # Embedding: (batch_size, max_length) -> (batch_size, max_length, embedding_dim)
-        embedded = self.embedding(x)
-        
-        # Transpose for Conv1d: (batch_size, embedding_dim, max_length)
-        embedded = embedded.transpose(1, 2)
-        
-        # Apply convolutions and max pooling
+
+        # Embedding
+        # (batch_size, seq_len) ->
+        # (batch_size, seq_len, embedding_dim)
+
+        x = self.embedding(x)
+
+        # Conv1D expects:
+        # (batch_size, channels, sequence_length)
+
+        x = x.transpose(1, 2)
+
         conv_outputs = []
+
         for conv in self.convs:
-            # Convolution + ReLU: (batch_size, num_filters, length - kernel_size + 1)
-            conv_out = F.relu(conv(embedded))
-            
-            # Max pooling: (batch_size, num_filters, 1)
-            pooled = F.max_pool1d(conv_out, conv_out.size(2))
-            
-            # Flatten: (batch_size, num_filters)
-            conv_outputs.append(pooled.squeeze(2))
-        
-        # Concatenate all filter outputs: (batch_size, len(filter_sizes) * num_filters)
-        concatenated = torch.cat(conv_outputs, dim=1)
-        
-        # Batch normalization
-        normalized = self.batch_norm(concatenated)
-        
-        # Fully connected layers
-        hidden = F.relu(self.fc1(self.dropout(normalized)))
-        output = self.fc2(self.dropout(hidden))
-        
+
+            # Convolution + ReLU
+
+            conv_out = F.relu(conv(x))
+
+            # Global max pooling
+            # Retains strongest activation from each filter
+
+            pooled = F.max_pool1d(
+                conv_out,
+                kernel_size=conv_out.shape[2]
+            )
+
+            pooled = pooled.squeeze(2)
+
+            conv_outputs.append(pooled)
+
+        # Concatenate filter outputs
+        x = torch.cat(conv_outputs, dim=1)
+
+        x = self.batch_norm(x)
+        x = self.dropout(x)
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+
+        output = self.fc2(x)
+
         return output
+```
 
-# ============================================================================
-# SMILES Tokenization
-# ============================================================================
+### SMILES Tokenization
 
+Tokenization converts SMILES strings into discrete chemical tokens.
+
+For example:
+
+```text
+"CC(=O)Cl"
+```
+
+becomes:
+
+```text
+["C", "C", "(", "=", "O", ")", "Cl"]
+```
+
+Correct tokenization is important because some atoms consist of multiple characters:
+
+* `Cl`
+* `Br`
+* `@@`
+
+
+#### Tokenizer Implementation
+
+```python
 class SMILESTokenizer:
     """
-    Tokenizer for SMILES strings
+    SMILES tokenizer with support for common multi-character tokens
     """
+
     def __init__(self):
-        # Common SMILES tokens
-        self.tokens = [
-            'C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P',  # Atoms
-            'c', 'n', 'o', 's',  # Aromatic atoms
-            '=', '#',  # Bonds
-            '(', ')',  # Branches
-            '[', ']',  # Atom properties
-            '+', '-',  # Charges
-            '1', '2', '3', '4', '5', '6', '7', '8', '9',  # Ring numbers
-            '@', '@@',  # Chirality
-            'H',  # Hydrogen
-            '/', '\\'  # Stereochemistry
+
+        self.special_tokens = [
+            "<PAD>",
+            "<UNK>",
+            "<START>",
+            "<END>"
         ]
-        
-        # Special tokens
-        self.special_tokens = ['<PAD>', '<UNK>', '<START>', '<END>']
-        
-        # Create vocabulary
+
+        self.tokens = [
+            "C", "N", "O", "S", "P", "F",
+            "Cl", "Br", "I",
+            "c", "n", "o", "s",
+            "=", "#",
+            "(", ")",
+            "[", "]",
+            "+", "-",
+            "@", "@@",
+            "/", "\\",
+            "1", "2", "3", "4", "5",
+            "6", "7", "8", "9",
+            "H"
+        ]
+
         self.vocab = self.special_tokens + self.tokens
-        self.token_to_idx = {token: idx for idx, token in enumerate(self.vocab)}
-        self.idx_to_token = {idx: token for token, idx in self.token_to_idx.items()}
-        
-        self.pad_idx = self.token_to_idx['<PAD>']
-        self.unk_idx = self.token_to_idx['<UNK>']
-    
+
+        self.token_to_idx = {
+            token: idx for idx, token in enumerate(self.vocab)
+        }
+
+        self.idx_to_token = {
+            idx: token for token, idx in self.token_to_idx.items()
+        }
+
+        self.pad_idx = self.token_to_idx["<PAD>"]
+        self.unk_idx = self.token_to_idx["<UNK>"]
+
     def tokenize(self, smiles):
-        """
-        Tokenize SMILES string into characters
-        """
+
         tokens = []
+
         i = 0
+
         while i < len(smiles):
-            # Check for two-character tokens (Cl, Br, @@)
+
+            # Multi-character tokens
             if i < len(smiles) - 1:
+
                 two_char = smiles[i:i+2]
+
                 if two_char in self.tokens:
                     tokens.append(two_char)
                     i += 2
                     continue
-            
-            # Single character token
+
             token = smiles[i]
-            tokens.append(token if token in self.tokens else '<UNK>')
+
+            if token in self.tokens:
+                tokens.append(token)
+            else:
+                tokens.append("<UNK>")
+
             i += 1
-        
+
         return tokens
-    
+
     def encode(self, smiles, max_length=100):
-        """
-        Convert SMILES to integer sequence
-        """
+
         tokens = self.tokenize(smiles)
-        
-        # Convert to indices
-        indices = [self.token_to_idx.get(token, self.unk_idx) for token in tokens]
-        
+
+        indices = [
+            self.token_to_idx.get(token, self.unk_idx)
+            for token in tokens
+        ]
+
         # Pad or truncate
         if len(indices) < max_length:
             indices += [self.pad_idx] * (max_length - len(indices))
         else:
             indices = indices[:max_length]
-        
+
         return indices
-    
-    def batch_encode(self, smiles_list, max_length=100):
-        """
-        Encode batch of SMILES strings
-        """
-        return [self.encode(smiles, max_length) for smiles in smiles_list]
+```
 
-# ============================================================================
-# Dataset and Training
-# ============================================================================
 
-class SMILES_Dataset(Dataset):
-    """
-    Dataset for SMILES strings
-    """
-    def __init__(self, smiles_list, labels, tokenizer, max_length=100):
-        self.tokenizer = tokenizer
-        self.encoded_smiles = []
+### Dataset Implementation
+
+```python
+class SMILESDataset(Dataset):
+
+    def __init__(
+        self,
+        smiles_list,
+        labels,
+        tokenizer,
+        max_length=100
+    ):
+
+        self.inputs = []
         self.labels = []
-        
-        for smiles, label in zip(smiles_list, labels):
-            try:
-                encoded = torch.LongTensor(tokenizer.encode(smiles, max_length))
-                self.encoded_smiles.append(encoded)
-                self.labels.append(label)
-            except:
-                continue
-        
-        self.labels = torch.FloatTensor(self.labels).reshape(-1, 1)
-    
-    def __len__(self):
-        return len(self.encoded_smiles)
-    
-    def __getitem__(self, idx):
-        return self.encoded_smiles[idx], self.labels[idx]
 
-# Example usage
+        for smiles, label in zip(smiles_list, labels):
+
+            encoded = tokenizer.encode(
+                smiles,
+                max_length=max_length
+            )
+
+            self.inputs.append(
+                torch.LongTensor(encoded)
+            )
+
+            self.labels.append(label)
+
+        self.labels = torch.FloatTensor(
+            self.labels
+        ).view(-1, 1)
+
+    def __len__(self):
+        return len(self.inputs)
+
+    def __getitem__(self, idx):
+        return self.inputs[idx], self.labels[idx]
+```
+
+### Example Usage
+
+```python
+# Create tokenizer
 tokenizer = SMILESTokenizer()
-print(f"Vocabulary size: {len(tokenizer.vocab)}")
+
+print("Vocabulary size:", len(tokenizer.vocab))
+
+# Example molecular data
+smiles_train = [
+    "CCO",
+    "CC(=O)O",
+    "c1ccccc1",
+    "CCN(CC)CC"
+]
+
+labels_train = [
+    1.2,
+    0.8,
+    2.5,
+    1.9
+]
+
+# Create dataset
+train_dataset = SMILESDataset(
+    smiles_train,
+    labels_train,
+    tokenizer,
+    max_length=100
+)
+
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=2,
+    shuffle=True
+)
 
 # Create model
 model = SMILES_CNN(
@@ -3293,266 +3454,256 @@ model = SMILES_CNN(
     num_filters=64,
     filter_sizes=[3, 5, 7],
     hidden_dim=256,
-    output_dim=1,
-    dropout_rate=0.3
+    output_dim=1
 )
 
-# Create dataset
-smiles_train = ["CCO", "CC(C)O", "CCCO", "CC(C)CO"]  # Example SMILES
-labels_train = [1.5, 1.8, 1.2, 1.6]  # Example labels
+optimizer = torch.optim.Adam(
+    model.parameters(),
+    lr=1e-3
+)
 
-train_dataset = SMILES_Dataset(smiles_train, labels_train, tokenizer, max_length=100)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-
-# Training loop (similar to previous examples)
-optimizer = optim.Adam(model.parameters(), lr=0.001)
 criterion = nn.MSELoss()
 
-for epoch in range(50):
+# Training loop
+for epoch in range(10):
+
     model.train()
+
+    total_loss = 0
+
     for batch_smiles, batch_labels in train_loader:
+
         optimizer.zero_grad()
         predictions = model(batch_smiles)
         loss = criterion(predictions, batch_labels)
         loss.backward()
         optimizer.step()
+        total_loss += loss.item()
+
+    print(f"Epoch {epoch+1}: Loss = {total_loss:.4f}")
 ```
 
-**Key Design Choices:**
+### Why Max Pooling Works Well
 
-1. **Multiple Filter Sizes**: Capture patterns of different lengths (3=short, 5=medium, 7=long functional groups)
-2. **Embedding Layer**: Learn distributed representations of SMILES characters
-3. **Max Pooling**: Extract most important features regardless of position
-4. **Concatenation**: Combine features from different filter sizes
+Global max pooling extracts the strongest activation from each filter:
 
-### 4.2 2D CNNs for Molecular Images
+$$
+h_k = \max_i z_{ik}
+$$
 
-Molecules can be represented as 2D images (chemical structure diagrams) or as heatmaps of molecular properties.
+This allows the network to detect whether a molecular motif exists anywhere in the 
+sequence, independent of position.
 
-**Image Representation Approaches:**
+For molecular property prediction, the presence of a functional group is often more 
+important than its exact location within the SMILES string.
 
-1. **Chemical Structure Diagrams**: Rendered 2D molecular structures
-2. **3D Conformer Projections**: 2D projections of 3D molecular conformations
-3. **Property Heatmaps**: Grids showing electrostatic potential, electron density, etc.
 
-**Implementation:**
+## 4.2 2D CNNs for Molecular Images
+
+CNNs can also process molecular images such as:
+
+* 2D chemical structure diagrams,
+* electrostatic potential maps,
+* electron density projections,
+* molecular surface representations.
+
+A 2D convolution operates as:
+
+$$
+Y(i,j) =
+\sum_m \sum_n
+K(m,n)X(i+m,j+n)
+$$
+
+where:
+
+* $X$ is the input image,
+* $K$ is the convolution kernel,
+* $Y$ is the output feature map.
+
+2D CNNs learn spatial patterns such as:
+
+* aromatic ring arrangements,
+* stereochemistry,
+* molecular shape,
+* relative atom positioning.
+
+
+### Molecular Image CNN
 
 ```python
-import torch
-import torch.nn as nn
 import torchvision.models as models
 
 class Molecular2DCNN(nn.Module):
-    """
-    2D CNN for molecular images
-    """
-    def __init__(self, num_classes=1, pretrained=False):
-        """
-        Args:
-            num_classes: Number of output classes/values
-            pretrained: Whether to use pretrained ImageNet weights
-        """
-        super(Molecular2DCNN, self).__init__()
-        
-        # Option 1: Custom CNN architecture
-        self.conv_layers = nn.Sequential(
-            # First conv block
+
+    def __init__(self, output_dim=1):
+
+        super().__init__()
+
+        self.features = nn.Sequential(
+
             nn.Conv2d(3, 32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-            
-            # Second conv block
+            nn.MaxPool2d(2),
+
             nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-            
-            # Third conv block
+            nn.MaxPool2d(2),
+
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-            
-            # Fourth conv block
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),
-            nn.BatchNorm2d(256),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2)
+            nn.MaxPool2d(2)
         )
-        
-        # Fully connected layers
-        self.fc_layers = nn.Sequential(
-            nn.Linear(256 * 14 * 14, 512),  # Assuming 224x224 input
+
+        self.classifier = nn.Sequential(
+
+            nn.Linear(128 * 28 * 28, 512),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(512, num_classes)
+
+            nn.Linear(512, output_dim)
         )
-    
+
     def forward(self, x):
-        """
-        Args:
-            x: Input images of shape (batch_size, 3, 224, 224)
-        
-        Returns:
-            Output predictions of shape (batch_size, num_classes)
-        """
-        x = self.conv_layers(x)
-        x = x.view(x.size(0), -1)  # Flatten
-        x = self.fc_layers(x)
+
+        x = self.features(x)
+        x = torch.flatten(x, start_dim=1)
+        x = self.classifier(x)
+
         return x
+```
 
+
+### Transfer Learning with ResNet
+
+Transfer learning often improves performance when molecular image datasets are small.
+
+```python
 class MolecularResNet(nn.Module):
-    """
-    ResNet-based model for molecular images (transfer learning)
-    """
-    def __init__(self, num_classes=1, pretrained=True):
-        super(MolecularResNet, self).__init__()
-        
-        # Load pretrained ResNet
-        self.resnet = models.resnet50(pretrained=pretrained)
-        
-        # Replace final layer
-        num_features = self.resnet.fc.in_features
-        self.resnet.fc = nn.Linear(num_features, num_classes)
-    
-    def forward(self, x):
-        return self.resnet(x)
 
-# Generate molecular images from SMILES
+    def __init__(self, output_dim=1):
+
+        super().__init__()
+
+        self.backbone = models.resnet50(weights="DEFAULT")
+
+        num_features = self.backbone.fc.in_features
+
+        self.backbone.fc = nn.Linear(
+            num_features,
+            output_dim
+        )
+
+    def forward(self, x):
+        return self.backbone(x)
+```
+
+### Converting SMILES to Images
+
+```python
 from rdkit import Chem
 from rdkit.Chem import Draw
-from PIL import Image
-import io
 import numpy as np
 
 def smiles_to_image(smiles, size=(224, 224)):
-    """
-    Convert SMILES to image
-    
-    Args:
-        smiles: SMILES string
-        size: Image size (width, height)
-    
-    Returns:
-        numpy array of shape (3, height, width)
-    """
+
     mol = Chem.MolFromSmiles(smiles)
+
     if mol is None:
-        # Return blank image if invalid SMILES
-        return np.zeros((3, size[1], size[0]))
-    
-    # Draw molecule
+        return np.zeros((3, size[1], size[0]), dtype=np.float32)
+
     img = Draw.MolToImage(mol, size=size)
-    
-    # Convert to numpy array
-    img_array = np.array(img)
-    
-    # Convert to (C, H, W) format
-    if len(img_array.shape) == 2:  # Grayscale
-        img_array = np.stack([img_array] * 3)
-    else:  # RGB
-        img_array = img_array.transpose(2, 0, 1)
-    
-    return img_array / 255.0  # Normalize to [0, 1]
 
-class MolecularImageDataset(Dataset):
-    """
-    Dataset for molecular images
-    """
-    def __init__(self, smiles_list, labels, transform=None, size=(224, 224)):
-        self.images = []
-        self.labels = []
-        
-        for smiles, label in zip(smiles_list, labels):
-            img = smiles_to_image(smiles, size)
-            self.images.append(torch.FloatTensor(img))
-            self.labels.append(label)
-        
-        self.labels = torch.FloatTensor(self.labels).reshape(-1, 1)
-        self.transform = transform
-    
-    def __len__(self):
-        return len(self.images)
-    
-    def __getitem__(self, idx):
-        image = self.images[idx]
-        if self.transform:
-            image = self.transform(image)
-        return image, self.labels[idx]
+    img = np.array(img).astype(np.float32) / 255.0
+
+    # Convert HWC -> CHW
+    img = img.transpose(2, 0, 1)
+
+    return img
 ```
 
-### 4.3 When to Use Each Approach
 
-**Comparison Table:**
 
-| Approach | Best For | Pros | Cons |
-|----------|----------|------|------|
-| **1D CNN on SMILES** | - Sequence patterns<br>- Functional groups<br>- Large datasets | - Fast training<br>- No molecular rendering<br>- Handles variable length | - Limited spatial info<br>- SMILES representation bias |
-| **2D CNN on Images** | - Spatial relationships<br>- Stereochemistry<br>- Visual patterns | - Captures 2D structure<br>- Transfer learning from ImageNet<br>- Interpretable | - Slow image generation<br>- Fixed size input<br>- Loss of 3D info |
-| **Graph Neural Networks** | - Atom/bond relationships<br>- 3D structure<br>- Small molecules | - Natural molecular representation<br>- Permutation invariant<br>- Interpretable | - More complex implementation<br>- (Covered in Day 3) |
+## 4.3 Choosing the Right Molecular Representation
 
-**Decision Guide:**
+Different CNN approaches are useful for different molecular learning problems.
 
-```
-START
-  ├─ Need fast training? → 1D CNN on SMILES
-  ├─ Have molecular images? → 2D CNN
-  ├─ 3D structure important? → GNN (Day 3)
-  ├─ Sequence patterns important? → 1D CNN or RNN
-  └─ Spatial relationships important? → 2D CNN or GNN
-```
+| Method                | Advantages                       | Limitations                  | Best Applications                    |
+| --------------------- | -------------------------------- | ---------------------------- | ------------------------------------ |
+| 1D CNN on SMILES      | Fast, simple, scalable           | Sensitive to SMILES ordering | Property prediction, screening       |
+| 2D CNN on Images      | Captures spatial layout          | Loses graph topology         | Structure visualization              |
+| Graph Neural Networks | Natural molecular representation | More computationally complex | Quantum chemistry, molecular physics |
 
-**Example Use Cases:**
 
-**Use 1D CNN on SMILES:**
-- Toxicity prediction (functional group patterns)
-- Synthetic accessibility (molecular complexity)
-- Quick property screening
+# Practical Guidelines
 
-**Use 2D CNN on Images:**
-- Structure-activity relationship visualization
-- Similarity search with visual features
-- Transfer learning from chemical structure databases
+### Use 1D CNNs when:
 
-**Hybrid Approach:**
+* working with very large datasets,
+* sequence motifs are important,
+* fast training is needed,
+* only SMILES strings are available.
+
+### Use 2D CNNs when:
+
+* visual structure matters,
+* leveraging pretrained image models,
+* studying molecular shape patterns,
+* using chemical diagrams or microscopy data.
+
+### Use Graph Neural Networks when:
+
+* bond connectivity is critical,
+* 3D geometry matters,
+* atom-level interactions are important,
+* interpretability at the graph level is required.
+
+
+### Hybrid Molecular Models
+
+Combining multiple molecular representations can improve robustness.
 
 ```python
 class HybridMolecularModel(nn.Module):
-    """
-    Combine 1D CNN (SMILES) and 2D CNN (images) for robust predictions
-    """
-    def __init__(self, vocab_size, embedding_dim):
-        super(HybridMolecularModel, self).__init__()
-        
-        # 1D CNN branch for SMILES
-        self.smiles_cnn = SMILES_CNN(vocab_size, embedding_dim)
-        
-        # 2D CNN branch for images
-        self.image_cnn = Molecular2DCNN()
-        
-        # Fusion layer
-        self.fusion = nn.Linear(2, 1)  # Combine predictions
-    
+
+    def __init__(self, vocab_size):
+
+        super().__init__()
+
+        self.smiles_branch = SMILES_CNN(
+            vocab_size=vocab_size
+        )
+
+        self.image_branch = Molecular2DCNN()
+
+        self.fusion = nn.Sequential(
+            nn.Linear(2, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1)
+        )
+
     def forward(self, smiles, images):
-        """
-        Args:
-            smiles: Encoded SMILES (batch_size, max_length)
-            images: Molecular images (batch_size, 3, 224, 224)
-        
-        Returns:
-            Combined predictions
-        """
-        smiles_pred = self.smiles_cnn(smiles)
-        image_pred = self.image_cnn(images)
-        
-        # Concatenate and fuse
-        combined = torch.cat([smiles_pred, image_pred], dim=1)
-        final_pred = self.fusion(combined)
-        
-        return final_pred
+
+        smiles_features = self.smiles_branch(smiles)
+
+        image_features = self.image_branch(images)
+
+        combined = torch.cat(
+            [smiles_features, image_features],
+            dim=1
+        )
+
+        return self.fusion(combined)
 ```
 
+Hybrid models often outperform single-representation models because they combine:
+
+* sequential chemical information,
+* spatial structure,
+* complementary learned features.
 
 ## 5. Recurrent Neural Networks
 
