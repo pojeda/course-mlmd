@@ -4473,574 +4473,857 @@ SMILES tokens contribute most strongly to the prediction.
 
 ## 6. Transfer Learning
 
-Transfer learning leverages knowledge learned from one task (usually on large datasets) to improve performance on another related task (often with limited data).
+Transfer learning uses knowledge learned from one task or dataset to improve performance on another related task. 
+In molecular machine learning, this often means pre-training a model on a large collection of molecules and then 
+fine-tuning it on a smaller property-specific dataset.
 
-### 6.1 Why Transfer Learning for Molecules
+The basic idea is:
 
-**Challenges in Molecular Machine Learning:**
+$$
+\text{Large molecular dataset}
+\rightarrow
+\text{pre-trained representation}
+\rightarrow
+\text{fine-tuned property predictor}
+$$
 
-1. **Limited Labeled Data**: Experimental measurements are expensive
-   - Example: Only ~10K molecules with measured BBB permeability
-   - Contrast with millions of images in ImageNet
 
-2. **Data Imbalance**: Some properties measured more than others
-   - Solubility: ~100K datapoints
-   - Metabolic stability: ~1K datapoints
+### 6.1 Why Transfer Learning for Molecules?
 
-3. **Related Tasks**: Many molecular properties share underlying features
-   - Lipophilicity and permeability both depend on polarity
-   - Multiple ADMET properties relate to molecular shape
+Transfer learning is especially useful in molecular modeling because high-quality experimental labels are often expensive, noisy, or limited.
 
-**Benefits of Transfer Learning:**
+#### Common Challenges
 
-- **Data Efficiency**: Achieve good performance with 10-100x less labeled data
-- **Faster Convergence**: Pre-trained models converge in fewer epochs
-- **Better Generalization**: Pre-learned features capture general molecular patterns
-- **Domain Adaptation**: Adapt models trained on one molecule type to another
+##### Limited labeled data
 
-**Example Scenario:**
+Many molecular endpoints have only a few thousand measured examples. For example, BBB permeability, metabolic 
+stability, or toxicity datasets are usually much smaller than general image or text datasets.
 
+##### Imbalanced data availability
+
+Some properties, such as solubility or lipophilicity, may have many labels, while other properties may have 
+only a few hundred or thousand reliable measurements.
+
+##### Related molecular properties
+
+Many molecular properties depend on overlapping chemical features. For example:
+
+* lipophilicity and permeability both depend on polarity and hydrophobicity,
+* toxicity and metabolism may depend on reactive substructures,
+* solubility and absorption are influenced by hydrogen bonding and molecular size.
+
+Because of this overlap, a model trained on one molecular task can often help with another.
+
+
+#### Benefits of Transfer Learning
+
+* **Better data efficiency:** useful performance with fewer labeled examples.
+* **Faster convergence:** fine-tuned models often need fewer epochs.
+* **Improved generalization:** pre-trained models learn broad molecular patterns.
+* **Domain adaptation:** a model can be adapted from a general chemical dataset to a specialized molecular domain.
+
+
+#### Example Scenario
+
+```text
+Goal:
+Predict BBB permeability using only 5,000 labeled molecules.
+
+Training from scratch:
+- Uses only the BBB dataset
+- Needs more epochs
+- Higher risk of overfitting
+
+Transfer learning:
+- Pre-train on a large molecular dataset
+- Learn general chemical representations
+- Fine-tune on the BBB dataset
+- Usually converges faster and generalizes better
 ```
-Problem: Predict BBB permeability (only 5,000 labeled molecules)
 
-Solution 1 (From Scratch):
-├─ Train model on 5,000 BBB molecules
-├─ Performance: R² = 0.65
-└─ Training time: 50 epochs
 
-Solution 2 (Transfer Learning):
-├─ Pre-train on 1M molecules (solubility + LogP + toxicity)
-├─ Fine-tune on 5,000 BBB molecules
-├─ Performance: R² = 0.82 (+26%)
-└─ Training time: 10 epochs (5x faster)
-```
 
 ### 6.2 Pre-Training Strategies
 
-**1. Self-Supervised Pre-training with Autoencoders**
+#### 1. Autoencoder Pre-Training
 
-Learn molecular representations by reconstructing input:
+An autoencoder learns molecular representations by reconstructing its input.
+
+For molecular fingerprints:
+
+$$
+\mathbf{x} \rightarrow \mathbf{z} \rightarrow \hat{\mathbf{x}}
+$$
+
+where:
+
+* $\mathbf{x}$ is the input fingerprint,
+* $\mathbf{z}$ is the compressed latent representation,
+* $\hat{\mathbf{x}}$ is the reconstructed fingerprint.
+
+The reconstruction loss can be written as:
+
+$$
+L =
+\frac{1}{n}
+\sum_{i=1}^{n}
+(\mathbf{x}_i - \hat{\mathbf{x}}_i)^2
+$$
+
+#### Corrected Autoencoder Example
 
 ```python
+import copy
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+from torch.utils.data import DataLoader, TensorDataset
+
+from rdkit import Chem
+from rdkit.Chem import AllChem
+
+
 class MolecularAutoencoder(nn.Module):
     """
-    Autoencoder for learning molecular representations
+    Autoencoder for learning molecular fingerprint representations.
     """
+
     def __init__(self, input_dim=2048, encoding_dim=256):
-        super(MolecularAutoencoder, self).__init__()
-        
-        # Encoder
+        super().__init__()
+
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, 1024),
             nn.ReLU(),
             nn.BatchNorm1d(1024),
+
             nn.Linear(1024, 512),
             nn.ReLU(),
             nn.BatchNorm1d(512),
+
             nn.Linear(512, encoding_dim),
             nn.ReLU()
         )
-        
-        # Decoder
+
         self.decoder = nn.Sequential(
             nn.Linear(encoding_dim, 512),
             nn.ReLU(),
             nn.BatchNorm1d(512),
+
             nn.Linear(512, 1024),
             nn.ReLU(),
             nn.BatchNorm1d(1024),
+
             nn.Linear(1024, input_dim),
-            nn.Sigmoid()  # Output in [0, 1] for fingerprints
+            nn.Sigmoid()
         )
-    
+
     def forward(self, x):
-        encoding = self.encoder(x)
-        reconstruction = self.decoder(encoding)
+        z = self.encoder(x)
+        reconstruction = self.decoder(z)
         return reconstruction
-    
+
     def encode(self, x):
-        """Extract learned representations"""
         return self.encoder(x)
 
-# Pre-training on large unlabeled dataset
-def pretrain_autoencoder(smiles_list, num_epochs=100):
+
+def smiles_to_fingerprints(smiles_list, radius=2, n_bits=2048):
     """
-    Pre-train autoencoder on large molecular dataset
+    Convert SMILES strings to Morgan fingerprints.
+    Invalid molecules are skipped.
     """
-    # Generate fingerprints
+
     fingerprints = []
+
     for smiles in smiles_list:
-        mol = Chem.MolFromSmiles(smiles)
-        if mol:
-            fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, 2048)
-            fingerprints.append(np.array(fp))
-    
-    fingerprints = torch.FloatTensor(np.array(fingerprints))
-    dataset = TensorDataset(fingerprints, fingerprints)  # Input = target
-    dataloader = DataLoader(dataset, batch_size=256, shuffle=True)
-    
-    # Create and train autoencoder
-    autoencoder = MolecularAutoencoder(input_dim=2048, encoding_dim=256)
-    optimizer = optim.Adam(autoencoder.parameters(), lr=0.001)
+        mol = Chem.MolFromSmiles(str(smiles))
+
+        if mol is None:
+            continue
+
+        fp = AllChem.GetMorganFingerprintAsBitVect(
+            mol,
+            radius,
+            nBits=n_bits
+        )
+
+        fingerprints.append(np.asarray(fp, dtype=np.float32))
+
+    if len(fingerprints) == 0:
+        raise ValueError("No valid molecules were found.")
+
+    return np.asarray(fingerprints, dtype=np.float32)
+
+
+def pretrain_autoencoder(
+    smiles_list,
+    input_dim=2048,
+    encoding_dim=256,
+    batch_size=256,
+    num_epochs=50,
+    learning_rate=1e-3,
+    device=None
+):
+    """
+    Pre-train an autoencoder on unlabeled molecular fingerprints.
+    """
+
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    device = torch.device(device)
+
+    fingerprints = smiles_to_fingerprints(
+        smiles_list,
+        n_bits=input_dim
+    )
+
+    x = torch.tensor(fingerprints, dtype=torch.float32)
+
+    dataset = TensorDataset(x, x)
+
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=True
+    )
+
+    model = MolecularAutoencoder(
+        input_dim=input_dim,
+        encoding_dim=encoding_dim
+    ).to(device)
+
+    optimizer = optim.AdamW(
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=1e-5
+    )
+
     criterion = nn.MSELoss()
-    
+
     for epoch in range(num_epochs):
-        total_loss = 0
+        model.train()
+        total_loss = 0.0
+        total_samples = 0
+
         for batch_x, _ in dataloader:
+            batch_x = batch_x.to(device)
+
             optimizer.zero_grad()
-            reconstruction = autoencoder(batch_x)
+
+            reconstruction = model(batch_x)
+
             loss = criterion(reconstruction, batch_x)
+
             loss.backward()
             optimizer.step()
-            total_loss += loss.item()
-        
-        if (epoch + 1) % 10 == 0:
-            print(f"Epoch {epoch+1}, Loss: {total_loss/len(dataloader):.4f}")
-    
-    return autoencoder
 
-# Use pre-trained encoder for downstream task
+            total_loss += loss.item() * batch_x.size(0)
+            total_samples += batch_x.size(0)
+
+        avg_loss = total_loss / total_samples
+
+        if (epoch + 1) % 10 == 0:
+            print(
+                f"Epoch {epoch + 1}/{num_epochs}, "
+                f"Reconstruction Loss: {avg_loss:.4f}"
+            )
+
+    return model
+```
+
+
+### 6.3 Using the Pre-Trained Encoder
+
+After pre-training, the encoder can be reused for a supervised molecular property prediction task.
+
+The downstream model is:
+
+$$
+\hat{y} = g_\phi(\text{encoder}_\theta(\mathbf{x}))
+$$
+
+where:
+
+* $\text{encoder}_\theta$ is the pre-trained encoder,
+* $g_\phi$ is a new prediction head,
+* $\hat{y}$ is the target property prediction.
+
+```python
 class PretrainedMolecularModel(nn.Module):
     """
-    Use pre-trained encoder for property prediction
+    Molecular property predictor using a pre-trained encoder.
     """
-    def __init__(self, pretrained_encoder, output_dim=1, freeze_encoder=False):
-        super(PretrainedMolecularModel, self).__init__()
-        
-        self.encoder = pretrained_encoder.encoder
-        
-        # Freeze encoder weights if specified
+
+    def __init__(
+        self,
+        pretrained_autoencoder,
+        encoding_dim=256,
+        output_dim=1,
+        freeze_encoder=False
+    ):
+        super().__init__()
+
+        self.encoder = pretrained_autoencoder.encoder
+
         if freeze_encoder:
-            for param in self.encoder.parameters():
-                param.requires_grad = False
-        
-        # Add prediction head
+            for parameter in self.encoder.parameters():
+                parameter.requires_grad = False
+
         self.prediction_head = nn.Sequential(
-            nn.Linear(256, 128),
+            nn.Linear(encoding_dim, 128),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(128, output_dim)
         )
-    
+
     def forward(self, x):
         features = self.encoder(x)
-        predictions = self.prediction_head(features)
-        return predictions
+        prediction = self.prediction_head(features)
+        return prediction
 ```
 
-**2. Multi-Task Pre-training**
+### 6.4 Fine-Tuning Workflow
 
-Train on multiple related properties simultaneously:
+Fine-tuning adapts the pre-trained model to a specific task.
 
-```python
-def pretrain_multitask(smiles_list, properties_dict, task_configs):
-    """
-    Pre-train on multiple molecular properties
-    
-    Args:
-        smiles_list: List of SMILES strings
-        properties_dict: Dict of {property_name: values_array}
-        task_configs: List of task configurations
-    
-    Returns:
-        Pre-trained model
-    """
-    # Create multi-task model
-    model = MultiTaskMolecularModel(
-        input_dim=2048,
-        shared_dims=[512, 256],
-        task_configs=task_configs
-    )
-    
-    # Prepare dataset
-    fingerprints = []
-    labels = {task['name']: [] for task in task_configs}
-    
-    for smiles in smiles_list:
-        mol = Chem.MolFromSmiles(smiles)
-        if mol:
-            fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, 2048)
-            fingerprints.append(np.array(fp))
-            
-            for task in task_configs:
-                task_name = task['name']
-                labels[task_name].append(properties_dict[task_name])
-    
-    # Train multi-task model
-    # (Training code similar to Section 3)
-    # ...
-    
-    return model
-```
+Typical strategies:
 
-**3. Masked Language Model (for SMILES)**
+1. **Freeze the encoder:** train only the new prediction head.
+2. **Fine-tune all layers:** update the encoder and prediction head together.
+3. **Gradual unfreezing:** start with a frozen encoder, then progressively unfreeze layers.
 
-Similar to BERT, mask random tokens and predict them:
+#### Dataset for Fine-Tuning
 
 ```python
-class MaskedSMILESModel(nn.Module):
+class MolecularFingerprintDataset(torch.utils.data.Dataset):
     """
-    BERT-like masked language model for SMILES
+    Dataset for supervised molecular property prediction.
     """
-    def __init__(self, vocab_size, embedding_dim=256, hidden_dim=512, num_layers=6):
-        super(MaskedSMILESModel, self).__init__()
-        
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        
-        # Transformer encoder
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=embedding_dim,
-            nhead=8,
-            dim_feedforward=hidden_dim,
-            dropout=0.1
+
+    def __init__(self, smiles_list, labels, n_bits=2048):
+        fingerprints = []
+        valid_labels = []
+
+        for smiles, label in zip(smiles_list, labels):
+            mol = Chem.MolFromSmiles(str(smiles))
+
+            if mol is None:
+                continue
+
+            fp = AllChem.GetMorganFingerprintAsBitVect(
+                mol,
+                2,
+                nBits=n_bits
+            )
+
+            fingerprints.append(np.asarray(fp, dtype=np.float32))
+            valid_labels.append(label)
+
+        if len(fingerprints) == 0:
+            raise ValueError("No valid molecules were found.")
+
+        self.x = torch.tensor(
+            np.asarray(fingerprints),
+            dtype=torch.float32
         )
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-        
-        # Prediction head for masked tokens
-        self.mlm_head = nn.Linear(embedding_dim, vocab_size)
-    
-    def forward(self, x, mask=None):
-        embedded = self.embedding(x)
-        encoded = self.transformer(embedded, src_key_padding_mask=mask)
-        predictions = self.mlm_head(encoded)
-        return predictions
 
-def create_masked_data(smiles_list, tokenizer, mask_prob=0.15):
-    """
-    Create masked SMILES for pre-training
-    
-    Args:
-        smiles_list: List of SMILES strings
-        tokenizer: SMILES tokenizer
-        mask_prob: Probability of masking each token
-    
-    Returns:
-        masked_inputs, targets
-    """
-    masked_inputs = []
-    targets = []
-    
-    for smiles in smiles_list:
-        encoded = tokenizer.encode(smiles)
-        masked = encoded.copy()
-        
-        for i in range(len(encoded)):
-            if np.random.random() < mask_prob:
-                masked[i] = tokenizer.token_to_idx['<MASK>']
-        
-        masked_inputs.append(masked)
-        targets.append(encoded)
-    
-    return torch.LongTensor(masked_inputs), torch.LongTensor(targets)
+        self.y = torch.tensor(
+            np.asarray(valid_labels),
+            dtype=torch.float32
+        ).view(-1, 1)
+
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self, idx):
+        return self.x[idx], self.y[idx]
 ```
 
-### 6.3 Fine-Tuning Workflow
-
-**Complete Fine-Tuning Pipeline:**
+#### Corrected Fine-Tuning Function
 
 ```python
-def fine_tune_pretrained_model(pretrained_model, smiles_train, y_train, 
-                               smiles_val, y_val, freeze_layers=True):
+from sklearn.metrics import mean_squared_error
+
+
+def fine_tune_pretrained_model(
+    pretrained_autoencoder,
+    smiles_train,
+    y_train,
+    smiles_val,
+    y_val,
+    freeze_encoder=True,
+    batch_size=64,
+    num_epochs=30,
+    learning_rate=1e-4,
+    device=None
+):
     """
-    Fine-tune pre-trained model on downstream task
-    
-    Args:
-        pretrained_model: Pre-trained neural network
-        smiles_train, y_train: Training data for downstream task
-        smiles_val, y_val: Validation data
-        freeze_layers: Whether to freeze early layers
-    
-    Returns:
-        fine_tuned_model, history
+    Fine-tune a pre-trained molecular encoder on a downstream regression task.
     """
-    # Create model with pre-trained weights
+
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    device = torch.device(device)
+
     model = PretrainedMolecularModel(
-        pretrained_encoder=pretrained_model,
+        pretrained_autoencoder=pretrained_autoencoder,
+        encoding_dim=256,
         output_dim=1,
-        freeze_encoder=freeze_layers
+        freeze_encoder=freeze_encoder
+    ).to(device)
+
+    train_dataset = MolecularFingerprintDataset(
+        smiles_train,
+        y_train
     )
-    
-    # Prepare data
-    train_dataset = MolecularDataset(smiles_train, y_train)
-    val_dataset = MolecularDataset(smiles_val, y_val)
-    
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=64)
-    
-    # Use lower learning rate for fine-tuning
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)  # 10x smaller than from-scratch
+
+    val_dataset = MolecularFingerprintDataset(
+        smiles_val,
+        y_val
+    )
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False
+    )
+
+    optimizer = optim.AdamW(
+        filter(lambda p: p.requires_grad, model.parameters()),
+        lr=learning_rate,
+        weight_decay=1e-5
+    )
+
     criterion = nn.MSELoss()
-    
-    # Training configuration
-    num_epochs = 30  # Fewer epochs needed
-    best_val_loss = float('inf')
+
+    history = {
+        "train_loss": [],
+        "val_loss": [],
+        "val_rmse": []
+    }
+
+    best_val_loss = float("inf")
+    best_model_state = copy.deepcopy(model.state_dict())
     patience = 10
     patience_counter = 0
-    
-    history = {'train_loss': [], 'val_loss': [], 'val_rmse': []}
-    
+
     for epoch in range(num_epochs):
-        # Training
         model.train()
-        train_loss = 0
-        
+
+        train_loss = 0.0
+        train_samples = 0
+
         for batch_x, batch_y in train_loader:
+            batch_x = batch_x.to(device)
+            batch_y = batch_y.to(device)
+
             optimizer.zero_grad()
+
             predictions = model(batch_x)
+
             loss = criterion(predictions, batch_y)
+
             loss.backward()
             optimizer.step()
-            train_loss += loss.item()
-        
-        # Validation
+
+            train_loss += loss.item() * batch_x.size(0)
+            train_samples += batch_x.size(0)
+
+        train_loss /= train_samples
+
         model.eval()
-        val_loss = 0
-        all_preds = []
+
+        val_loss = 0.0
+        val_samples = 0
+        all_predictions = []
         all_labels = []
-        
+
         with torch.no_grad():
             for batch_x, batch_y in val_loader:
+                batch_x = batch_x.to(device)
+                batch_y = batch_y.to(device)
+
                 predictions = model(batch_x)
+
                 loss = criterion(predictions, batch_y)
-                val_loss += loss.item()
-                
-                all_preds.extend(predictions.numpy())
-                all_labels.extend(batch_y.numpy())
-        
-        train_loss /= len(train_loader)
-        val_loss /= len(val_loader)
-        val_rmse = np.sqrt(mean_squared_error(all_labels, all_preds))
-        
-        history['train_loss'].append(train_loss)
-        history['val_loss'].append(val_loss)
-        history['val_rmse'].append(val_rmse)
-        
-        print(f"Epoch {epoch+1}/{num_epochs}: "
-              f"Train Loss={train_loss:.4f}, Val Loss={val_loss:.4f}, RMSE={val_rmse:.4f}")
-        
-        # Early stopping
+
+                val_loss += loss.item() * batch_x.size(0)
+                val_samples += batch_x.size(0)
+
+                all_predictions.append(predictions.cpu().numpy())
+                all_labels.append(batch_y.cpu().numpy())
+
+        val_loss /= val_samples
+
+        all_predictions = np.concatenate(all_predictions).ravel()
+        all_labels = np.concatenate(all_labels).ravel()
+
+        val_rmse = np.sqrt(
+            mean_squared_error(all_labels, all_predictions)
+        )
+
+        history["train_loss"].append(train_loss)
+        history["val_loss"].append(val_loss)
+        history["val_rmse"].append(val_rmse)
+
+        print(
+            f"Epoch {epoch + 1}/{num_epochs}: "
+            f"Train Loss={train_loss:.4f}, "
+            f"Val Loss={val_loss:.4f}, "
+            f"RMSE={val_rmse:.4f}"
+        )
+
         if val_loss < best_val_loss:
             best_val_loss = val_loss
+            best_model_state = copy.deepcopy(model.state_dict())
             patience_counter = 0
-            torch.save(model.state_dict(), 'best_finetuned_model.pth')
         else:
             patience_counter += 1
-            if patience_counter >= patience:
-                print(f"Early stopping at epoch {epoch+1}")
-                break
-    
-    # Load best model
-    model.load_state_dict(torch.load('best_finetuned_model.pth'))
-    
-    return model, history
 
-# Gradual unfreezing strategy
-def gradual_unfreezing(model, train_loader, val_loader, num_phases=3):
+        if patience_counter >= patience:
+            print(f"Early stopping at epoch {epoch + 1}")
+            break
+
+    model.load_state_dict(best_model_state)
+
+    return model, history
+```
+
+### 6.5 Gradual Unfreezing
+
+Gradual unfreezing is useful when the downstream dataset is small. It avoids changing the 
+pre-trained encoder too aggressively at the beginning of fine-tuning.
+
+```python
+def set_requires_grad(module, value):
+    for parameter in module.parameters():
+        parameter.requires_grad = value
+
+
+def gradual_unfreezing(
+    model,
+    train_loader,
+    criterion,
+    device,
+    phase_epochs=5
+):
     """
-    Gradually unfreeze layers during fine-tuning
-    
-    Phase 1: Freeze all, train head only
-    Phase 2: Unfreeze top encoder layers
-    Phase 3: Unfreeze all layers
+    Fine-tune the model in stages.
+
+    Phase 1:
+        Freeze encoder and train only the prediction head.
+
+    Phase 2:
+        Unfreeze encoder and train the full model with a smaller learning rate.
     """
-    all_layers = list(model.encoder.children())
-    criterion = nn.MSELoss()
-    
-    for phase in range(num_phases):
-        print(f"\nPhase {phase+1}/{num_phases}")
-        
-        # Determine which layers to unfreeze
-        if phase == 0:
-            # Freeze all encoder layers
-            for param in model.encoder.parameters():
-                param.requires_grad = False
-        elif phase == 1:
-            # Unfreeze last 1/3 of encoder layers
-            unfreeze_from = len(all_layers) * 2 // 3
-            for i, layer in enumerate(all_layers):
-                if i >= unfreeze_from:
-                    for param in layer.parameters():
-                        param.requires_grad = True
-        else:
-            # Unfreeze all layers
-            for param in model.encoder.parameters():
-                param.requires_grad = True
-        
-        # Use decreasing learning rate for each phase
-        lr = 1e-3 / (10 ** phase)
-        optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
-        
-        # Train for this phase
-        for epoch in range(10):
-            train_epoch(model, train_loader, criterion, optimizer)
-    
+
+    phases = [
+        {
+            "name": "Train prediction head only",
+            "freeze_encoder": True,
+            "learning_rate": 1e-3
+        },
+        {
+            "name": "Fine-tune full model",
+            "freeze_encoder": False,
+            "learning_rate": 1e-4
+        }
+    ]
+
+    for phase in phases:
+        print(f"\n{phase['name']}")
+
+        set_requires_grad(
+            model.encoder,
+            not phase["freeze_encoder"]
+        )
+
+        optimizer = optim.AdamW(
+            filter(lambda p: p.requires_grad, model.parameters()),
+            lr=phase["learning_rate"],
+            weight_decay=1e-5
+        )
+
+        for epoch in range(phase_epochs):
+            model.train()
+            total_loss = 0.0
+            total_samples = 0
+
+            for batch_x, batch_y in train_loader:
+                batch_x = batch_x.to(device)
+                batch_y = batch_y.to(device)
+
+                optimizer.zero_grad()
+
+                predictions = model(batch_x)
+
+                loss = criterion(predictions, batch_y)
+
+                loss.backward()
+                optimizer.step()
+
+                total_loss += loss.item() * batch_x.size(0)
+                total_samples += batch_x.size(0)
+
+            print(
+                f"Epoch {epoch + 1}/{phase_epochs}, "
+                f"Loss: {total_loss / total_samples:.4f}"
+            )
+
     return model
 ```
 
-### 6.4 Pre-Trained Models (ChemBERTa)
 
-**Using ChemBERTa** (Chemical BERT Architecture):
+### 6.6 Pre-Trained Language Models for Molecules
+
+SMILES strings can also be treated as a chemical language. Models such as ChemBERTa are trained 
+on large SMILES datasets and can be fine-tuned for molecular property prediction.
+
+A transformer-based model learns contextual token representations:
+
+$$
+\mathbf{H} = \text{Transformer}(\text{SMILES tokens})
+$$
+
+The prediction head then maps the sequence representation to a molecular property:
+
+$$
+\hat{y} = g(\mathbf{h}_{\text{CLS}})
+$$
+
+
+#### ChemBERTa Fine-Tuning Example
 
 ```python
-from transformers import AutoTokenizer, AutoModel
 import torch
+import torch.nn as nn
+from transformers import AutoTokenizer, AutoModel
+
 
 class ChemBERTaFineTuner(nn.Module):
     """
-    Fine-tune ChemBERTa for molecular property prediction
+    Fine-tune ChemBERTa for molecular property prediction.
     """
-    def __init__(self, output_dim=1, dropout_rate=0.3):
-        super(ChemBERTaFineTuner, self).__init__()
-        
-        # Load pre-trained ChemBERTa
-        self.chemberta = AutoModel.from_pretrained("seyonec/ChemBERTa-zinc-base-v1")
-        
-        # Add prediction head
+
+    def __init__(
+        self,
+        model_name="seyonec/ChemBERTa-zinc-base-v1",
+        output_dim=1,
+        dropout_rate=0.3
+    ):
+        super().__init__()
+
+        self.chemberta = AutoModel.from_pretrained(model_name)
+
         hidden_size = self.chemberta.config.hidden_size
+
         self.prediction_head = nn.Sequential(
             nn.Linear(hidden_size, 256),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
             nn.Linear(256, output_dim)
         )
-    
-    def forward(self, input_ids, attention_mask):
-        """
-        Args:
-            input_ids: Tokenized SMILES (batch_size, seq_length)
-            attention_mask: Attention mask (batch_size, seq_length)
-        
-        Returns:
-            Predictions (batch_size, output_dim)
-        """
-        # Get ChemBERTa embeddings
-        outputs = self.chemberta(input_ids=input_ids, attention_mask=attention_mask)
-        
-        # Use [CLS] token representation
-        cls_embedding = outputs.last_hidden_state[:, 0, :]
-        
-        # Prediction
-        predictions = self.prediction_head(cls_embedding)
-        
-        return predictions
 
-# Usage example
-def use_chemberta(smiles_list, labels):
+    def forward(self, input_ids, attention_mask):
+        outputs = self.chemberta(
+            input_ids=input_ids,
+            attention_mask=attention_mask
+        )
+
+        cls_embedding = outputs.last_hidden_state[:, 0, :]
+
+        prediction = self.prediction_head(cls_embedding)
+
+        return prediction
+```
+
+#### Corrected ChemBERTa Training Example
+
+```python
+def fine_tune_chemberta(
+    smiles_train,
+    y_train,
+    model_name="seyonec/ChemBERTa-zinc-base-v1",
+    num_epochs=5,
+    learning_rate=2e-5,
+    batch_size=16,
+    device=None
+):
     """
-    Fine-tune ChemBERTa on your dataset
+    Fine-tune ChemBERTa on a molecular regression task.
     """
-    # Load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained("seyonec/ChemBERTa-zinc-base-v1")
-    
-    # Tokenize SMILES
+
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    device = torch.device(device)
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+
     encoded = tokenizer(
-        smiles_list,
+        list(smiles_train),
         padding=True,
         truncation=True,
-        max_length=512,
-        return_tensors='pt'
+        max_length=256,
+        return_tensors="pt"
     )
-    
-    # Create model
-    model = ChemBERTaFineTuner(output_dim=1)
-    
-    # Training loop
-    optimizer = optim.AdamW(model.parameters(), lr=2e-5)
+
+    labels = torch.tensor(
+        y_train,
+        dtype=torch.float32
+    ).view(-1, 1)
+
+    dataset = TensorDataset(
+        encoded["input_ids"],
+        encoded["attention_mask"],
+        labels
+    )
+
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=True
+    )
+
+    model = ChemBERTaFineTuner(
+        model_name=model_name,
+        output_dim=1
+    ).to(device)
+
+    optimizer = optim.AdamW(
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=1e-5
+    )
+
     criterion = nn.MSELoss()
-    
-    model.train()
-    for epoch in range(10):
-        optimizer.zero_grad()
-        
-        predictions = model(
-            input_ids=encoded['input_ids'],
-            attention_mask=encoded['attention_mask']
+
+    for epoch in range(num_epochs):
+        model.train()
+        total_loss = 0.0
+        total_samples = 0
+
+        for input_ids, attention_mask, batch_y in dataloader:
+            input_ids = input_ids.to(device)
+            attention_mask = attention_mask.to(device)
+            batch_y = batch_y.to(device)
+
+            optimizer.zero_grad()
+
+            predictions = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask
+            )
+
+            loss = criterion(predictions, batch_y)
+
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item() * input_ids.size(0)
+            total_samples += input_ids.size(0)
+
+        print(
+            f"Epoch {epoch + 1}/{num_epochs}, "
+            f"Loss: {total_loss / total_samples:.4f}"
         )
-        
-        loss = criterion(predictions.squeeze(), labels)
-        loss.backward()
-        optimizer.step()
-        
-        print(f"Epoch {epoch+1}, Loss: {loss.item():.4f}")
-    
+
     return model
 ```
 
-### 6.5 Results and Comparisons
 
-**Comparison Study:**
+### 6.7 Comparing Transfer Learning Strategies
+
+The best transfer learning strategy depends on the available data and molecular representation.
+
+| Strategy                | Best When                           | Strength                               |
+| ----------------------- | ----------------------------------- | -------------------------------------- |
+| Train from scratch      | Large labeled dataset available     | Simple baseline                        |
+| Autoencoder transfer    | Many unlabeled molecules available  | Learns compact fingerprint features    |
+| Multi-task pre-training | Related labeled tasks are available | Shares information across endpoints    |
+| ChemBERTa fine-tuning   | SMILES data are available           | Uses large-scale language pre-training |
+
+
+#### Corrected Comparison Template
 
 ```python
-def compare_transfer_learning_strategies(smiles_train, y_train, smiles_val, y_val):
+def compare_transfer_learning_strategies():
     """
-    Compare different transfer learning approaches
+    Template for comparing transfer learning strategies.
+
+    This function is intentionally a template because each strategy requires
+    different datasets and training routines.
     """
-    results = {}
-    
-    # Strategy 1: Train from scratch (baseline)
-    print("\n1. Training from scratch...")
-    scratch_model = MolecularFNN(input_dim=2048)
-    scratch_history = train_model(scratch_model, smiles_train, y_train, smiles_val, y_val)
-    results['From Scratch'] = evaluate_model(scratch_model, smiles_val, y_val)
-    
-    # Strategy 2: Pre-trained autoencoder
-    print("\n2. Pre-trained autoencoder + fine-tuning...")
-    # Pre-train on large unlabeled dataset (e.g., ZINC database)
-    large_smiles = load_large_dataset()  # Assume 1M molecules
-    autoencoder = pretrain_autoencoder(large_smiles, num_epochs=100)
-    
-    transfer_model = PretrainedMolecularModel(autoencoder, freeze_encoder=True)
-    transfer_history = fine_tune_pretrained_model(transfer_model, smiles_train, y_train, 
-                                                   smiles_val, y_val)
-    results['Autoencoder Transfer'] = evaluate_model(transfer_model, smiles_val, y_val)
-    
-    # Strategy 3: Multi-task pre-training
-    print("\n3. Multi-task pre-training + fine-tuning...")
-    multitask_model = pretrain_multitask(large_smiles, properties_dict, task_configs)
-    multitask_transfer = fine_tune_pretrained_model(multitask_model, smiles_train, y_train,
-                                                    smiles_val, y_val)
-    results['Multi-Task Transfer'] = evaluate_model(multitask_transfer, smiles_val, y_val)
-    
-    # Strategy 4: ChemBERTa
-    print("\n4. ChemBERTa fine-tuning...")
-    chemberta_model = ChemBERTaFineTuner()
-    chemberta_history = fine_tune_chemberta(chemberta_model, smiles_train, y_train,
-                                           smiles_val, y_val)
-    results['ChemBERTa'] = evaluate_model(chemberta_model, smiles_val, y_val)
-    
-    # Print comparison
-    print("\n" + "="*70)
+
+    results = {
+        "From Scratch": {
+            "RMSE": 0.95,
+            "R2": 0.68,
+            "Training Time": "120 min"
+        },
+        "Autoencoder Transfer": {
+            "RMSE": 0.78,
+            "R2": 0.79,
+            "Training Time": "45 min"
+        },
+        "Multi-Task Transfer": {
+            "RMSE": 0.72,
+            "R2": 0.82,
+            "Training Time": "35 min"
+        },
+        "ChemBERTa": {
+            "RMSE": 0.65,
+            "R2": 0.87,
+            "Training Time": "25 min"
+        }
+    }
+
+    print("\n" + "=" * 70)
     print("TRANSFER LEARNING COMPARISON")
-    print("="*70)
-    print(f"{'Strategy':<30} {'RMSE':<10} {'R²':<10} {'Training Time':<15}")
-    print("-"*70)
-    
+    print("=" * 70)
+
+    print(
+        f"{'Strategy':<30} "
+        f"{'RMSE':<10} "
+        f"{'R2':<10} "
+        f"{'Training Time':<15}"
+    )
+
+    print("-" * 70)
+
     for strategy, metrics in results.items():
-        print(f"{strategy:<30} {metrics['RMSE']:<10.4f} {metrics['R²']:<10.4f} "
-              f"{metrics['time']:<15.1f}s")
-    
+        print(
+            f"{strategy:<30} "
+            f"{metrics['RMSE']:<10.4f} "
+            f"{metrics['R2']:<10.4f} "
+            f"{metrics['Training Time']:<15}"
+        )
+
     return results
 ```
 
-**Expected Results (BBB Permeability Example):**
+### 6.8 Key Takeaways
 
-| Strategy | RMSE | R² | Data Required | Training Time | Improvement |
-|----------|------|-----|---------------|---------------|-------------|
-| From Scratch | 0.95 | 0.68 | 5,000 | 120 min | Baseline |
-| Autoencoder Transfer | 0.78 | 0.79 | 5,000 | 45 min | +16% |
-| Multi-Task Transfer | 0.72 | 0.82 | 5,000 | 35 min | +20% |
-| ChemBERTa | 0.65 | 0.87 | 5,000 | 25 min | +28% |
-| ChemBERTa (Low Data) | 0.82 | 0.75 | 500 | 15 min | Still viable |
+Transfer learning is most valuable when the target dataset is small or noisy. In molecular machine learning, 
+it can improve performance by reusing general chemical knowledge learned from larger datasets.
 
-**Key Insights:**
+Practical recommendations:
 
-1. Transfer learning provides 15-30% improvement in performance
-2. Training time reduced by 60-80%
-3. Most effective when target task has limited data (<10K samples)
-4. ChemBERTa performs best due to massive pre-training on 77M molecules
-5. Multi-task pre-training excellent when related properties available
-
-
+* Use a **from-scratch model** as a baseline.
+* Use **autoencoder transfer** when you have many unlabeled molecules.
+* Use **multi-task pre-training** when related molecular properties are available.
+* Use **ChemBERTa or similar transformer models** when working directly with SMILES strings.
+* Fine-tune with a smaller learning rate than training from scratch.
+* Start with a frozen encoder, then unfreeze if validation performance stops improving.
 
 ## 7. Complete Practical Exercise
 
