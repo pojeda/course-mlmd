@@ -2834,741 +2834,544 @@ def model_surface(bulk_structure, miller_indices=(1,1,1)):
        run_dft_calculation()
    ```
 
----
+## 6. Practical: Building a GAT for the QM9 Dataset
 
-### 6. Practical: Building a GAT for QM9 Dataset
+In this practical example, we build a **Graph Attention Network (GAT)** to predict a quantum-chemical 
+molecular property from the QM9 dataset using PyTorch Geometric.
 
-In this hands-on session, we'll build a Graph Attention Network to predict molecular properties on the QM9 dataset. This practical will cover the complete workflow from data loading to model evaluation and interpretation.
+QM9 contains small organic molecules with atom-level features, bond connectivity, 3D coordinates, and several 
+regression targets computed from quantum chemistry calculations. Here we predict the **HOMO energy**, which 
+is target index (2).
 
-#### Dataset Overview
+The learning problem is:
 
-**QM9 Dataset:**
+$$
+f_\theta(G) \rightarrow y
+$$
 
-The QM9 dataset is a quantum chemistry benchmark containing:
-- **134,000 small organic molecules** (subset of GDB-17 database)
-- **Up to 9 heavy atoms** (C, O, N, F) - excludes hydrogen in counting
-- **19 regression targets** computed with Density Functional Theory (DFT)
-- **3D molecular geometries** with optimized coordinates
+where $G$ is a molecular graph and $y$ is the target molecular property.
 
-**Target Properties:**
 
-```
-Index  Property                          Units        Typical Range
-0      Dipole moment                     D            0-5
-1      Isotropic polarizability          a₀³          10-100  
-2      HOMO energy                       eV           -12 to -5
-3      LUMO energy                       eV           -5 to 5
-4      HOMO-LUMO gap                     eV           2-15
-5      Electronic spatial extent         a₀²          200-1500
-6      Zero-point vibrational energy     eV           0.5-3.0
-7      Internal energy (0K)              eV           -100 to 0
-8      Internal energy (298K)            eV           -100 to 0
-9      Enthalpy (298K)                   eV           -100 to 0
-10     Free energy (298K)                eV           -100 to 0
-11     Heat capacity (298K)              cal/mol/K    10-40
-12     Atomization energy (0K)           eV           -100 to 0
-13     Atomization energy (298K)         eV           -100 to 0
-14-18  Rotational constants A,B,C        GHz          Various
-```
-
-**Why QM9 is Important:**
-
-1. **Benchmark standard**: Most papers report QM9 results
-2. **Diverse chemistry**: Various functional groups and structures
-3. **Ground truth quality**: High-level DFT calculations (B3LYP/6-31G(2df,p))
-4. **Moderate size**: Large enough to train deep models, small enough to iterate quickly
-5. **Multi-task learning**: 19 targets allow testing generalization
-
-**Data Format:**
 
 ```python
-# Each molecule has:
-molecule = {
-    'num_atoms': 18,
-    'atomic_numbers': [6, 6, 6, 1, 1, ...],  # Element types
-    'positions': [[x1,y1,z1], [x2,y2,z2], ...],  # 3D coordinates (Å)
-    'edge_index': [[0,1], [1,2], ...],  # Bond connectivity
-    'edge_attr': [[1], [2], ...],  # Bond types (1=single, 2=double, 3=triple)
-    'y': [2.7, 48.2, -7.8, ...],  # 19 target properties
-}
-```
+# Graph Attention Network for QM9 Property Prediction
+# pip uninstall -y rdkit rdkit-pypi
 
-#### Implementation Steps
+import copy
+import random
+import numpy as np
+import matplotlib.pyplot as plt
 
-**Step 1: Data Loading and Preprocessing**
-
-```python
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
 from torch_geometric.datasets import QM9
 from torch_geometric.loader import DataLoader
-from torch_geometric.nn import GATConv, global_mean_pool, global_add_pool
-import numpy as np
-from sklearn.metrics import mean_absolute_error, r2_score
-import matplotlib.pyplot as plt
+from torch_geometric.nn import GATConv, global_mean_pool
 
-# Set random seeds for reproducibility
-torch.manual_seed(42)
-np.random.seed(42)
 
-# Load QM9 dataset
-# This will download ~200MB on first run
+# 1. Reproducibility
+seed = 42
+
+random.seed(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(seed)
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
+# 2. Load QM9 Dataset
+
 print("Loading QM9 dataset...")
-dataset = QM9(root='./data/QM9')
+
+dataset = QM9(root="./data/QM9")
+
 print(f"Total molecules: {len(dataset)}")
-print(f"Number of features: {dataset.num_features}")
-print(f"Number of targets: {dataset.num_tasks}")
+print(f"Node feature dimension: {dataset.num_node_features}")
+print(f"Number of targets: {dataset[0].y.shape[-1]}")
 
-# Select target property to predict
-# Let's predict HOMO energy (index 2)
 target_idx = 2
-target_name = 'HOMO_energy'
+target_name = "HOMO energy"
 
-print(f"\nTarget: {target_name} (index {target_idx})")
-print(f"Mean: {dataset.data.y[:, target_idx].mean():.4f}")
-print(f"Std: {dataset.data.y[:, target_idx].std():.4f}")
-
-# Examine a sample molecule
 sample = dataset[0]
-print(f"\nSample molecule:")
+
+print("\nSample molecule:")
 print(f"  Number of atoms: {sample.num_nodes}")
-print(f"  Number of bonds: {sample.num_edges}")
-print(f"  Node features shape: {sample.x.shape}")
-print(f"  Edge indices shape: {sample.edge_index.shape}")
-print(f"  Target values: {sample.y.shape}")
+print(f"  Number of edges: {sample.num_edges}")
+print(f"  Node feature shape: {sample.x.shape}")
+print(f"  Edge index shape: {sample.edge_index.shape}")
+print(f"  Target shape: {sample.y.shape}")
 
-# Split dataset (80% train, 10% validation, 10% test)
-train_size = int(0.8 * len(dataset))
-val_size = int(0.1 * len(dataset))
-test_size = len(dataset) - train_size - val_size
 
-# Use specific indices to ensure consistent splits
-train_dataset = dataset[:train_size]
-val_dataset = dataset[train_size:train_size + val_size]
-test_dataset = dataset[train_size + val_size:]
+# 3. Train / Validation / Test Split
 
-print(f"\nDataset splits:")
-print(f"  Train: {len(train_dataset)} molecules")
-print(f"  Val: {len(val_dataset)} molecules")
-print(f"  Test: {len(test_dataset)} molecules")
+num_molecules = len(dataset)
+indices = torch.randperm(num_molecules)
 
-# Compute normalization statistics from training set only
-# This prevents data leakage
-y_train = torch.stack([data.y[target_idx] for data in train_dataset])
-target_mean = y_train.mean()
-target_std = y_train.std()
+train_size = int(0.8 * num_molecules)
+val_size = int(0.1 * num_molecules)
 
-print(f"\nNormalization (from train set):")
+train_indices = indices[:train_size]
+val_indices = indices[train_size:train_size + val_size]
+test_indices = indices[train_size + val_size:]
+
+train_dataset = dataset[train_indices]
+val_dataset = dataset[val_indices]
+test_dataset = dataset[test_indices]
+
+print("\nDataset split:")
+print(f"  Train: {len(train_dataset)}")
+print(f"  Validation: {len(val_dataset)}")
+print(f"  Test: {len(test_dataset)}")
+
+
+# 4. Target Normalization
+
+train_targets = torch.cat([
+    data.y[:, target_idx] for data in train_dataset
+])
+
+target_mean = train_targets.mean()
+target_std = train_targets.std()
+
+print("\nTarget normalization:")
+print(f"  Target: {target_name}")
 print(f"  Mean: {target_mean:.4f}")
 print(f"  Std: {target_std:.4f}")
 
-# Create data loaders
-batch_size = 32
+
+# 5. DataLoaders
+
+batch_size = 64
 
 train_loader = DataLoader(
-    train_dataset, 
-    batch_size=batch_size, 
-    shuffle=True,  # Shuffle training data
-    num_workers=4  # Parallel data loading
+    train_dataset,
+    batch_size=batch_size,
+    shuffle=True,
+    num_workers=0
 )
+
 val_loader = DataLoader(
-    val_dataset, 
+    val_dataset,
     batch_size=batch_size,
     shuffle=False,
-    num_workers=4
+    num_workers=0
 )
+
 test_loader = DataLoader(
-    test_dataset, 
+    test_dataset,
     batch_size=batch_size,
     shuffle=False,
-    num_workers=4
+    num_workers=0
 )
 
-print(f"\nBatch information:")
-print(f"  Batch size: {batch_size}")
-print(f"  Train batches: {len(train_loader)}")
-print(f"  Val batches: {len(val_loader)}")
-print(f"  Test batches: {len(test_loader)}")
-```
 
-**Understanding the Data:**
+# 6. Define the GAT Model
 
-```python
-# Visualize feature distributions
-def analyze_dataset(dataset, name='Dataset'):
-    """Analyze and visualize dataset statistics"""
-    
-    # Collect statistics
-    num_atoms = [data.num_nodes for data in dataset]
-    num_bonds = [data.num_edges // 2 for data in dataset]  # Divide by 2 (undirected)
-    
-    print(f"\n{name} Statistics:")
-    print(f"  Molecules with 5 atoms: {sum(n == 5 for n in num_atoms)}")
-    print(f"  Molecules with 9 atoms: {sum(n == 9 for n in num_atoms)}")
-    print(f"  Average atoms: {np.mean(num_atoms):.2f}")
-    print(f"  Average bonds: {np.mean(num_bonds):.2f}")
-    
-    # Plot distributions
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-    
-    axes[0].hist(num_atoms, bins=range(5, 11), edgecolor='black', alpha=0.7)
-    axes[0].set_xlabel('Number of Atoms')
-    axes[0].set_ylabel('Frequency')
-    axes[0].set_title('Molecule Size Distribution')
-    axes[0].grid(alpha=0.3)
-    
-    # Get target values
-    targets = [data.y[target_idx].item() for data in dataset]
-    axes[1].hist(targets, bins=50, edgecolor='black', alpha=0.7, color='green')
-    axes[1].set_xlabel(f'{target_name} (eV)')
-    axes[1].set_ylabel('Frequency')
-    axes[1].set_title('Target Distribution')
-    axes[1].grid(alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig(f'{name.lower()}_analysis.png', dpi=150)
-    print(f"  Saved: {name.lower()}_analysis.png")
-
-analyze_dataset(train_dataset, 'Training Set')
-```
-
-**Step 2: Define GAT Model**
-
-```python
 class GATForQM9(nn.Module):
     """
-    Graph Attention Network for molecular property prediction
-    
-    Architecture:
-    - Initial embedding layer
-    - Multiple GAT layers with multi-head attention
-    - Batch normalization and residual connections
-    - Global pooling
-    - MLP prediction head
+    Graph Attention Network for QM9 molecular property prediction.
+
+    The model uses:
+    - an initial linear node embedding,
+    - several GATConv layers,
+    - residual connections,
+    - global mean pooling,
+    - and a final MLP regression head.
     """
-    
-    def __init__(self, 
-                 num_node_features,
-                 hidden_dim=64,
-                 num_heads=4,
-                 num_layers=3,
-                 dropout=0.2,
-                 target_mean=0.0,
-                 target_std=1.0):
-        super(GATForQM9, self).__init__()
-        
-        # Store normalization parameters
-        self.register_buffer('target_mean', torch.tensor(target_mean))
-        self.register_buffer('target_std', torch.tensor(target_std))
-        
-        # Initial node embedding
-        # Maps input features to hidden dimension
-        self.embedding = nn.Linear(num_node_features, hidden_dim)
-        self.embedding_bn = nn.BatchNorm1d(hidden_dim)
-        
-        # GAT layers with multi-head attention
+
+    def __init__(
+        self,
+        num_node_features,
+        hidden_dim=128,
+        num_heads=4,
+        num_layers=4,
+        dropout=0.2
+    ):
+        super().__init__()
+
+        self.dropout_rate = dropout
+
+        self.node_embedding = nn.Linear(num_node_features, hidden_dim)
+
         self.gat_layers = nn.ModuleList()
         self.batch_norms = nn.ModuleList()
-        
-        for i in range(num_layers):
-            # Input dimension changes after concatenation
-            if i == 0:
-                in_channels = hidden_dim
-            else:
-                in_channels = hidden_dim * num_heads
-            
-            # Last layer averages heads instead of concatenation
-            if i == num_layers - 1:
-                self.gat_layers.append(
-                    GATConv(
-                        in_channels=in_channels,
-                        out_channels=hidden_dim,
-                        heads=num_heads,
-                        concat=False,  # Average instead of concatenate
-                        dropout=dropout,
-                        add_self_loops=True,  # Include self-attention
-                        bias=True
-                    )
-                )
-                self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
-            else:
-                self.gat_layers.append(
-                    GATConv(
-                        in_channels=in_channels,
-                        out_channels=hidden_dim,
-                        heads=num_heads,
-                        concat=True,  # Concatenate attention heads
-                        dropout=dropout,
-                        add_self_loops=True,
-                        bias=True
-                    )
-                )
-                self.batch_norms.append(nn.BatchNorm1d(hidden_dim * num_heads))
-        
-        # Prediction head
-        # Two-layer MLP with ReLU activation
-        self.fc1 = nn.Linear(hidden_dim, hidden_dim // 2)
-        self.bn_fc1 = nn.BatchNorm1d(hidden_dim // 2)
-        self.fc2 = nn.Linear(hidden_dim // 2, 1)
-        
-        self.dropout = nn.Dropout(dropout)
-        self.relu = nn.ReLU()
-        
-        # Initialize weights
-        self._initialize_weights()
-    
-    def _initialize_weights(self):
-        """Kaiming initialization for better training"""
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-    
-    def forward(self, data):
-        """
-        Forward pass
-        
-        Args:
-            data: PyG Batch object with x, edge_index, batch
-        
-        Returns:
-            predictions: Tensor of shape [batch_size]
-        """
-        x, edge_index, batch = data.x, data.edge_index, data.batch
-        
-        # Initial embedding
-        x = self.embedding(x)
-        x = self.embedding_bn(x)
-        x = self.relu(x)
-        x = self.dropout(x)
-        
-        # GAT layers with residual connections
-        for i, (gat, bn) in enumerate(zip(self.gat_layers, self.batch_norms)):
-            # Store input for residual connection
-            x_residual = x
-            
-            # GAT convolution
-            x = gat(x, edge_index)
-            x = bn(x)
-            x = self.relu(x)
-            x = self.dropout(x)
-            
-            # Residual connection (with projection if dimensions don't match)
-            if x_residual.size(1) == x.size(1):
-                x = x + x_residual
-            elif i > 0:  # Skip for first layer
-                # Project residual to match dimensions
-                x_residual_proj = self._project_residual(x_residual, x.size(1))
-                x = x + x_residual_proj
-        
-        # Global pooling: aggregate node features to graph-level
-        # Mean pooling: intensive property (per-atom average)
-        x = global_mean_pool(x, batch)
-        
-        # Prediction head
-        x = self.fc1(x)
-        x = self.bn_fc1(x)
-        x = self.relu(x)
-        x = self.dropout(x)
-        x = self.fc2(x)
-        
-        # Denormalize predictions
-        x = x * self.target_std + self.target_mean
-        
-        return x.squeeze(-1)  # Remove last dimension [batch, 1] -> [batch]
-    
-    def _project_residual(self, x_residual, target_dim):
-        """Helper to project residual connection"""
-        if not hasattr(self, 'residual_projections'):
-            self.residual_projections = {}
-        
-        key = (x_residual.size(1), target_dim)
-        if key not in self.residual_projections:
-            self.residual_projections[key] = nn.Linear(
-                x_residual.size(1), 
-                target_dim,
-                bias=False
-            ).to(x_residual.device)
-        
-        return self.residual_projections[key](x_residual)
 
-# Instantiate model
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"\nUsing device: {device}")
+        for _ in range(num_layers):
+            self.gat_layers.append(
+                GATConv(
+                    in_channels=hidden_dim,
+                    out_channels=hidden_dim,
+                    heads=num_heads,
+                    concat=False,
+                    dropout=dropout,
+                    add_self_loops=True
+                )
+            )
+
+            self.batch_norms.append(
+                nn.BatchNorm1d(hidden_dim)
+            )
+
+        self.regressor = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 2, 1)
+        )
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.kaiming_normal_(
+            self.node_embedding.weight,
+            nonlinearity="relu"
+        )
+        nn.init.zeros_(self.node_embedding.bias)
+
+        for layer in self.regressor:
+            if isinstance(layer, nn.Linear):
+                nn.init.kaiming_normal_(
+                    layer.weight,
+                    nonlinearity="relu"
+                )
+                nn.init.zeros_(layer.bias)
+
+    def forward(self, data):
+        x = data.x.float()
+        edge_index = data.edge_index
+        batch = data.batch
+
+        x = self.node_embedding(x)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout_rate, training=self.training)
+
+        for gat_layer, batch_norm in zip(self.gat_layers, self.batch_norms):
+            residual = x
+
+            x = gat_layer(x, edge_index)
+            x = batch_norm(x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout_rate, training=self.training)
+
+            x = x + residual
+
+        graph_embedding = global_mean_pool(x, batch)
+
+        prediction = self.regressor(graph_embedding)
+
+        return prediction.view(-1)
+
 
 model = GATForQM9(
-    num_node_features=dataset.num_features,
+    num_node_features=dataset.num_node_features,
     hidden_dim=128,
     num_heads=4,
     num_layers=4,
-    dropout=0.2,
-    target_mean=target_mean.item(),
-    target_std=target_std.item()
+    dropout=0.2
 ).to(device)
 
-# Count parameters
-num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-print(f"Number of trainable parameters: {num_params:,}")
+num_parameters = sum(
+    p.numel() for p in model.parameters() if p.requires_grad
+)
 
-# Print model architecture
-print("\nModel Architecture:")
-print(model)
-```
+print(f"\nTrainable parameters: {num_parameters:,}")
 
-**Step 3: Training Loop with Best Practices**
 
-```python
-def train_epoch(model, loader, optimizer, criterion, device):
-    """Train for one epoch"""
+# 7. Training and Evaluation Functions
+
+def get_normalized_target(data):
+    target = data.y[:, target_idx].view(-1)
+    target = target.to(device)
+
+    return (target - target_mean.to(device)) / target_std.to(device)
+
+
+def denormalize_target(y_normalized):
+    return y_normalized * target_std.to(y_normalized.device) + target_mean.to(y_normalized.device)
+
+
+def train_one_epoch(model, loader, optimizer, criterion):
     model.train()
-    total_loss = 0
-    num_samples = 0
-    
+
+    total_loss = 0.0
+    total_graphs = 0
+
     for data in loader:
         data = data.to(device)
-        
-        # Forward pass
-        pred = model(data)
-        target = data.y[:, target_idx]
-        
-        # Compute loss
-        loss = criterion(pred, target)
-        
-        # Backward pass
-        optimizer.zero_grad()
-        loss.backward()
-        
-        # Gradient clipping to prevent explosion
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        
-        optimizer.step()
-        
-        total_loss += loss.item() * data.num_graphs
-        num_samples += data.num_graphs
-    
-    return total_loss / num_samples
 
-def evaluate(model, loader, criterion, device):
-    """Evaluate model"""
+        optimizer.zero_grad()
+
+        pred_normalized = model(data)
+        target_normalized = get_normalized_target(data)
+
+        loss = criterion(pred_normalized, target_normalized)
+
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        optimizer.step()
+
+        total_loss += loss.item() * data.num_graphs
+        total_graphs += data.num_graphs
+
+    return total_loss / total_graphs
+
+
+def evaluate(model, loader, criterion):
     model.eval()
-    total_loss = 0
-    predictions = []
-    targets = []
-    
+
+    total_loss = 0.0
+    total_graphs = 0
+
+    all_predictions = []
+    all_targets = []
+
     with torch.no_grad():
         for data in loader:
             data = data.to(device)
-            pred = model(data)
-            target = data.y[:, target_idx]
-            
-            loss = criterion(pred, target)
+
+            pred_normalized = model(data)
+            target_normalized = get_normalized_target(data)
+
+            loss = criterion(pred_normalized, target_normalized)
+
+            pred = denormalize_target(pred_normalized)
+            target = denormalize_target(target_normalized)
+
+            all_predictions.append(pred.cpu())
+            all_targets.append(target.cpu())
+
             total_loss += loss.item() * data.num_graphs
-            
-            predictions.append(pred.cpu())
-            targets.append(target.cpu())
-    
-    predictions = torch.cat(predictions)
-    targets = torch.cat(targets)
-    
-    # Compute metrics
-    mae = torch.mean(torch.abs(predictions - targets)).item()
-    rmse = torch.sqrt(torch.mean((predictions - targets)**2)).item()
-    r2 = r2_score(targets.numpy(), predictions.numpy())
-    
+            total_graphs += data.num_graphs
+
+    predictions = torch.cat(all_predictions).numpy()
+    targets = torch.cat(all_targets).numpy()
+
+    mae = mean_absolute_error(targets, predictions)
+    rmse = np.sqrt(mean_squared_error(targets, predictions))
+    r2 = r2_score(targets, predictions)
+
     return {
-        'loss': total_loss / len(loader.dataset),
-        'mae': mae,
-        'rmse': rmse,
-        'r2': r2,
-        'predictions': predictions,
-        'targets': targets
+        "loss": total_loss / total_graphs,
+        "mae": mae,
+        "rmse": rmse,
+        "r2": r2,
+        "predictions": predictions,
+        "targets": targets
     }
 
-# Setup training
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer, 
-    mode='min', 
-    factor=0.5,  # Reduce LR by half
-    patience=10,  # Wait 10 epochs before reducing
-    verbose=True,
-    min_lr=1e-6  # Don't go below this
+
+# 8. Train the Model
+
+criterion = nn.L1Loss()
+
+optimizer = torch.optim.AdamW(
+    model.parameters(),
+    lr=1e-3,
+    weight_decay=1e-5
 )
-criterion = nn.L1Loss()  # MAE loss
 
-# Training loop
-num_epochs = 200
-best_val_loss = float('inf')
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer,
+    mode="min",
+    factor=0.5,
+    patience=10,
+    min_lr=1e-6
+)
+
+num_epochs = 100
+early_stop_patience = 20
+
+best_val_loss = float("inf")
+best_model_state = copy.deepcopy(model.state_dict())
 patience_counter = 0
-early_stop_patience = 30
 
-# Track history
 history = {
-    'train_loss': [],
-    'val_loss': [],
-    'val_mae': [],
-    'val_r2': [],
-    'learning_rate': []
+    "train_loss": [],
+    "val_loss": [],
+    "val_mae": [],
+    "val_rmse": [],
+    "val_r2": [],
+    "learning_rate": []
 }
 
-print(f"\nStarting training for {num_epochs} epochs...")
+print("\nStarting training...")
 print("=" * 70)
 
 for epoch in range(num_epochs):
-    # Train
-    train_loss = train_epoch(model, train_loader, optimizer, criterion, device)
-    
-    # Evaluate
-    val_metrics = evaluate(model, val_loader, criterion, device)
-    val_loss = val_metrics['loss']
-    val_mae = val_metrics['mae']
-    val_r2 = val_metrics['r2']
-    
-    # Learning rate scheduling
+    train_loss = train_one_epoch(
+        model,
+        train_loader,
+        optimizer,
+        criterion
+    )
+
+    val_metrics = evaluate(
+        model,
+        val_loader,
+        criterion
+    )
+
+    val_loss = val_metrics["loss"]
+
     scheduler.step(val_loss)
-    current_lr = optimizer.param_groups[0]['lr']
-    
-    # Store history
-    history['train_loss'].append(train_loss)
-    history['val_loss'].append(val_loss)
-    history['val_mae'].append(val_mae)
-    history['val_r2'].append(val_r2)
-    history['learning_rate'].append(current_lr)
-    
-    # Save best model
+
+    current_lr = optimizer.param_groups[0]["lr"]
+
+    history["train_loss"].append(train_loss)
+    history["val_loss"].append(val_loss)
+    history["val_mae"].append(val_metrics["mae"])
+    history["val_rmse"].append(val_metrics["rmse"])
+    history["val_r2"].append(val_metrics["r2"])
+    history["learning_rate"].append(current_lr)
+
     if val_loss < best_val_loss:
         best_val_loss = val_loss
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'val_loss': val_loss,
-            'val_mae': val_mae,
-        }, 'best_gat_qm9.pt')
+        best_model_state = copy.deepcopy(model.state_dict())
         patience_counter = 0
+
+        torch.save({
+            "epoch": epoch,
+            "model_state_dict": best_model_state,
+            "target_mean": target_mean,
+            "target_std": target_std,
+            "target_idx": target_idx,
+            "val_loss": val_loss,
+            "val_mae": val_metrics["mae"]
+        }, "best_gat_qm9.pt")
+
     else:
         patience_counter += 1
-    
-    # Print progress
+
     if (epoch + 1) % 10 == 0 or epoch == 0:
-        print(f'Epoch {epoch+1:3d}/{num_epochs}:')
-        print(f'  Train Loss: {train_loss:.4f}')
-        print(f'  Val Loss:   {val_loss:.4f}  |  MAE: {val_mae:.4f}  |  R²: {val_r2:.4f}')
-        print(f'  LR: {current_lr:.2e}  |  Best Val: {best_val_loss:.4f}  |  Patience: {patience_counter}/{early_stop_patience}')
+        print(f"Epoch {epoch + 1:03d}/{num_epochs}")
+        print(f"  Train Loss: {train_loss:.4f}")
+        print(f"  Val Loss:   {val_loss:.4f}")
+        print(f"  Val MAE:    {val_metrics['mae']:.4f}")
+        print(f"  Val RMSE:   {val_metrics['rmse']:.4f}")
+        print(f"  Val R²:     {val_metrics['r2']:.4f}")
+        print(f"  LR:         {current_lr:.2e}")
         print("-" * 70)
-    
-    # Early stopping
+
     if patience_counter >= early_stop_patience:
-        print(f"\nEarly stopping triggered at epoch {epoch+1}")
+        print(f"Early stopping at epoch {epoch + 1}")
         break
 
-print("=" * 70)
-print("Training completed!")
-```
+print("Training finished.")
 
-**Step 4: Model Evaluation and Analysis**
 
-```python
-# Load best model
-print("\nLoading best model...")
-checkpoint = torch.load('best_gat_qm9.pt')
-model.load_state_dict(checkpoint['model_state_dict'])
-print(f"Best model from epoch {checkpoint['epoch']+1}")
-print(f"Best validation MAE: {checkpoint['val_mae']:.4f} eV")
+# 9. Test Set Evaluation
 
-# Evaluate on test set
-print("\nEvaluating on test set...")
-test_metrics = evaluate(model, test_loader, criterion, device)
-
-print("\nTest Set Results:")
-print(f"  Loss: {test_metrics['loss']:.4f}")
-print(f"  MAE:  {test_metrics['mae']:.4f} eV")
-print(f"  RMSE: {test_metrics['rmse']:.4f} eV")
-print(f"  R²:   {test_metrics['r2']:.4f}")
-
-# Plot training curves
-fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-
-# Loss curves
-axes[0, 0].plot(history['train_loss'], label='Train', linewidth=2)
-axes[0, 0].plot(history['val_loss'], label='Validation', linewidth=2)
-axes[0, 0].set_xlabel('Epoch')
-axes[0, 0].set_ylabel('Loss (MAE)')
-axes[0, 0].set_title('Training and Validation Loss')
-axes[0, 0].legend()
-axes[0, 0].grid(alpha=0.3)
-
-# MAE over epochs
-axes[0, 1].plot(history['val_mae'], color='green', linewidth=2)
-axes[0, 1].set_xlabel('Epoch')
-axes[0, 1].set_ylabel('MAE (eV)')
-axes[0, 1].set_title('Validation MAE')
-axes[0, 1].grid(alpha=0.3)
-
-# R² over epochs
-axes[1, 0].plot(history['val_r2'], color='purple', linewidth=2)
-axes[1, 0].set_xlabel('Epoch')
-axes[1, 0].set_ylabel('R² Score')
-axes[1, 0].set_title('Validation R²')
-axes[1, 0].grid(alpha=0.3)
-
-# Learning rate schedule
-axes[1, 1].plot(history['learning_rate'], color='red', linewidth=2)
-axes[1, 1].set_xlabel('Epoch')
-axes[1, 1].set_ylabel('Learning Rate')
-axes[1, 1].set_title('Learning Rate Schedule')
-axes[1, 1].set_yscale('log')
-axes[1, 1].grid(alpha=0.3)
-
-plt.tight_layout()
-plt.savefig('training_curves.png', dpi=150)
-print("\nSaved: training_curves.png")
-```
-
-**Step 5: Visualization and Interpretation**
-
-```python
-def plot_predictions(predictions, targets, dataset_name='Test'):
-    """Create comprehensive prediction plots"""
-    
-    predictions = predictions.numpy()
-    targets = targets.numpy()
-    
-    fig, axes = plt.subplots(2, 2, figsize=(14, 12))
-    
-    # Scatter plot: Predicted vs Actual
-    axes[0, 0].scatter(targets, predictions, alpha=0.3, s=20)
-    
-    # Perfect prediction line
-    min_val, max_val = min(targets.min(), predictions.min()), max(targets.max(), predictions.max())
-    axes[0, 0].plot([min_val, max_val], [min_val, max_val], 'r--', lw=2, label='Perfect Prediction')
-    
-    # Add statistics text
-    mae = mean_absolute_error(targets, predictions)
-    r2 = r2_score(targets, predictions)
-    axes[0, 0].text(
-        0.05, 0.95,
-        f'MAE = {mae:.4f} eV\nR² = {r2:.4f}',
-        transform=axes[0, 0].transAxes,
-        fontsize=12,
-        verticalalignment='top',
-        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-    )
-    
-    axes[0, 0].set_xlabel(f'Actual {target_name} (eV)', fontsize=12)
-    axes[0, 0].set_ylabel(f'Predicted {target_name} (eV)', fontsize=12)
-    axes[0, 0].set_title(f'{dataset_name} Set: Predictions vs Actual', fontsize=14)
-    axes[0, 0].legend()
-    axes[0, 0].grid(alpha=0.3)
-    axes[0, 0].set_aspect('equal')
-    
-    # Error distribution
-    errors = predictions - targets
-    axes[0, 1].hist(errors, bins=50, edgecolor='black', alpha=0.7, color='coral')
-    axes[0, 1].axvline(0, color='r', linestyle='--', linewidth=2, label='Zero Error')
-    axes[0, 1].set_xlabel('Prediction Error (eV)', fontsize=12)
-    axes[0, 1].set_ylabel('Frequency', fontsize=12)
-    axes[0, 1].set_title('Error Distribution', fontsize=14)
-    axes[0, 1].legend()
-    axes[0, 1].grid(alpha=0.3)
-    
-    # Error vs actual value
-    axes[1, 0].scatter(targets, np.abs(errors), alpha=0.3, s=20, color='green')
-    axes[1, 0].axhline(mae, color='r', linestyle='--', linewidth=2, label=f'Mean MAE = {mae:.4f}')
-    axes[1, 0].set_xlabel(f'Actual {target_name} (eV)', fontsize=12)
-    axes[1, 0].set_ylabel('Absolute Error (eV)', fontsize=12)
-    axes[1, 0].set_title('Absolute Error vs Actual Value', fontsize=14)
-    axes[1, 0].legend()
-    axes[1, 0].grid(alpha=0.3)
-    
-    # Q-Q plot (Quantile-Quantile)
-    from scipy import stats
-    stats.probplot(errors, dist="norm", plot=axes[1, 1])
-    axes[1, 1].set_title('Q-Q Plot (Error Normality)', fontsize=14)
-    axes[1, 1].grid(alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig(f'{dataset_name.lower()}_predictions.png', dpi=150)
-    print(f"Saved: {dataset_name.lower()}_predictions.png")
-
-# Plot test set predictions
-plot_predictions(
-    test_metrics['predictions'],
-    test_metrics['targets'],
-    dataset_name='Test'
+checkpoint = torch.load(
+    "best_gat_qm9.pt",
+    map_location=device
 )
 
-# Analyze errors by molecule size
-def analyze_errors_by_size(model, loader, device):
-    """Analyze how prediction error varies with molecule size"""
-    
-    model.eval()
-    errors_by_size = {i: [] for i in range(5, 10)}
-    
-    with torch.no_grad():
-        for data in loader:
-            data = data.to(device)
-            pred = model(data)
-            target = data.y[:, target_idx]
-            errors = torch.abs(pred - target).cpu()
-            
-            # Group by number of atoms
-            for i, error in enumerate(errors):
-                num_atoms = (data.batch == i).sum().item()
-                if num_atoms in errors_by_size:
-                    errors_by_size[num_atoms].append(error.item())
-    
-    # Plot
-    plt.figure(figsize=(10, 6))
-    sizes = sorted(errors_by_size.keys())
-    mean_errors = [np.mean(errors_by_size[size]) if errors_by_size[size] else 0 for size in sizes]
-    std_errors = [np.std(errors_by_size[size]) if errors_by_size[size] else 0 for size in sizes]
-    
-    plt.errorbar(sizes, mean_errors, yerr=std_errors, marker='o', linewidth=2, markersize=8, capsize=5)
-    plt.xlabel('Number of Heavy Atoms', fontsize=12)
-    plt.ylabel('Mean Absolute Error (eV)', fontsize=12)
-    plt.title('Prediction Error vs Molecule Size', fontsize=14)
-    plt.grid(alpha=0.3)
-    plt.tight_layout()
-    plt.savefig('error_by_size.png', dpi=150)
-    print("Saved: error_by_size.png")
-    
-    return errors_by_size
+model.load_state_dict(checkpoint["model_state_dict"])
 
-errors_by_size = analyze_errors_by_size(model, test_loader, device)
+print("\nBest model:")
+print(f"  Epoch: {checkpoint['epoch'] + 1}")
+print(f"  Validation MAE: {checkpoint['val_mae']:.4f}")
+
+test_metrics = evaluate(
+    model,
+    test_loader,
+    criterion
+)
+
+print("\nTest results:")
+print(f"  MAE:  {test_metrics['mae']:.4f}")
+print(f"  RMSE: {test_metrics['rmse']:.4f}")
+print(f"  R²:   {test_metrics['r2']:.4f}")
+
+
+# 10. Plot Training Curves
+
+plt.figure(figsize=(12, 8))
+
+plt.subplot(2, 2, 1)
+plt.plot(history["train_loss"], label="Train Loss")
+plt.plot(history["val_loss"], label="Validation Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Normalized MAE Loss")
+plt.title("Training and Validation Loss")
+plt.legend()
+plt.grid(alpha=0.3)
+
+plt.subplot(2, 2, 2)
+plt.plot(history["val_mae"])
+plt.xlabel("Epoch")
+plt.ylabel("MAE")
+plt.title("Validation MAE")
+plt.grid(alpha=0.3)
+
+plt.subplot(2, 2, 3)
+plt.plot(history["val_r2"])
+plt.xlabel("Epoch")
+plt.ylabel("R²")
+plt.title("Validation R²")
+plt.grid(alpha=0.3)
+
+plt.subplot(2, 2, 4)
+plt.plot(history["learning_rate"])
+plt.xlabel("Epoch")
+plt.ylabel("Learning Rate")
+plt.yscale("log")
+plt.title("Learning Rate Schedule")
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig("gat_qm9_training_curves.png", dpi=150)
+plt.show()
+
+
+# 11. Plot Predictions
+
+predictions = test_metrics["predictions"]
+targets = test_metrics["targets"]
+
+plt.figure(figsize=(6, 6))
+
+plt.scatter(targets, predictions, alpha=0.4)
+
+min_value = min(targets.min(), predictions.min())
+max_value = max(targets.max(), predictions.max())
+
+plt.plot(
+    [min_value, max_value],
+    [min_value, max_value],
+    linestyle="--"
+)
+
+plt.xlabel(f"True {target_name}")
+plt.ylabel(f"Predicted {target_name}")
+plt.title(f"GAT Predictions on QM9: {target_name}")
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig("gat_qm9_predictions.png", dpi=150)
+plt.show()
 ```
 
-#### Expected Results
+Key corrections made:
 
-**Performance Benchmarks:**
+* The model predicts **normalized targets**, and metrics are computed after denormalization.
+* Residual connections are dimensionally consistent because all GAT layers use `concat=False`.
+* The model checkpoint is saved using a deep copy of `state_dict`.
+* `torch.load(..., map_location=device)` is used for safer loading.
+* The loss is averaged by the number of graphs, not by the number of batches.
+* `num_workers=0` is used for better compatibility across notebooks, Windows, and macOS.
 
-```
-For HOMO energy prediction (in meV):
 
-Method          MAE     RMSE    R²      Parameters
-Baseline        300     420     0.00    -
-Linear          180     250     0.45    10K
-MLP             120     170     0.72    50K
-GCN             45      65      0.94    500K
-GAT (ours)      35-40   50-55   0.96    800K
-DimeNet++       25-30   40-45   0.98    2M
 
-Note: Results vary by hyperparameters and random seed
-```
-
-**Training Time:**
-
-```
-Hardware: Single GPU (V100)
-Batch size: 32
-Epochs: ~100-150 to convergence
-
-Time per epoch: ~30 seconds
-Total training: ~60-90 minutes
-Inference: ~1000 molecules/second
-```
 
 #### Extension Ideas
 
