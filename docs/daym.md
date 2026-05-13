@@ -18,40 +18,100 @@ network activations, and transformations are typically represented using vectors
 
 ```python
 import torch
+import numpy as np
 
-# Create vectors
-x = torch.tensor([1.0, 2.0, 3.0])
-y = torch.tensor([4.0, 5.0, 6.0])
+# VECTOR OPERATIONS WITH PYTORCH AND NUMPY
 
-# Dot product
-dot_product = torch.dot(x, y)
+# Create vectors with PyTorch
+x_torch = torch.tensor([1.0, 2.0, 3.0])
+y_torch = torch.tensor([4.0, 5.0, 6.0])
 
-print("Dot product:", dot_product)
+# Create vectors with NumPy
+x_numpy = np.array([1.0, 2.0, 3.0])
+y_numpy = np.array([4.0, 5.0, 6.0])
 
-# Vector norm
-norm_x = torch.norm(x)
+# DOT PRODUCT
+# Mathematical expression:
+# x · y = Σ_i x_i y_i
 
-print("Norm of x:", norm_x)
+# PyTorch version
+dot_product_torch = torch.dot(x_torch, y_torch)
+
+# NumPy version
+dot_product_numpy = np.dot(x_numpy, y_numpy)
+
+print("PyTorch dot product:", dot_product_torch)
+print("NumPy dot product:", dot_product_numpy)
+
+# VECTOR NORM
+# Euclidean norm:
+# ||x|| = sqrt(Σ_i x_i²)
+
+# PyTorch version
+norm_torch = torch.norm(x_torch)
+
+# NumPy version
+norm_numpy = np.linalg.norm(x_numpy)
+
+print("\nPyTorch vector norm:", norm_torch)
+print("NumPy vector norm:", norm_numpy)
 ```
+
+One can use NumPy for scientific computing and preprocessing; use PyTorch tensors 
+for GPU acceleration, automatic differentiation, and deep learning models.
 
 ### Matrix Multiplication Example
 
 ```python
 import torch
+import numpy as np
 
-A = torch.tensor([
+# MATRIX MULTIPLICATION WITH PYTORCH AND NUMPY
+
+# Create matrices with PyTorch
+A_torch = torch.tensor([
     [1.0, 2.0],
     [3.0, 4.0]
 ])
 
-B = torch.tensor([
+B_torch = torch.tensor([
     [5.0, 6.0],
     [7.0, 8.0]
 ])
 
-C = torch.matmul(A, B)
+# Create matrices with NumPy
+A_numpy = np.array([
+    [1.0, 2.0],
+    [3.0, 4.0]
+])
 
-print(C)
+B_numpy = np.array([
+    [5.0, 6.0],
+    [7.0, 8.0]
+])
+
+# MATRIX MULTIPLICATION
+# Mathematical expression:
+# C = AB
+# C_ij = Σ_k A_ik B_kj
+
+# PyTorch version
+C_torch = torch.matmul(A_torch, B_torch)
+
+# NumPy version
+C_numpy = np.matmul(A_numpy, B_numpy)
+
+# Alternative NumPy syntax
+C_numpy_alt = A_numpy @ B_numpy
+
+print("PyTorch matrix multiplication:")
+print(C_torch)
+
+print("\nNumPy matrix multiplication:")
+print(C_numpy)
+
+print("\nNumPy matrix multiplication using @ operator:")
+print(C_numpy_alt)
 ```
 
 
@@ -110,8 +170,6 @@ for step in range(20):
 
     print(f"Step {step}: x = {x.item():.4f}, loss = {loss.item():.4f}")
 ```
-
-
 
 ## 3. Probability and Statistics
 
@@ -382,13 +440,9 @@ optimizer = optim.Adam(model.parameters(), lr=0.01)
 for epoch in range(50):
 
     predictions = model(X)
-
     loss = loss_function(predictions, y)
-
     optimizer.zero_grad()
-
     loss.backward()
-
     optimizer.step()
 
     print(f"Epoch {epoch}: loss = {loss.item():.4f}")
