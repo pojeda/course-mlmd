@@ -3078,7 +3078,7 @@ A practical starting point is hard parameter sharing with equal task weights. Mo
 such as uncertainty weighting or gradient balancing, can be added later if some tasks dominate training.
 
 
-# 4. Convolutional Neural Networks
+## 4. Convolutional Neural Networks
 
 Convolutional Neural Networks (CNNs) are deep learning models designed to learn local patterns and hierarchical 
 representations from structured data. In molecular machine learning, CNNs are especially useful when molecules are 
@@ -3099,7 +3099,7 @@ where:
 
 The same filter is reused across the input, allowing CNNs to efficiently detect repeated structural motifs.
 
-## 4.1 1D CNNs for SMILES Strings
+### 4.1 1D CNNs for SMILES Strings
 
 A SMILES string can be interpreted as a sequence of chemical tokens. Local token patterns often correspond to 
 chemically meaningful substructures such as aromatic rings, carbonyl groups, or halogens.
@@ -3117,7 +3117,7 @@ contains:
 
 A 1D CNN learns filters that automatically detect these recurring molecular motifs.
 
-### Architecture Overview
+#### Architecture Overview
 
 ```text
 SMILES → Tokenization → Embedding → 1D Convolutions → Pooling → Dense Layers → Prediction
@@ -3132,7 +3132,7 @@ The model pipeline is:
 5. Combine extracted features for property prediction.
 
 
-### Why Multiple Filter Sizes?
+#### Why Multiple Filter Sizes?
 
 Different kernel sizes capture molecular patterns at different scales:
 
@@ -3150,7 +3150,7 @@ $$
 
 where $f$ is typically a ReLU activation.
 
-### Complete Implementation
+#### Complete Implementation
 
 ```python
 import torch
@@ -3254,7 +3254,7 @@ class SMILES_CNN(nn.Module):
         return output
 ```
 
-### SMILES Tokenization
+#### SMILES Tokenization
 
 Tokenization converts SMILES strings into discrete chemical tokens.
 
@@ -3370,7 +3370,7 @@ class SMILESTokenizer:
 ```
 
 
-### Dataset Implementation
+#### Dataset Implementation
 
 ```python
 class SMILESDataset(Dataset):
@@ -3410,7 +3410,7 @@ class SMILESDataset(Dataset):
         return self.inputs[idx], self.labels[idx]
 ```
 
-### Example Usage
+#### Example Usage
 
 ```python
 # Create tokenizer
@@ -3483,7 +3483,7 @@ for epoch in range(10):
     print(f"Epoch {epoch+1}: Loss = {total_loss:.4f}")
 ```
 
-### Why Max Pooling Works Well
+#### Why Max Pooling Works Well
 
 Global max pooling extracts the strongest activation from each filter:
 
@@ -3498,7 +3498,7 @@ For molecular property prediction, the presence of a functional group is often m
 important than its exact location within the SMILES string.
 
 
-## 4.2 2D CNNs for Molecular Images
+### 4.2 2D CNNs for Molecular Images
 
 CNNs can also process molecular images such as:
 
@@ -3529,7 +3529,7 @@ where:
 * relative atom positioning.
 
 
-### Molecular Image CNN
+#### Molecular Image CNN
 
 ```python
 import torchvision.models as models
@@ -3577,7 +3577,7 @@ class Molecular2DCNN(nn.Module):
 ```
 
 
-### Transfer Learning with ResNet
+#### Transfer Learning with ResNet
 
 Transfer learning often improves performance when molecular image datasets are small.
 
@@ -3601,7 +3601,7 @@ class MolecularResNet(nn.Module):
         return self.backbone(x)
 ```
 
-### Converting SMILES to Images
+#### Converting SMILES to Images
 
 ```python
 from rdkit import Chem
@@ -3627,7 +3627,7 @@ def smiles_to_image(smiles, size=(224, 224)):
 
 
 
-## 4.3 Choosing the Right Molecular Representation
+### 4.3 Choosing the Right Molecular Representation
 
 Different CNN approaches are useful for different molecular learning problems.
 
@@ -3638,23 +3638,23 @@ Different CNN approaches are useful for different molecular learning problems.
 | Graph Neural Networks | Natural molecular representation | More computationally complex | Quantum chemistry, molecular physics |
 
 
-# Practical Guidelines
+#### Practical Guidelines
 
-### Use 1D CNNs when:
+##### Use 1D CNNs when:
 
 * working with very large datasets,
 * sequence motifs are important,
 * fast training is needed,
 * only SMILES strings are available.
 
-### Use 2D CNNs when:
+##### Use 2D CNNs when:
 
 * visual structure matters,
 * leveraging pretrained image models,
 * studying molecular shape patterns,
 * using chemical diagrams or microscopy data.
 
-### Use Graph Neural Networks when:
+##### Use Graph Neural Networks when:
 
 * bond connectivity is critical,
 * 3D geometry matters,
@@ -3662,7 +3662,7 @@ Different CNN approaches are useful for different molecular learning problems.
 * interpretability at the graph level is required.
 
 
-### Hybrid Molecular Models
+##### Hybrid Molecular Models
 
 Combining multiple molecular representations can improve robustness.
 
