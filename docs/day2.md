@@ -6342,7 +6342,7 @@ $$
 For molecular fingerprints, the optimized input is not guaranteed to correspond to a valid molecule. Therefore, this method 
 should be interpreted as identifying abstract feature patterns, not generating real chemical structures.
 
-## Corrected Activation Maximization
+#### Corrected Activation Maximization
 
 ```python
 import torch.optim as optim
