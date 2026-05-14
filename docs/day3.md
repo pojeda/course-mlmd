@@ -152,7 +152,7 @@ After $T$ message-passing iterations, each node has a final embedding $h_v^{(T)}
 To predict graph-level properties, node embeddings are aggregated into a graph representation:
 
 $$
-y = R( \left{ h_v^{(T)} \mid v \in G \right} )
+y = R( { h_v^{(T)} \mid v \in G } )
 $$
 
 where $R$ is the readout function.
