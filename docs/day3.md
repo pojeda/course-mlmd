@@ -152,7 +152,7 @@ After $T$ message-passing iterations, each node has a final embedding $h_v^{(T)}
 To predict graph-level properties, node embeddings are aggregated into a graph representation:
 
 $$
-y = R( { h_v^{(T)} \mid v \in G } )
+y = R(  h_v^{(T)} \mid v \in G  )
 $$
 
 where $R$ is the readout function.
@@ -252,21 +252,19 @@ GraphSAGE introduces neighborhood sampling for scalability:
 $$
 h_v^{(t+1)}
 =
-\sigma\left(
+\sigma (
 W \cdot
 \text{CONCAT}
-\left(
+(
 h_v^{(t)},
 \text{AGG}
-\left(
-\left{
+(
 h_u^{(t)}
 \mid
 u \in \text{Sample}(\mathcal{N}(v))
-\right}
-\right)
-\right)
-\right)
+)
+)
+)
 $$
 
 ### Key Ideas
