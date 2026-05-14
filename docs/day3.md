@@ -2852,7 +2852,7 @@ $$
 where $G$ is a molecular graph and $y$ is the target molecular property.
 
 
-
+checked 12 may 2026
 ```python
 # Graph Attention Network for QM9 Property Prediction
 # pip uninstall -y rdkit rdkit-pypi
@@ -3361,7 +3361,6 @@ plt.savefig("gat_qm9_predictions.png", dpi=150)
 plt.show()
 ```
 
-Key corrections made:
 
 * The model predicts **normalized targets**, and metrics are computed after denormalization.
 * Residual connections are dimensionally consistent because all GAT layers use `concat=False`.
@@ -3371,144 +3370,656 @@ Key corrections made:
 * `num_workers=0` is used for better compatibility across notebooks, Windows, and macOS.
 
 
-
-
-#### Extension Ideas
-
-**1. Multi-Task Learning**
-
+checked. 14 may 2026
 ```python
-class MultiTaskGAT(nn.Module):
-    """Predict multiple properties simultaneously"""
-    def __init__(self, num_tasks=19):
+# https://se.mathworks.com/help/deeplearning/ug/node-classification-using-graph-convolutional-network.html
+# GCN ON QM7 DATASET: ATOM LABEL PREDICTION FROM COULOMB MATRICES
+
+import os
+import urllib.request
+import tempfile
+import numpy as np
+import scipy.io
+import scipy.sparse as sp
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import matplotlib.pyplot as plt
+import networkx as nx
+
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.model_selection import train_test_split
+
+
+# 1. DOWNLOAD AND LOAD QM7 DATA
+
+data_url = "https://quantum-machine.org/data/qm7.mat"
+output_folder = os.path.join(tempfile.gettempdir(), "qm7Data")
+data_file = os.path.join(output_folder, "qm7.mat")
+
+os.makedirs(output_folder, exist_ok=True)
+
+if not os.path.exists(data_file):
+    print("Downloading QM7 data...")
+    urllib.request.urlretrieve(data_url, data_file)
+    print("Done.")
+
+data = scipy.io.loadmat(data_file)
+
+# QM7 Coulomb matrices
+# Shape is usually: (7165, 23, 23)
+X_raw = data["X"]
+
+# Atomic numbers
+# Shape is usually: (7165, 23)
+Z_raw = data["Z"]
+
+print("Raw Coulomb matrix shape:", X_raw.shape)
+print("Raw atom data shape:", Z_raw.shape)
+
+# Convert to MATLAB-like format:
+# MATLAB used permute(data.X, [2 3 1])
+# Python version: (num_molecules, 23, 23) -> (23, 23, num_molecules)
+coulomb_data = np.transpose(X_raw, (1, 2, 0)).astype(np.float64)
+
+# Sort atomic numbers in descending order, like MATLAB sort(..., 'descend')
+atom_data = -np.sort(-Z_raw, axis=1)
+
+num_molecules = coulomb_data.shape[2]
+
+print("Number of molecules:", num_molecules)
+print("Coulomb data shape:", coulomb_data.shape)
+print("Atom data shape:", atom_data.shape)
+
+
+# 2. HELPER FUNCTIONS
+
+def atomic_symbol(atomic_numbers):
+    """
+    Convert atomic numbers to atomic symbols.
+    QM7 mainly contains H, C, N, O, and S.
+    """
+
+    symbol_map = {
+        1: "H",
+        6: "C",
+        7: "N",
+        8: "O",
+        16: "S"
+    }
+
+    atomic_numbers = np.asarray(atomic_numbers).astype(int)
+
+    return np.array([
+        symbol_map.get(z, str(z)) for z in atomic_numbers
+    ])
+
+
+def coulomb_to_adjacency(coulomb_data, atom_data):
+    """
+    Convert Coulomb matrices into adjacency matrices.
+
+    In a Coulomb matrix:
+    - diagonal entries represent atom-specific nuclear terms,
+    - off-diagonal entries represent pairwise Coulomb interactions.
+
+    Here, an edge is created whenever an off-diagonal Coulomb entry is nonzero.
+    """
+
+    max_nodes = coulomb_data.shape[0]
+    num_molecules = coulomb_data.shape[2]
+
+    adjacency_data = np.zeros_like(coulomb_data, dtype=np.float32)
+
+    for i in range(num_molecules):
+        atomic_numbers = atom_data[i]
+        num_nodes = np.count_nonzero(atomic_numbers)
+
+        C = coulomb_data[:num_nodes, :num_nodes, i]
+
+        A = (np.abs(C) > 0).astype(np.float32)
+
+        # Remove self-loops here.
+        # Self-loops are added later during GCN normalization.
+        np.fill_diagonal(A, 0.0)
+
+        adjacency_data[:num_nodes, :num_nodes, i] = A
+
+    return adjacency_data
+
+
+def normalize_adjacency(A):
+    """
+    Compute normalized adjacency:
+
+        A_norm = D^{-1/2} (A + I) D^{-1/2}
+
+    This is the standard normalization used in many GCN models.
+    """
+
+    A = A + sp.eye(A.shape[0], dtype=np.float32)
+
+    degree = np.asarray(A.sum(axis=1)).flatten()
+    degree_inv_sqrt = np.power(degree, -0.5)
+    degree_inv_sqrt[np.isinf(degree_inv_sqrt)] = 0.0
+
+    D_inv_sqrt = sp.diags(degree_inv_sqrt)
+
+    A_norm = D_inv_sqrt @ A @ D_inv_sqrt
+
+    return A_norm.tocoo()
+
+
+def scipy_sparse_to_torch_sparse(matrix, device):
+    """
+    Convert a SciPy sparse matrix to a PyTorch sparse tensor.
+    """
+
+    matrix = matrix.tocoo()
+
+    indices = torch.tensor(
+        np.vstack((matrix.row, matrix.col)),
+        dtype=torch.long,
+        device=device
+    )
+
+    values = torch.tensor(
+        matrix.data,
+        dtype=torch.float32,
+        device=device
+    )
+
+    shape = torch.Size(matrix.shape)
+
+    return torch.sparse_coo_tensor(indices, values, shape).coalesce()
+
+
+def preprocess_data(adjacency_data, coulomb_data, atom_data):
+    """
+    Convert a collection of molecular graphs into one block-diagonal graph.
+
+    Returns:
+        A_block:
+            Sparse block-diagonal adjacency matrix.
+
+        X:
+            Node feature matrix.
+            Each node uses the diagonal Coulomb value as its feature.
+
+        labels:
+            Atomic-number labels for each node.
+    """
+
+    adjacency_blocks = []
+    features = []
+    labels = []
+
+    num_molecules = adjacency_data.shape[2]
+
+    for i in range(num_molecules):
+        atomic_numbers = atom_data[i]
+        num_nodes = np.count_nonzero(atomic_numbers)
+
+        if num_nodes == 0:
+            continue
+
+        A = adjacency_data[:num_nodes, :num_nodes, i]
+        C = coulomb_data[:num_nodes, :num_nodes, i]
+
+        # Node feature: diagonal Coulomb value
+        # For atom with nuclear charge Z:
+        # diagonal approximately equals 0.5 * Z^2.4
+        X = np.diag(C).reshape(-1, 1)
+
+        adjacency_blocks.append(sp.csr_matrix(A))
+        features.append(X)
+        labels.append(atomic_numbers[:num_nodes])
+
+    A_block = sp.block_diag(adjacency_blocks, format="csr")
+    X = np.vstack(features).astype(np.float32)
+    labels = np.concatenate(labels).astype(int)
+
+    return A_block, X, labels
+
+# 3. CONVERT COULOMB MATRICES TO GRAPH ADJACENCY MATRICES
+
+adjacency_data = coulomb_to_adjacency(coulomb_data, atom_data)
+
+print("Adjacency data shape:", adjacency_data.shape)
+
+
+# 4. VISUALIZE A FEW MOLECULES
+
+plt.figure(figsize=(10, 10))
+
+for i in range(9):
+    atomic_numbers = atom_data[i]
+    num_nodes = np.count_nonzero(atomic_numbers)
+
+    A = adjacency_data[:num_nodes, :num_nodes, i]
+    symbols = atomic_symbol(atomic_numbers[:num_nodes])
+
+    G = nx.from_numpy_array(A)
+
+    plt.subplot(3, 3, i + 1)
+    pos = nx.spring_layout(G, seed=42)
+
+    nx.draw(
+        G,
+        pos,
+        with_labels=True,
+        labels={j: symbols[j] for j in range(num_nodes)},
+        node_color="lightblue",
+        node_size=600,
+        font_size=10
+    )
+
+    plt.title(f"Molecule {i + 1}")
+
+plt.tight_layout()
+plt.show()
+
+
+# 5. PLOT ATOM LABEL FREQUENCIES
+
+all_atomic_numbers = atom_data[atom_data > 0].astype(int)
+all_symbols = atomic_symbol(all_atomic_numbers)
+
+unique_symbols, counts = np.unique(all_symbols, return_counts=True)
+
+plt.figure(figsize=(6, 4))
+plt.bar(unique_symbols, counts)
+plt.xlabel("Atom Label")
+plt.ylabel("Frequency")
+plt.title("Atom Label Counts in QM7")
+plt.tight_layout()
+plt.show()
+
+
+# 6. TRAIN / VALIDATION / TEST SPLIT
+
+indices = np.arange(num_molecules)
+
+idx_train, idx_temp = train_test_split(
+    indices,
+    test_size=0.2,
+    random_state=42,
+    shuffle=True
+)
+
+idx_val, idx_test = train_test_split(
+    idx_temp,
+    test_size=0.5,
+    random_state=42,
+    shuffle=True
+)
+
+print("Train molecules:", len(idx_train))
+print("Validation molecules:", len(idx_val))
+print("Test molecules:", len(idx_test))
+
+
+adjacency_train = adjacency_data[:, :, idx_train]
+adjacency_val = adjacency_data[:, :, idx_val]
+adjacency_test = adjacency_data[:, :, idx_test]
+
+coulomb_train = coulomb_data[:, :, idx_train]
+coulomb_val = coulomb_data[:, :, idx_val]
+coulomb_test = coulomb_data[:, :, idx_test]
+
+atom_train = atom_data[idx_train, :]
+atom_val = atom_data[idx_val, :]
+atom_test = atom_data[idx_test, :]
+
+
+# 7. PREPROCESS TRAINING AND VALIDATION DATA
+
+A_train, X_train, labels_train = preprocess_data(
+    adjacency_train,
+    coulomb_train,
+    atom_train
+)
+
+A_val, X_val, labels_val = preprocess_data(
+    adjacency_val,
+    coulomb_val,
+    atom_val
+)
+
+# Normalize features using training statistics only.
+mu_x = X_train.mean(axis=0, keepdims=True)
+std_x = X_train.std(axis=0, keepdims=True)
+
+std_x[std_x == 0] = 1.0
+
+X_train = (X_train - mu_x) / std_x
+X_val = (X_val - mu_x) / std_x
+
+
+# 8. ENCODE ATOM LABELS AS CLASS INDICES
+
+classes = np.unique(labels_train)
+class_to_idx = {atomic_number: i for i, atomic_number in enumerate(classes)}
+idx_to_class = {i: atomic_number for atomic_number, i in class_to_idx.items()}
+
+y_train = np.array([class_to_idx[z] for z in labels_train], dtype=np.int64)
+y_val = np.array([class_to_idx[z] for z in labels_val], dtype=np.int64)
+
+class_names = atomic_symbol(classes)
+
+print("Classes:", classes)
+print("Class names:", class_names)
+
+
+# 9. DEFINE GCN MODEL
+
+class SimpleGCN(nn.Module):
+    """
+    Simple Graph Convolutional Network for node classification.
+
+    The model predicts the atom type of each node using:
+    - the molecular graph structure,
+    - the diagonal Coulomb feature of each atom.
+    """
+
+    def __init__(self, input_dim, hidden_dim, num_classes):
         super().__init__()
-        # Shared encoder
-        self.encoder = GATEncoder(...)
-        
-        # Separate heads for each task
-        self.task_heads = nn.ModuleList([
-            nn.Linear(hidden_dim, 1) for _ in range(num_tasks)
-        ])
-    
-    def forward(self, data):
-        h = self.encoder(data)
-        return torch.cat([head(h) for head in self.task_heads], dim=-1)
 
-# Train with multi-task loss
-loss = sum(F.mse_loss(pred[:, i], target[:, i]) for i in range(num_tasks))
-```
+        self.linear1 = nn.Linear(input_dim, hidden_dim)
+        self.linear2 = nn.Linear(hidden_dim, hidden_dim)
+        self.linear3 = nn.Linear(hidden_dim, num_classes)
 
-**2. Add 3D Distance Information**
+    def graph_conv(self, A_norm, X, layer):
+        """
+        One GCN operation:
 
-```python
-# Add edge features based on 3D distances
-edge_attr = []
-for edge in data.edge_index.t():
-    i, j = edge
-    dist = torch.norm(data.pos[i] - data.pos[j])
-    
-    # Gaussian RBF encoding
-    rbf = torch.exp(-(dist - centers)**2 / gamma)
-    edge_attr.append(rbf)
+            H = A_norm X W
 
-# Use in GAT
-model = GATConv(edge_dim=num_rbf)  # Enable edge features
-```
+        where:
+        - A_norm is the normalized adjacency matrix,
+        - X is the node feature matrix,
+        - W is a trainable weight matrix.
+        """
 
-**3. Attention Visualization**
+        X = torch.sparse.mm(A_norm, X)
+        X = layer(X)
 
-```python
-def visualize_attention(model, molecule_idx):
-    """Visualize attention weights for a molecule"""
-    
-    data = dataset[molecule_idx].to(device)
+        return X
+
+    def forward(self, X, A_norm):
+        H1 = self.graph_conv(A_norm, X, self.linear1)
+        H1 = F.relu(H1)
+
+        H2 = self.graph_conv(A_norm, H1, self.linear2)
+        H2 = F.relu(H2)
+
+        logits = self.graph_conv(A_norm, H2, self.linear3)
+
+        return logits
+
+
+# 10. MOVE DATA TO PYTORCH
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
+
+A_train_norm = normalize_adjacency(A_train)
+A_val_norm = normalize_adjacency(A_val)
+
+A_train_torch = scipy_sparse_to_torch_sparse(A_train_norm, device)
+A_val_torch = scipy_sparse_to_torch_sparse(A_val_norm, device)
+
+X_train_torch = torch.tensor(X_train, dtype=torch.float32, device=device)
+X_val_torch = torch.tensor(X_val, dtype=torch.float32, device=device)
+
+y_train_torch = torch.tensor(y_train, dtype=torch.long, device=device)
+y_val_torch = torch.tensor(y_val, dtype=torch.long, device=device)
+
+
+# 11. TRAIN MODEL
+
+input_dim = X_train.shape[1]
+hidden_dim = 32
+num_classes = len(classes)
+
+model = SimpleGCN(
+    input_dim=input_dim,
+    hidden_dim=hidden_dim,
+    num_classes=num_classes
+).to(device)
+
+optimizer = torch.optim.Adam(
+    model.parameters(),
+    lr=0.01,
+    weight_decay=1e-5
+)
+
+criterion = nn.CrossEntropyLoss()
+
+num_epochs = 1500
+validation_frequency = 300
+
+train_losses = []
+val_losses = []
+
+for epoch in range(1, num_epochs + 1):
+    model.train()
+
+    optimizer.zero_grad()
+
+    logits_train = model(X_train_torch, A_train_torch)
+
+    loss_train = criterion(logits_train, y_train_torch)
+
+    loss_train.backward()
+
+    optimizer.step()
+
+    train_losses.append(loss_train.item())
+
+    if epoch == 1 or epoch % validation_frequency == 0:
+        model.eval()
+
+        with torch.no_grad():
+            logits_val = model(X_val_torch, A_val_torch)
+            loss_val = criterion(logits_val, y_val_torch)
+
+        val_losses.append((epoch, loss_val.item()))
+
+        print(
+            f"Epoch {epoch:4d}/{num_epochs} | "
+            f"Training Loss: {loss_train.item():.4f} | "
+            f"Validation Loss: {loss_val.item():.4f}"
+        )
+
+
+# 12. PLOT TRAINING CURVES
+
+plt.figure(figsize=(7, 4))
+
+plt.plot(
+    np.arange(1, num_epochs + 1),
+    train_losses,
+    label="Training Loss"
+)
+
+if len(val_losses) > 0:
+    val_epochs, val_values = zip(*val_losses)
+
+    plt.plot(
+        val_epochs,
+        val_values,
+        marker="o",
+        label="Validation Loss"
+    )
+
+plt.xlabel("Epoch")
+plt.ylabel("Cross-Entropy Loss")
+plt.title("GCN Training Progress")
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+
+# 13. TEST SET EVALUATION
+
+A_test, X_test, labels_test = preprocess_data(
+    adjacency_test,
+    coulomb_test,
+    atom_test
+)
+
+X_test = (X_test - mu_x) / std_x
+
+# Keep only test labels that are known from training.
+# This is usually all labels for QM7.
+known_mask = np.isin(labels_test, classes)
+
+X_test = X_test[known_mask]
+labels_test = labels_test[known_mask]
+
+y_test = np.array(
+    [class_to_idx[z] for z in labels_test],
+    dtype=np.int64
+)
+
+A_test_norm = normalize_adjacency(A_test)
+A_test_torch = scipy_sparse_to_torch_sparse(A_test_norm, device)
+
+X_test_torch = torch.tensor(
+    X_test,
+    dtype=torch.float32,
+    device=device
+)
+
+y_test_torch = torch.tensor(
+    y_test,
+    dtype=torch.long,
+    device=device
+)
+
+model.eval()
+
+with torch.no_grad():
+    logits_test = model(X_test_torch, A_test_torch)
+    pred_test = logits_test.argmax(dim=1).cpu().numpy()
+
+accuracy = accuracy_score(y_test, pred_test)
+
+print(f"\nTest accuracy: {accuracy:.4f}")
+
+
+# 14. CONFUSION MATRIX
+
+cm = confusion_matrix(
+    y_test,
+    pred_test,
+    labels=np.arange(num_classes)
+)
+
+disp = ConfusionMatrixDisplay(
+    confusion_matrix=cm,
+    display_labels=class_names
+)
+
+fig, ax = plt.subplots(figsize=(6, 6))
+disp.plot(ax=ax, cmap="Blues", colorbar=False)
+plt.title("GCN QM7 Confusion Matrix")
+plt.tight_layout()
+plt.show()
+
+
+# 15. PREDICT ATOM LABELS FOR NEW MOLECULES
+
+def predict_molecule_atoms(model, coulomb_matrix, adjacency_matrix, mu_x, std_x):
+    """
+    Predict atom labels for a single molecule.
+    """
+
+    num_nodes = np.where(adjacency_matrix.any(axis=0))[0]
+
+    if len(num_nodes) == 0:
+        return []
+
+    num_nodes = num_nodes[-1] + 1
+
+    A = adjacency_matrix[:num_nodes, :num_nodes]
+    C = coulomb_matrix[:num_nodes, :num_nodes]
+
+    X = np.diag(C).reshape(-1, 1)
+    X = (X - mu_x) / std_x
+
+    A_sparse = sp.csr_matrix(A)
+    A_norm = normalize_adjacency(A_sparse)
+
+    A_torch = scipy_sparse_to_torch_sparse(A_norm, device)
+
+    X_torch = torch.tensor(
+        X,
+        dtype=torch.float32,
+        device=device
+    )
+
     model.eval()
-    
-    # Hook to capture attention
-    attention_weights = []
-    def hook_fn(module, input, output):
-        # GATConv returns (output, attention_weights)
-        if isinstance(output, tuple) and len(output) == 2:
-            attention_weights.append(output[1].detach().cpu())
-    
-    # Register hooks on GAT layers
-    hooks = []
-    for layer in model.gat_layers:
-        hooks.append(layer.register_forward_hook(hook_fn))
-    
-    # Forward pass
+
     with torch.no_grad():
-        _ = model(data)
-    
-    # Remove hooks
-    for hook in hooks:
-        hook.remove()
-    
-    # Visualize (requires RDKit or py3Dmol)
-    from rdkit import Chem
-    from rdkit.Chem import Draw
-    
-    # Highlight high-attention bonds
-    mol = Chem.MolFromSmiles(data.smiles)  # If SMILES available
-    highlight_bonds = []
-    for i, (src, dst) in enumerate(data.edge_index.t()):
-        if attention_weights[0][i] > threshold:
-            highlight_bonds.append(mol.GetBondBetweenAtoms(int(src), int(dst)).GetIdx())
-    
-    img = Draw.MolToImage(mol, highlightBonds=highlight_bonds)
-    plt.imshow(img)
-    plt.axis('off')
-    plt.savefig(f'attention_mol_{molecule_idx}.png')
+        logits = model(X_torch, A_torch)
+        pred = logits.argmax(dim=1).cpu().numpy()
+
+    atomic_numbers = np.array([idx_to_class[i] for i in pred])
+
+    return atomic_symbol(atomic_numbers)
+
+
+num_observations_new = 4
+
+plt.figure(figsize=(10, 4))
+
+for i in range(num_observations_new):
+    A_full = adjacency_test[:, :, i]
+    C_full = coulomb_test[:, :, i]
+
+    predictions = predict_molecule_atoms(
+        model,
+        C_full,
+        A_full,
+        mu_x,
+        std_x
+    )
+
+    num_nodes = len(predictions)
+    A = A_full[:num_nodes, :num_nodes]
+
+    G = nx.from_numpy_array(A)
+
+    plt.subplot(1, num_observations_new, i + 1)
+
+    pos = nx.spring_layout(G, seed=42)
+
+    nx.draw(
+        G,
+        pos,
+        with_labels=True,
+        labels={j: predictions[j] for j in range(num_nodes)},
+        node_color="lightgreen",
+        node_size=600,
+        font_size=10
+    )
+
+    plt.title(f"Prediction {i + 1}")
+
+plt.tight_layout()
+plt.show()
 ```
 
-**4. Hyperparameter Tuning**
-
-```python
-import optuna
-
-def objective(trial):
-    # Suggest hyperparameters
-    hidden_dim = trial.suggest_int('hidden_dim', 64, 256)
-    num_heads = trial.suggest_int('num_heads', 2, 8)
-    num_layers = trial.suggest_int('num_layers', 2, 6)
-    dropout = trial.suggest_float('dropout', 0.1, 0.5)
-    lr = trial.suggest_loguniform('lr', 1e-4, 1e-2)
-    
-    # Train model
-    model = GATForQM9(hidden_dim=hidden_dim, num_heads=num_heads, ...)
-    # ... training loop ...
-    
-    return val_mae
-
-# Run optimization
-study = optuna.create_study(direction='minimize')
-study.optimize(objective, n_trials=100)
-
-print(f"Best hyperparameters: {study.best_params}")
-```
-
-**5. Ensemble Methods**
-
-```python
-# Train multiple models with different seeds
-models = []
-for seed in range(5):
-    torch.manual_seed(seed)
-    model = GATForQM9(...)
-    # ... train model ...
-    models.append(model)
-
-# Ensemble prediction
-def ensemble_predict(data):
-    predictions = [model(data) for model in models]
-    return torch.stack(predictions).mean(dim=0)
-
-# Usually 2-5% better than single model
-```
-
-This practical provides a complete, production-ready implementation of GAT for molecular property prediction with extensive analysis and interpretation tools.
-
-
+1. Downloads `qm7.mat`.
+2. Loads Coulomb matrices and atomic numbers.
+3. Converts Coulomb matrices into adjacency matrices.
+4. Builds one block-diagonal graph for all molecules in each split.
+5. Uses diagonal Coulomb values as node features.
+6. Trains a simple GCN for atom-label classification.
+7. Evaluates the model with accuracy and a confusion matrix.
+8. Predicts atom labels for new test molecules.
 
 ## Summary
 

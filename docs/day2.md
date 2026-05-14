@@ -5979,602 +5979,1360 @@ if __name__ == "__main__":
     results = main()
 ```
 
-
 ## 8. Model Interpretation
 
-Understanding what your model has learned is crucial for trust, debugging, and scientific insight.
+Model interpretation helps us understand what a trained model has learned, why it makes certain predictions, and whether it 
+relies on chemically meaningful patterns. This is especially important in molecular machine learning, where predictions may guide experimental decisions.
 
-### 8.1 Gradient-Based Importance
+Interpretation methods can help answer questions such as:
 
-Calculate feature importance by examining gradients:
+* Which molecular features most strongly influence a prediction?
+* Which atoms, fragments, or fingerprint bits are important?
+* Is the model using chemically reasonable information?
+* Are there signs of data leakage or spurious correlations?
+
+
+### 8.1 Gradient-Based Feature Importance
+
+Gradient-based interpretation estimates how sensitive the model output is to each input feature.
+
+For an input vector $\mathbf{x}$ and model prediction $f(\mathbf{x})$, the gradient is:
+
+$$
+\frac{\partial f(\mathbf{x})}{\partial x_i}
+$$
+
+A large gradient means that changing feature $x_i$ would strongly affect the prediction.
+
+A common attribution score is:
+
+$$
+\text{Importance}_i =
+\left|
+x_i
+\frac{\partial f(\mathbf{x})}{\partial x_i}
+\right|
+$$
+
+This combines feature sensitivity with the actual feature value.
+
+
+#### Corrected Gradient Importance Function
 
 ```python
-def compute_gradient_importance(model, X, device='cuda'):
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+
+
+def compute_gradient_importance(model, X, device=None):
     """
-    Compute feature importance using gradients
-    
+    Compute gradient-based feature importance.
+
     Args:
-        model: Trained neural network
-        X: Input features (numpy array or tensor)
-    
+        model:
+            Trained PyTorch model.
+
+        X:
+            Input features as a NumPy array or PyTorch tensor.
+            Shape: (num_samples, num_features)
+
+        device:
+            Device used for computation.
+
     Returns:
-        importance_scores: Feature importance for each sample
+        importance:
+            Array of shape (num_samples, num_features).
     """
+
+    if device is None:
+        device = next(model.parameters()).device
+
     model.eval()
-    
+
     if isinstance(X, np.ndarray):
-        X = torch.FloatTensor(X)
-    
-    X = X.to(device)
-    X.requires_grad = True
-    
-    # Forward pass
-    output = model(X)
-    
-    # Compute gradients
-    gradients = []
-    for i in range(output.shape[0]):
-        model.zero_grad()
-        if X.grad is not None:
-            X.grad.zero_()
-        
-        output[i].backward(retain_graph=True)
-        gradients.append(X.grad[i].cpu().detach().numpy().copy())
-    
-    gradients = np.array(gradients)
-    
-    # Importance = absolute gradient * input value
-    importance = np.abs(gradients) * X.cpu().detach().numpy()
-    
-    return importance
-
-def visualize_feature_importance(importance, feature_names=None, top_k=20):
-    """
-    Visualize feature importance
-    """
-    # Average importance across samples
-    avg_importance = np.mean(importance, axis=0)
-    
-    # Get top-k features
-    top_indices = np.argsort(avg_importance)[-top_k:][::-1]
-    top_importance = avg_importance[top_indices]
-    
-    if feature_names is not None:
-        top_features = [feature_names[i] for i in top_indices]
+        X_tensor = torch.tensor(X, dtype=torch.float32, device=device)
     else:
-        top_features = [f"Feature {i}" for i in top_indices]
-    
-    # Plot
-    plt.figure(figsize=(10, 6))
-    plt.barh(range(top_k), top_importance)
-    plt.yticks(range(top_k), top_features)
-    plt.xlabel('Importance Score')
-    plt.title(f'Top {top_k} Most Important Features')
-    plt.tight_layout()
-    plt.savefig('feature_importance.png', dpi=150)
-    plt.show()
+        X_tensor = X.detach().clone().float().to(device)
 
-# Usage
-importance_scores = compute_gradient_importance(model, X_test)
-visualize_feature_importance(importance_scores, top_k=20)
+    X_tensor.requires_grad_(True)
+
+    output = model(X_tensor)
+
+    # If model output has shape (batch_size, 1), flatten it.
+    output = output.view(output.shape[0], -1)
+
+    # For regression, use the first output dimension.
+    selected_output = output[:, 0].sum()
+
+    model.zero_grad()
+
+    selected_output.backward()
+
+    gradients = X_tensor.grad.detach()
+
+    importance = torch.abs(gradients * X_tensor)
+
+    return importance.cpu().numpy()
 ```
+
+
+
+#### Visualizing Feature Importance
+
+```python
+def visualize_feature_importance(
+    importance,
+    feature_names=None,
+    top_k=20,
+    save_path="feature_importance.png"
+):
+    """
+    Plot the top-k most important features averaged across samples.
+    """
+
+    avg_importance = np.mean(importance, axis=0)
+
+    top_indices = np.argsort(avg_importance)[-top_k:][::-1]
+
+    top_scores = avg_importance[top_indices]
+
+    if feature_names is None:
+        top_labels = [f"Feature {idx}" for idx in top_indices]
+    else:
+        top_labels = [feature_names[idx] for idx in top_indices]
+
+    plt.figure(figsize=(10, 6))
+    plt.barh(range(top_k), top_scores)
+    plt.yticks(range(top_k), top_labels)
+    plt.xlabel("Average Importance Score")
+    plt.title(f"Top {top_k} Most Important Features")
+    plt.gca().invert_yaxis()
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150)
+    plt.show()
+```
+
+Example:
+
+```python
+importance_scores = compute_gradient_importance(
+    model,
+    X_test
+)
+
+visualize_feature_importance(
+    importance_scores,
+    top_k=20
+)
+```
+
+
 
 ### 8.2 Integrated Gradients
 
-More accurate attribution method that accounts for baseline:
+Simple gradients can be noisy because they measure sensitivity only at the input point. **Integrated Gradients** improves 
+on this by accumulating gradients along a path from a baseline input to the actual input.
+
+For a feature $x_i$, the integrated gradient is:
+
+$$
+IG_i(\mathbf{x})
+================
+
+(x_i - x_i')
+\int_{\alpha=0}^{1}
+\frac{\partial f(\mathbf{x}' + \alpha(\mathbf{x}-\mathbf{x}'))}
+{\partial x_i}
+d\alpha
+$$
+
+where:
+
+* $\mathbf{x}$ is the real input,
+* $\mathbf{x}'$ is a baseline input,
+* $\alpha$ interpolates between the baseline and the input.
+
+For molecular fingerprints, a common baseline is the all-zero fingerprint.
+
+
+#### Corrected Integrated Gradients Function
 
 ```python
-def integrated_gradients(model, X, baseline=None, steps=50, device='cuda'):
+def integrated_gradients(
+    model,
+    X,
+    baseline=None,
+    steps=50,
+    device=None
+):
     """
-    Compute integrated gradients for feature attribution
-    
-    Args:
-        model: Trained neural network
-        X: Input features
-        baseline: Baseline input (default: zero)
-        steps: Number of integration steps
-    
-    Returns:
-        attributions: Feature attributions
-    """
-    model.eval()
-    
-    if isinstance(X, np.ndarray):
-        X = torch.FloatTensor(X)
-    
-    X = X.to(device)
-    
-    if baseline is None:
-        baseline = torch.zeros_like(X)
-    else:
-        baseline = torch.FloatTensor(baseline).to(device)
-    
-    # Generate interpolated inputs
-    alphas = torch.linspace(0, 1, steps).to(device)
-    interpolated_inputs = []
-    
-    for alpha in alphas:
-        interpolated = baseline + alpha * (X - baseline)
-        interpolated_inputs.append(interpolated)
-    
-    interpolated_inputs = torch.stack(interpolated_inputs)
-    
-    # Compute gradients for each interpolated input
-    gradients = []
-    
-    for interp_input in interpolated_inputs:
-        interp_input.requires_grad = True
-        output = model(interp_input)
-        
-        model.zero_grad()
-        output.sum().backward()
-        
-        gradients.append(interp_input.grad.cpu().detach())
-    
-    gradients = torch.stack(gradients)
-    
-    # Average gradients and multiply by input difference
-    avg_gradients = torch.mean(gradients, dim=0)
-    attributions = (X.cpu() - baseline.cpu()) * avg_gradients
-    
-    return attributions.numpy()
+    Compute Integrated Gradients for feature attribution.
 
-def explain_prediction(model, smiles, tokenizer, importance_method='integrated_gradients'):
+    Args:
+        model:
+            Trained PyTorch model.
+
+        X:
+            Input features with shape (num_samples, num_features).
+
+        baseline:
+            Baseline input. If None, uses zeros.
+
+        steps:
+            Number of interpolation steps.
+
+    Returns:
+        attributions:
+            Array of feature attributions with same shape as X.
     """
-    Explain prediction for a single molecule
-    """
-    # Encode SMILES
-    mol = Chem.MolFromSmiles(smiles)
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, 2048)
-    X = np.array(fp).reshape(1, -1)
-    
-    # Get prediction
+
+    if device is None:
+        device = next(model.parameters()).device
+
     model.eval()
-    with torch.no_grad():
-        prediction = model(torch.FloatTensor(X)).item()
-    
-    # Get importance
-    if importance_method == 'integrated_gradients':
-        importance = integrated_gradients(model, X)
+
+    if isinstance(X, np.ndarray):
+        X_tensor = torch.tensor(X, dtype=torch.float32, device=device)
     else:
-        importance = compute_gradient_importance(model, X)
-    
-    # Visualize
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # Draw molecule
+        X_tensor = X.detach().clone().float().to(device)
+
+    if baseline is None:
+        baseline_tensor = torch.zeros_like(X_tensor)
+    else:
+        if isinstance(baseline, np.ndarray):
+            baseline_tensor = torch.tensor(
+                baseline,
+                dtype=torch.float32,
+                device=device
+            )
+        else:
+            baseline_tensor = baseline.detach().clone().float().to(device)
+
+    total_gradients = torch.zeros_like(X_tensor)
+
+    for alpha in torch.linspace(0, 1, steps, device=device):
+        interpolated = baseline_tensor + alpha * (X_tensor - baseline_tensor)
+        interpolated.requires_grad_(True)
+
+        output = model(interpolated)
+        output = output.view(output.shape[0], -1)
+
+        selected_output = output[:, 0].sum()
+
+        model.zero_grad()
+
+        selected_output.backward()
+
+        total_gradients += interpolated.grad.detach()
+
+    avg_gradients = total_gradients / steps
+
+    attributions = (X_tensor - baseline_tensor) * avg_gradients
+
+    return attributions.detach().cpu().numpy()
+```
+
+
+
+#### Explaining One Molecular Prediction
+
+This example explains a prediction from a fingerprint-based model.
+
+```python
+from rdkit import Chem
+from rdkit.Chem import AllChem, Draw
+
+
+def explain_prediction(
+    model,
+    smiles,
+    radius=2,
+    n_bits=2048,
+    method="integrated_gradients",
+    device=None
+):
+    """
+    Explain a single molecular prediction using fingerprint attributions.
+    """
+
+    if device is None:
+        device = next(model.parameters()).device
+
+    mol = Chem.MolFromSmiles(smiles)
+
+    if mol is None:
+        raise ValueError(f"Invalid SMILES string: {smiles}")
+
+    fp = AllChem.GetMorganFingerprintAsBitVect(
+        mol,
+        radius,
+        nBits=n_bits
+    )
+
+    X = np.asarray(fp, dtype=np.float32).reshape(1, -1)
+
+    model.eval()
+
+    with torch.no_grad():
+        X_tensor = torch.tensor(X, dtype=torch.float32, device=device)
+        prediction = model(X_tensor).view(-1)[0].item()
+
+    if method == "integrated_gradients":
+        importance = integrated_gradients(
+            model,
+            X,
+            steps=50,
+            device=device
+        )
+    elif method == "gradients":
+        importance = compute_gradient_importance(
+            model,
+            X,
+            device=device
+        )
+    else:
+        raise ValueError("method must be 'integrated_gradients' or 'gradients'")
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
     img = Draw.MolToImage(mol, size=(400, 400))
-    ax1.imshow(img)
-    ax1.axis('off')
-    ax1.set_title(f'Predicted logBB: {prediction:.2f}')
-    
-    # Plot importance
-    top_k = 50
-    top_indices = np.argsort(np.abs(importance[0]))[-top_k:]
-    ax2.barh(range(top_k), importance[0, top_indices])
-    ax2.set_xlabel('Attribution Score')
-    ax2.set_ylabel('Fingerprint Bit')
-    ax2.set_title('Feature Attributions (Integrated Gradients)')
-    
+    axes[0].imshow(img)
+    axes[0].axis("off")
+    axes[0].set_title(f"Prediction: {prediction:.3f}")
+
+    top_k = 30
+    scores = importance[0]
+    top_indices = np.argsort(np.abs(scores))[-top_k:][::-1]
+
+    axes[1].barh(
+        range(top_k),
+        scores[top_indices]
+    )
+
+    axes[1].set_yticks(range(top_k))
+    axes[1].set_yticklabels([f"Bit {i}" for i in top_indices])
+    axes[1].invert_yaxis()
+    axes[1].set_xlabel("Attribution Score")
+    axes[1].set_title("Top Fingerprint Attributions")
+
     plt.tight_layout()
-    plt.savefig(f'explanation_{smiles[:10]}.png', dpi=150)
+    plt.savefig("molecular_explanation.png", dpi=150)
     plt.show()
-    
+
     return prediction, importance
 ```
 
+Important note: fingerprint bits are hashed. A high-importance bit may correspond to several possible molecular 
+fragments. For chemically detailed interpretation, use RDKit bit information during fingerprint generation.
+
+
 ### 8.3 Activation Maximization
 
-Find input patterns that maximally activate specific neurons:
+Activation maximization finds an input pattern that strongly activates a specific neuron. It is mainly a diagnostic tool.
+
+For a neuron activation $a_j(\mathbf{x})$, the objective is:
+
+$$
+\mathbf{x}^*
+=
+\arg\max_{\mathbf{x}} a_j(\mathbf{x})
+$$
+
+For molecular fingerprints, the optimized input is not guaranteed to correspond to a valid molecule. Therefore, this method 
+should be interpreted as identifying abstract feature patterns, not generating real chemical structures.
+
+## Corrected Activation Maximization
 
 ```python
-def activation_maximization(model, layer_name, neuron_idx, 
-                           input_shape=(1, 2048), iterations=1000, lr=0.1):
-    """
-    Find input that maximally activates a specific neuron
-    
-    Args:
-        model: Neural network
-        layer_name: Name of layer to analyze
-        neuron_idx: Index of neuron in that layer
-        input_shape: Shape of input
-        iterations: Number of optimization steps
-        lr: Learning rate
-    
-    Returns:
-        optimal_input: Input that maximizes activation
-    """
-    model.eval()
-    
-    # Initialize random input
-    optimal_input = torch.randn(input_shape, requires_grad=True)
-    optimizer = optim.Adam([optimal_input], lr=lr)
-    
-    # Get layer
-    activation = {}
-    def get_activation(name):
-        def hook(model, input, output):
-            activation[name] = output
-        return hook
-    
-    # Register hook
-    for name, module in model.named_modules():
-        if name == layer_name:
-            module.register_forward_hook(get_activation(layer_name))
-            break
-    
-    # Optimize
-    for i in range(iterations):
-        optimizer.zero_grad()
-        
-        _ = model(optimal_input)
-        
-        # Loss = negative activation (we want to maximize)
-        loss = -activation[layer_name][0, neuron_idx]
-        
-        loss.backward()
-        optimizer.step()
-        
-        # Clip to valid range [0, 1] for fingerprints
-        with torch.no_grad():
-            optimal_input.clamp_(0, 1)
-        
-        if (i + 1) % 100 == 0:
-            print(f"Iteration {i+1}, Activation: {-loss.item():.4f}")
-    
-    return optimal_input.detach().numpy()
+import torch.optim as optim
 
-# Usage
+
+def activation_maximization(
+    model,
+    layer_name,
+    neuron_idx,
+    input_shape=(1, 2048),
+    iterations=500,
+    learning_rate=0.05,
+    device=None
+):
+    """
+    Find a fingerprint-like input that maximizes one neuron activation.
+
+    Args:
+        model:
+            Trained PyTorch model.
+
+        layer_name:
+            Name of the layer to inspect. Use dict(model.named_modules())
+            to see valid names.
+
+        neuron_idx:
+            Index of the neuron in the selected layer.
+
+    Returns:
+        optimized_input:
+            NumPy array with shape input_shape.
+    """
+
+    if device is None:
+        device = next(model.parameters()).device
+
+    model.eval()
+
+    modules = dict(model.named_modules())
+
+    if layer_name not in modules:
+        raise ValueError(
+            f"Layer '{layer_name}' not found. "
+            f"Available layers: {list(modules.keys())}"
+        )
+
+    activations = {}
+
+    def hook_fn(module, module_input, module_output):
+        activations["target"] = module_output
+
+    hook_handle = modules[layer_name].register_forward_hook(hook_fn)
+
+    optimized_input = torch.rand(
+        input_shape,
+        dtype=torch.float32,
+        device=device,
+        requires_grad=True
+    )
+
+    optimizer = optim.Adam(
+        [optimized_input],
+        lr=learning_rate
+    )
+
+    for iteration in range(iterations):
+        optimizer.zero_grad()
+
+        _ = model(optimized_input)
+
+        activation_tensor = activations["target"]
+
+        if activation_tensor.ndim == 2:
+            target_activation = activation_tensor[0, neuron_idx]
+        else:
+            target_activation = activation_tensor.flatten()[neuron_idx]
+
+        # Maximize activation by minimizing its negative.
+        loss = -target_activation
+
+        loss.backward()
+
+        optimizer.step()
+
+        with torch.no_grad():
+            optimized_input.clamp_(0.0, 1.0)
+
+        if (iteration + 1) % 100 == 0:
+            print(
+                f"Iteration {iteration + 1}, "
+                f"Activation: {target_activation.item():.4f}"
+            )
+
+    hook_handle.remove()
+
+    return optimized_input.detach().cpu().numpy()
+```
+
+Example:
+
+```python
+print(dict(model.named_modules()).keys())
+
 optimal_fp = activation_maximization(
-    model, 
-    layer_name='network.4',  # Second hidden layer
+    model,
+    layer_name="network.4",
     neuron_idx=42,
-    iterations=1000
+    input_shape=(1, 2048),
+    iterations=500
 )
 
-print(f"Optimal fingerprint pattern: {optimal_fp[0][:20]}...")
-print(f"Number of active bits: {np.sum(optimal_fp > 0.5)}")
+print("First 20 optimized values:")
+print(optimal_fp[0, :20])
+
+print("Number of active bits above 0.5:")
+print(np.sum(optimal_fp > 0.5))
 ```
 
-**Attention Visualization for LSTM:**
+
+### 8.4 Attention Visualization for SMILES Models
+
+For sequence models with attention, we can inspect which SMILES tokens received the highest attention weights.
+
+Attention weights should not be interpreted as perfect explanations, but they can provide useful clues about 
+which parts of a sequence influenced the model.
+
+
+
+#### Corrected Attention Visualization
 
 ```python
-def visualize_attention(model, smiles, tokenizer):
+def visualize_attention(
+    model,
+    smiles,
+    tokenizer,
+    max_length=100,
+    device=None,
+    save_path="attention_visualization.png"
+):
     """
-    Visualize attention weights for LSTM model with attention
+    Visualize attention weights for an LSTM-attention SMILES model.
+
+    The model is expected to return:
+        prediction, attention_weights
     """
-    # Encode SMILES
-    encoded = tokenizer.encode(smiles)
-    X = torch.LongTensor([encoded])
-    
-    # Get prediction and attention weights
+
+    if device is None:
+        device = next(model.parameters()).device
+
     model.eval()
+
+    tokens = tokenizer.tokenize(smiles)
+    encoded = tokenizer.encode(smiles, max_length=max_length)
+
+    X = torch.tensor(
+        [encoded],
+        dtype=torch.long,
+        device=device
+    )
+
     with torch.no_grad():
         prediction, attention_weights = model(X)
-    
-    # Plot attention
-    attention = attention_weights[0].squeeze().numpy()
-    tokens = tokenizer.tokenize(smiles)
-    
-    plt.figure(figsize=(12, 4))
-    plt.bar(range(len(tokens)), attention[:len(tokens)])
-    plt.xticks(range(len(tokens)), tokens, rotation=45)
-    plt.xlabel('SMILES Token')
-    plt.ylabel('Attention Weight')
-    plt.title(f'Attention Weights for: {smiles}\nPrediction: {prediction.item():.2f}')
+
+    attention = attention_weights[0].squeeze(-1).detach().cpu().numpy()
+
+    # Keep only real SMILES tokens, not padding.
+    attention = attention[:len(tokens)]
+
+    plt.figure(figsize=(max(8, len(tokens) * 0.4), 4))
+
+    plt.bar(range(len(tokens)), attention)
+
+    plt.xticks(
+        range(len(tokens)),
+        tokens,
+        rotation=45
+    )
+
+    plt.xlabel("SMILES Token")
+    plt.ylabel("Attention Weight")
+    plt.title(
+        f"Attention Weights for {smiles}\n"
+        f"Prediction: {prediction.view(-1)[0].item():.3f}"
+    )
+
     plt.tight_layout()
-    plt.savefig('attention_visualization.png', dpi=150)
+    plt.savefig(save_path, dpi=150)
     plt.show()
+
+    return prediction.view(-1)[0].item(), attention
 ```
 
----
+Example:
+
+```python
+prediction, attention = visualize_attention(
+    model,
+    smiles="CC(=O)O",
+    tokenizer=tokenizer
+)
+```
+
+
+### 8.5 Practical Interpretation Guidelines
+
+Interpretation methods are useful, but they should be applied carefully.
+
+#### Good Practices
+
+* Compare explanations across multiple molecules.
+* Check whether important features make chemical sense.
+* Use several methods instead of relying on one explanation.
+* Interpret fingerprint bits carefully because hashed fingerprints can mix fragments.
+* Validate interpretations with domain knowledge.
+
+#### Common Pitfalls
+
+* High attribution does not always imply causality.
+* Attention weights are not guaranteed to be faithful explanations.
+* Activation-maximized fingerprints may not correspond to valid molecules.
+* Explanations can change when the model is retrained with a different random seed.
+
+Model interpretation is best used as a tool for debugging, hypothesis generation, and scientific 
+insight—not as definitive proof of chemical mechanism.
+
 
 ## 9. Best Practices
 
-### 9.1 Hyperparameter Tuning with Optuna
+Training deep learning models for molecular prediction involves much more than selecting an architecture. Model 
+performance, stability, reproducibility, and generalization depend heavily on good experimental practices.
 
-Automated hyperparameter optimization:
+This section covers:
+
+* Hyperparameter optimization
+* Debugging strategies
+* Training diagnostics
+* Common failure modes
+* Practical recommendations for stable and reproducible experiments
+
+
+### 9.1 Hyperparameter Optimization with Optuna
+
+Choosing good hyperparameters can dramatically improve model performance. Important hyperparameters include:
+
+* Learning rate
+* Batch size
+* Hidden layer size
+* Dropout rate
+* Weight decay
+* Number of layers
+
+Manual tuning is slow and often inefficient. Libraries such as Optuna automate the search process using adaptive 
+sampling and pruning strategies.
+
+#### Why Use Optuna?
+
+Compared with grid search or random search, Optuna offers:
+
+* More efficient exploration of hyperparameter space
+* Early stopping of poor trials
+* Visualization tools
+* Automatic experiment tracking
+* Parallel optimization support
+
+Typical workflow:
+
+```text
+1. Define objective function
+2. Suggest hyperparameters
+3. Train model
+4. Evaluate validation metric
+5. Repeat for many trials
+6. Select best configuration
+```
+
+#### Corrected Optuna Example
 
 ```python
 import optuna
-from optuna.visualization import plot_optimization_history, plot_param_importances
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+from torch.utils.data import DataLoader
+from sklearn.metrics import mean_squared_error
+
+# Optional visualization
+from optuna.visualization import (
+    plot_optimization_history,
+    plot_param_importances
+)
+
 
 def objective(trial, X_train, y_train, X_val, y_val):
     """
-    Objective function for Optuna hyperparameter optimization
+    Objective function for Optuna hyperparameter optimization.
     """
-    # Suggest hyperparameters
+
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    # Hyperparameter search space
+
     config = {
-        'hidden_dim_1': trial.suggest_int('hidden_dim_1', 256, 1024, step=128),
-        'hidden_dim_2': trial.suggest_int('hidden_dim_2', 128, 512, step=64),
-        'hidden_dim_3': trial.suggest_int('hidden_dim_3', 64, 256, step=64),
-        'dropout_rate': trial.suggest_float('dropout_rate', 0.1, 0.5),
-        'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-2),
-        'batch_size': trial.suggest_categorical('batch_size', [32, 64, 128]),
-        'weight_decay': trial.suggest_loguniform('weight_decay', 1e-6, 1e-3)
+        "hidden_dim_1":
+            trial.suggest_int(
+                "hidden_dim_1",
+                256,
+                1024,
+                step=128
+            ),
+
+        "hidden_dim_2":
+            trial.suggest_int(
+                "hidden_dim_2",
+                128,
+                512,
+                step=64
+            ),
+
+        "hidden_dim_3":
+            trial.suggest_int(
+                "hidden_dim_3",
+                64,
+                256,
+                step=64
+            ),
+
+        "dropout_rate":
+            trial.suggest_float(
+                "dropout_rate",
+                0.1,
+                0.5
+            ),
+
+        "learning_rate":
+            trial.suggest_float(
+                "learning_rate",
+                1e-5,
+                1e-2,
+                log=True
+            ),
+
+        "batch_size":
+            trial.suggest_categorical(
+                "batch_size",
+                [32, 64, 128]
+            ),
+
+        "weight_decay":
+            trial.suggest_float(
+                "weight_decay",
+                1e-6,
+                1e-3,
+                log=True
+            )
     }
-    
+
     # Create model
+
     model = MolecularFNN(
         input_dim=X_train.shape[1],
-        hidden_dims=[config['hidden_dim_1'], config['hidden_dim_2'], config['hidden_dim_3']],
+        hidden_dims=[
+            config["hidden_dim_1"],
+            config["hidden_dim_2"],
+            config["hidden_dim_3"]
+        ],
         output_dim=1,
-        dropout_rate=config['dropout_rate']
-    )
-    
-    # Create dataloaders
+        dropout_rate=config["dropout_rate"]
+    ).to(device)
+
+    # Data loaders
+
     train_dataset = BBBDataset(X_train, y_train)
     val_dataset = BBBDataset(X_val, y_val)
-    
-    train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=config['batch_size'])
-    
-    # Train
-    optimizer = optim.Adam(model.parameters(), 
-                          lr=config['learning_rate'],
-                          weight_decay=config['weight_decay'])
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=config["batch_size"],
+        shuffle=True
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=config["batch_size"],
+        shuffle=False
+    )
+
+    # Optimizer and loss
+
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=config["learning_rate"],
+        weight_decay=config["weight_decay"]
+    )
+
     criterion = nn.MSELoss()
-    
-    num_epochs = 50  # Reduced for faster tuning
-    
+
+    # Training loop
+
+    num_epochs = 50
+
     for epoch in range(num_epochs):
+
         # Training
+
         model.train()
+
         for batch_x, batch_y in train_loader:
+
+            batch_x = batch_x.to(device)
+            batch_y = batch_y.to(device)
+
             optimizer.zero_grad()
+
             predictions = model(batch_x)
-            loss = criterion(predictions, batch_y)
+
+            loss = criterion(
+                predictions.squeeze(),
+                batch_y.squeeze()
+            )
+
             loss.backward()
+
             optimizer.step()
-        
+
         # Validation
+
         model.eval()
-        val_loss = 0
+
+        val_loss = 0.0
+
         with torch.no_grad():
+
             for batch_x, batch_y in val_loader:
+
+                batch_x = batch_x.to(device)
+                batch_y = batch_y.to(device)
+
                 predictions = model(batch_x)
-                loss = criterion(predictions, batch_y)
+
+                loss = criterion(
+                    predictions.squeeze(),
+                    batch_y.squeeze()
+                )
+
                 val_loss += loss.item()
-        
+
         val_loss /= len(val_loader)
-        
-        # Report intermediate value for pruning
+
+        # Report intermediate result
         trial.report(val_loss, epoch)
-        
-        # Handle pruning
+
+        # Early pruning
         if trial.should_prune():
             raise optuna.TrialPruned()
-    
-    return val_loss
 
-# Run optimization
+    return val_loss
+```
+
+
+#### Running the Optimization
+
+```python
 study = optuna.create_study(
-    direction='minimize',
-    pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10)
+    direction="minimize",
+    pruner=optuna.pruners.MedianPruner(
+        n_startup_trials=5,
+        n_warmup_steps=10
+    )
 )
 
 study.optimize(
-    lambda trial: objective(trial, X_train, y_train, X_val, y_val),
+    lambda trial: objective(
+        trial,
+        X_train,
+        y_train,
+        X_val,
+        y_val
+    ),
     n_trials=50,
-    timeout=7200  # 2 hours
+    timeout=7200
 )
 
-# Print results
 print("\nBest hyperparameters:")
+
 for key, value in study.best_params.items():
     print(f"  {key}: {value}")
 
 print(f"\nBest validation loss: {study.best_value:.4f}")
+```
 
-# Visualize
+
+#### Visualization
+
+```python
+# Optimization history
 fig1 = plot_optimization_history(study)
-fig1.write_image('optimization_history.png')
+fig1.write_image("optimization_history.png")
 
+# Parameter importance
 fig2 = plot_param_importances(study)
-fig2.write_image('param_importances.png')
+fig2.write_image("parameter_importance.png")
+```
 
-# Train final model with best parameters
+These plots help identify:
+
+* Whether optimization converged
+* Which hyperparameters matter most
+* Whether the search space should be adjusted
+
+
+#### Training the Final Model
+
+```python
 best_config = study.best_params
+
 final_model = MolecularFNN(
     input_dim=X_train.shape[1],
-    hidden_dims=[best_config['hidden_dim_1'], 
-                best_config['hidden_dim_2'], 
-                best_config['hidden_dim_3']],
+    hidden_dims=[
+        best_config["hidden_dim_1"],
+        best_config["hidden_dim_2"],
+        best_config["hidden_dim_3"]
+    ],
     output_dim=1,
-    dropout_rate=best_config['dropout_rate']
+    dropout_rate=best_config["dropout_rate"]
 )
 ```
 
-### 9.2 Complete Debugging Checklist
 
-**Pre-Training Checks:**
+
+#### Practical Hyperparameter Guidelines
+
+Typical starting ranges for molecular prediction tasks:
+
+| Hyperparameter   | Recommended Range |
+| ---------------- | ----------------- |
+| Learning rate    | 1e-4 to 3e-3      |
+| Batch size       | 32 to 256         |
+| Dropout          | 0.1 to 0.5        |
+| Weight decay     | 1e-6 to 1e-3      |
+| Hidden size      | 128 to 1024       |
+| Number of layers | 2 to 6            |
+
+
+
+### 9.2 Pre-Training Diagnostics
+
+Before starting long training runs, verify that:
+
+* Data loading works correctly
+* Shapes are correct
+* Forward pass succeeds
+* Gradients are finite
+* Parameters update correctly
+
+A five-minute diagnostic check can save hours of debugging.
+
+
+#### Corrected Pre-Training Diagnostics
 
 ```python
-def pre_training_diagnostics(model, train_loader, device='cpu'):
+def pre_training_diagnostics(
+    model,
+    train_loader,
+    device=None
+):
     """
-    Run diagnostics before training
+    Run diagnostics before training.
     """
-    print("="*70)
+
+    if device is None:
+        device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
+
+    print("=" * 70)
     print("PRE-TRAINING DIAGNOSTICS")
-    print("="*70)
-    
+    print("=" * 70)
+
     model = model.to(device)
-    
-    # 1. Check data loading
+
+    # 1. Data loading check
+
     print("\n1. Data Loading Check:")
+
     try:
         batch_x, batch_y = next(iter(train_loader))
-        print(f"  ✓ Batch shapes: X={batch_x.shape}, Y={batch_y.shape}")
-        print(f"  ✓ X range: [{batch_x.min():.3f}, {batch_x.max():.3f}]")
-        print(f"  ✓ Y range: [{batch_y.min():.3f}, {batch_y.max():.3f}]")
-        print(f"  ✓ No NaN in X: {not torch.isnan(batch_x).any()}")
-        print(f"  ✓ No NaN in Y: {not torch.isnan(batch_y).any()}")
+
+        print(f"  ✓ X shape: {batch_x.shape}")
+        print(f"  ✓ Y shape: {batch_y.shape}")
+
+        print(
+            f"  ✓ X range: "
+            f"[{batch_x.min():.4f}, {batch_x.max():.4f}]"
+        )
+
+        print(
+            f"  ✓ Y range: "
+            f"[{batch_y.min():.4f}, {batch_y.max():.4f}]"
+        )
+
+        print(
+            f"  ✓ NaN in X: "
+            f"{torch.isnan(batch_x).any().item()}"
+        )
+
+        print(
+            f"  ✓ NaN in Y: "
+            f"{torch.isnan(batch_y).any().item()}"
+        )
+
     except Exception as e:
-        print(f"  ✗ Error: {e}")
+        print(f"  ✗ Data loading failed: {e}")
         return False
-    
-    # 2. Check forward pass
+
+    # 2. Forward pass check
+
     print("\n2. Forward Pass Check:")
+
     try:
         model.eval()
+
         with torch.no_grad():
+
             batch_x = batch_x.to(device)
+
             output = model(batch_x)
+
         print(f"  ✓ Output shape: {output.shape}")
-        print(f"  ✓ Output range: [{output.min():.3f}, {output.max():.3f}]")
-        print(f"  ✓ No NaN in output: {not torch.isnan(output).any()}")
+
+        print(
+            f"  ✓ Output range: "
+            f"[{output.min():.4f}, {output.max():.4f}]"
+        )
+
+        print(
+            f"  ✓ NaN in output: "
+            f"{torch.isnan(output).any().item()}"
+        )
+
     except Exception as e:
-        print(f"  ✗ Error: {e}")
+        print(f"  ✗ Forward pass failed: {e}")
         return False
-    
-    # 3. Check backward pass
+
+    # 3. Backward pass check
+
     print("\n3. Backward Pass Check:")
+
     try:
+
         model.train()
+
         batch_x = batch_x.to(device)
         batch_y = batch_y.to(device)
-        
+
         criterion = nn.MSELoss()
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
-        
+
+        optimizer = optim.Adam(
+            model.parameters(),
+            lr=0.001
+        )
+
         optimizer.zero_grad()
+
         output = model(batch_x)
-        loss = criterion(output, batch_y)
+
+        loss = criterion(
+            output.squeeze(),
+            batch_y.squeeze()
+        )
+
         loss.backward()
-        
-        print(f"  ✓ Loss value: {loss.item():.4f}")
-        print(f"  ✓ Loss is finite: {torch.isfinite(loss)}")
-        
-        # Check gradients
+
+        print(f"  ✓ Loss: {loss.item():.6f}")
+
+        print(
+            f"  ✓ Finite loss: "
+            f"{torch.isfinite(loss).item()}"
+        )
+
+        max_grad = 0.0
         has_gradients = False
-        max_grad = 0
-        for name, param in model.named_parameters():
+
+        for param in model.parameters():
+
             if param.grad is not None:
+
                 has_gradients = True
-                max_grad = max(max_grad, param.grad.abs().max().item())
-        
+
+                grad_max = param.grad.abs().max().item()
+
+                max_grad = max(max_grad, grad_max)
+
         print(f"  ✓ Gradients computed: {has_gradients}")
         print(f"  ✓ Max gradient: {max_grad:.6f}")
-        
+
         optimizer.step()
-        print(f"  ✓ Optimizer step successful")
-        
+
+        print("  ✓ Optimizer step successful")
+
     except Exception as e:
-        print(f"  ✗ Error: {e}")
+        print(f"  ✗ Backward pass failed: {e}")
         return False
-    
-    # 4. Check model parameters
-    print("\n4. Model Parameters Check:")
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    # 4. Parameter check
+
+    print("\n4. Parameter Statistics:")
+
+    total_params = sum(
+        p.numel()
+        for p in model.parameters()
+    )
+
+    trainable_params = sum(
+        p.numel()
+        for p in model.parameters()
+        if p.requires_grad
+    )
+
     print(f"  ✓ Total parameters: {total_params:,}")
     print(f"  ✓ Trainable parameters: {trainable_params:,}")
-    
-    # 5. Check learning rate
-    print("\n5. Optimizer Check:")
-    for param_group in optimizer.param_groups:
-        print(f"  ✓ Learning rate: {param_group['lr']}")
-    
-    print("\n" + "="*70)
-    print("ALL CHECKS PASSED - READY TO TRAIN")
-    print("="*70)
-    
-    return True
 
-# Run diagnostics
-if pre_training_diagnostics(model, train_loader):
-    # Start training
-    train_model(...)
+    print("\n" + "=" * 70)
+    print("ALL CHECKS PASSED")
+    print("=" * 70)
+
+    return True
 ```
 
-### 9.3 Common Issues and Solutions
-
-**Comprehensive Troubleshooting Table:**
-
-| Issue | Symptoms | Possible Causes | Solutions |
-|-------|----------|-----------------|-----------|
-| **Loss is NaN** | Loss becomes NaN during training | - Learning rate too high<br>- Gradient explosion<br>- Invalid inputs | - Reduce learning rate by 10x<br>- Add gradient clipping<br>- Check for NaN/Inf in data<br>- Use mixed precision training |
-| **Loss not decreasing** | Loss stays constant or increases | - Learning rate too low<br>- Wrong loss function<br>- Data not normalized<br>- Model too simple | - Increase learning rate<br>- Verify loss function matches task<br>- Normalize inputs<br>- Increase model capacity |
-| **Overfitting** | Train loss << Val loss | - Model too complex<br>- Too little data<br>- Insufficient regularization | - Add dropout (0.3-0.5)<br>- Add L2 regularization<br>- Use data augmentation<br>- Reduce model size<br>- Early stopping |
-| **Underfitting** | Both losses high | - Model too simple<br>- Training time insufficient<br>- Learning rate issues | - Increase model capacity<br>- Train longer<br>- Tune learning rate<br>- Remove excessive regularization |
-| **Slow training** | Training takes too long | - Batch size too small<br>- Model too large<br>- Inefficient data loading | - Increase batch size<br>- Use GPU<br>- Enable data loader workers<br>- Use mixed precision |
-| **Unstable training** | Loss oscillates wildly | - Learning rate too high<br>- Batch size too small<br>- Poor initialization | - Reduce learning rate<br>- Increase batch size<br>- Use learning rate scheduler<br>- Use batch normalization |
-| **Poor test performance** | Test worse than validation | - Data leakage<br>- Different distribution<br>- Overfitting to val set | - Check train/val/test splits<br>- Verify data preprocessing<br>- Use stratified splitting |
-| **Gradient vanishing** | Gradients become very small | - Too many layers<br>- Wrong activation<br>- Poor initialization | - Use ReLU/Leaky ReLU<br>- Reduce number of layers<br>- Use skip connections<br>- Use batch normalization |
-| **Out of memory** | CUDA out of memory | - Batch size too large<br>- Model too large<br>- Gradient accumulation needed | - Reduce batch size<br>- Use gradient checkpointing<br>- Use mixed precision<br>- Clear cache regularly |
-
-**Debugging Code:**
+Usage:
 
 ```python
-def debug_training_step(model, batch_x, batch_y, criterion, optimizer):
+if pre_training_diagnostics(model, train_loader):
+    print("Ready to train.")
+```
+
+
+### 9.3 Common Training Problems and Solutions
+
+Training neural networks can fail for many reasons. Understanding common failure modes is 
+essential for efficient debugging.
+
+
+#### Troubleshooting Guide
+
+| Problem                   | Symptoms                                      | Common Causes                                               | Recommended Solutions                                     |
+| ------------------------- | --------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------- |
+| **NaN loss**              | Loss becomes NaN                              | Learning rate too high, invalid inputs, exploding gradients | Lower learning rate, clip gradients, check for NaN values |
+| **Loss not decreasing**   | Training stagnates                            | Incorrect labels, poor normalization, model too small       | Normalize data, verify targets, increase capacity         |
+| **Overfitting**           | Training loss much lower than validation loss | Model too complex, insufficient regularization              | Add dropout, L2 regularization, early stopping            |
+| **Underfitting**          | Both losses remain high                       | Model too simple, insufficient training                     | Increase capacity, train longer                           |
+| **Unstable training**     | Large oscillations in loss                    | Learning rate too large, tiny batch size                    | Reduce learning rate, increase batch size                 |
+| **Slow training**         | Long epoch times                              | CPU bottleneck, inefficient data loading                    | Use GPU, enable workers, mixed precision                  |
+| **Poor test performance** | Good validation, poor test results            | Data leakage, distribution shift                            | Recheck splitting and preprocessing                       |
+| **Vanishing gradients**   | Tiny gradients                                | Deep networks, saturating activations                       | Use ReLU, residual connections, normalization             |
+| **Out-of-memory errors**  | CUDA OOM                                      | Large model or batch size                                   | Reduce batch size, gradient checkpointing                 |
+
+
+### 9.4 Single-Step Debugging
+
+When training fails, debugging a single batch is often the fastest way to identify the problem.
+
+
+
+#### Corrected Training-Step Debugger
+
+```python
+def debug_training_step(
+    model,
+    batch_x,
+    batch_y,
+    criterion,
+    optimizer
+):
     """
-    Detailed debugging of single training step
+    Debug one complete training step.
     """
-    print("\n" + "="*70)
+
+    print("\n" + "=" * 70)
     print("DEBUGGING TRAINING STEP")
-    print("="*70)
-    
-    # 1. Input check
-    print("\n1. Input Check:")
-    print(f"  X shape: {batch_x.shape}, dtype: {batch_x.dtype}")
-    print(f"  Y shape: {batch_y.shape}, dtype: {batch_y.dtype}")
-    print(f"  X range: [{batch_x.min():.4f}, {batch_x.max():.4f}]")
-    print(f"  Y range: [{batch_y.min():.4f}, {batch_y.max():.4f}]")
-    print(f"  X has NaN: {torch.isnan(batch_x).any()}")
-    print(f"  Y has NaN: {torch.isnan(batch_y).any()}")
-    
-    # 2. Forward pass
-    print("\n2. Forward Pass:")
+    print("=" * 70)
+
+    # Input diagnostics
+
+    print("\n1. Input Statistics")
+
+    print(f"  X shape: {batch_x.shape}")
+    print(f"  Y shape: {batch_y.shape}")
+
+    print(
+        f"  X range: "
+        f"[{batch_x.min():.4f}, {batch_x.max():.4f}]"
+    )
+
+    print(
+        f"  Y range: "
+        f"[{batch_y.min():.4f}, {batch_y.max():.4f}]"
+    )
+
+    print(
+        f"  NaN in X: "
+        f"{torch.isnan(batch_x).any().item()}"
+    )
+
+    print(
+        f"  NaN in Y: "
+        f"{torch.isnan(batch_y).any().item()}"
+    )
+
+    # Forward pass
+
+    print("\n2. Forward Pass")
+
     model.train()
     optimizer.zero_grad()
-    
     output = model(batch_x)
-    print(f"  Output shape: {output.shape}")
-    print(f"  Output range: [{output.min():.4f}, {output.max():.4f}]")
-    print(f"  Output has NaN: {torch.isnan(output).any()}")
-    
-    # 3. Loss computation
-    print("\n3. Loss Computation:")
-    loss = criterion(output, batch_y)
-    print(f"  Loss value: {loss.item():.4f}")
-    print(f"  Loss is finite: {torch.isfinite(loss)}")
-    
-    # 4. Backward pass
-    print("\n4. Backward Pass:")
-    loss.backward()
-    
-    # Check gradients
-    print("\n  Gradient Statistics:")
-    for name, param in model.named_parameters():
-        if param.grad is not None:
-            grad_min = param.grad.min().item()
-            grad_max = param.grad.max().item()
-            grad_mean = param.grad.mean().item()
-            grad_norm = param.grad.norm().item()
-            
-            print(f"    {name}:")
-            print(f"      Range: [{grad_min:.6f}, {grad_max:.6f}]")
-            print(f"      Mean: {grad_mean:.6f}, Norm: {grad_norm:.6f}")
-            print(f"      Has NaN: {torch.isnan(param.grad).any()}")
-    
-    # 5. Optimizer step
-    print("\n5. Optimizer Step:")
-    optimizer.step()
-    print("  ✓ Step completed")
-    
-    # 6. Parameter update check
-    print("\n6. Parameter Update Check:")
-    new_output = model(batch_x)
-    new_loss = criterion(new_output, batch_y)
-    print(f"  New loss: {new_loss.item():.4f}")
-    print(f"  Loss change: {new_loss.item() - loss.item():.6f}")
-    
-    print("\n" + "="*70)
 
-# Usage: Run on first batch to debug
-batch_x, batch_y = next(iter(train_loader))
-debug_training_step(model, batch_x, batch_y, criterion, optimizer)
+    print(f"  Output shape: {output.shape}")
+
+    print(
+        f"  Output range: "
+        f"[{output.min():.4f}, {output.max():.4f}]"
+    )
+
+    # Loss computation
+
+    print("\n3. Loss")
+
+    loss = criterion(
+        output.squeeze(),
+        batch_y.squeeze()
+    )
+
+    print(f"  Loss: {loss.item():.6f}")
+
+    # Backward pass
+
+    print("\n4. Gradient Statistics")
+
+    loss.backward()
+
+    for name, param in model.named_parameters():
+
+        if param.grad is not None:
+
+            grad_norm = param.grad.norm().item()
+
+            print(
+                f"  {name:<30} "
+                f"Gradient norm: {grad_norm:.6f}"
+            )
+
+    # Optimizer step
+
+    print("\n5. Optimizer Step")
+
+    optimizer.step()
+
+    print("  ✓ Parameters updated")
+
+    # Loss after update
+
+    print("\n6. Post-Update Check")
+
+    new_output = model(batch_x)
+
+    new_loss = criterion(
+        new_output.squeeze(),
+        batch_y.squeeze()
+    )
+
+    print(f"  Previous loss: {loss.item():.6f}")
+    print(f"  New loss:      {new_loss.item():.6f}")
+
+    print("\n" + "=" * 70)
 ```
+
+Usage:
+
+```python
+batch_x, batch_y = next(iter(train_loader))
+
+debug_training_step(
+    model,
+    batch_x,
+    batch_y,
+    criterion,
+    optimizer
+)
+```
+
+### 9.5 Recommended Training Workflow
+
+A reliable molecular deep learning workflow typically follows these steps:
+
+```text
+1. Verify data integrity
+2. Normalize inputs
+3. Run diagnostics
+4. Train a small baseline model
+5. Tune hyperparameters
+6. Add regularization
+7. Monitor validation metrics
+8. Save best checkpoints
+9. Evaluate on held-out test set
+10. Interpret predictions
+```
+
+
+### 9.6 Reproducibility Recommendations
+
+Scientific reproducibility is essential in molecular machine learning.
+
+Always:
+
+* Fix random seeds
+* Save model checkpoints
+* Save preprocessing parameters
+* Log hyperparameters
+* Track package versions
+* Use deterministic train/validation/test splits
+
+Example:
+
+```python
+import random
+import numpy as np
+import torch
+
+seed = 42
+
+random.seed(seed)
+np.random.seed(seed)
+
+torch.manual_seed(seed)
+
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(seed)
+```
+
+
+### 9.7 Final Recommendations
+
+#### Start Simple
+
+Before using advanced architectures:
+
+* Train a baseline feedforward network
+* Verify preprocessing
+* Confirm labels are correct
+* Ensure evaluation metrics make sense
+
+A simple working model is more valuable than a complex broken model.
+
+#### Monitor Validation Performance
+
+Never rely only on training loss.
+
+Always track:
+
+* Validation loss
+* MAE / RMSE
+* R² score
+* Learning curves
+
+
+#### Save Intermediate Results
+
+Save:
+
+* Best checkpoints
+* Training history
+* Hyperparameters
+* Predictions
+* Metrics
+
+This makes experiments reproducible and easier to debug.
+
+
+#### Use Domain Knowledge
+
+Good molecular machine learning combines:
+
+* Chemistry knowledge
+* Statistical reasoning
+* Deep learning expertise
+
+The best models are not only accurate, but also chemically meaningful and scientifically interpretable.
 
 
 
