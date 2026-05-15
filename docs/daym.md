@@ -316,6 +316,7 @@ where:
 These approximations are fundamental in optimization algorithms used in machine learning.
 
 
+
 ### Gradient Descent Concept
 
 The goal is to iteratively update parameters:
@@ -485,6 +486,175 @@ Applications include:
 
 Without automatic differentiation, training modern deep learning models would be 
 computationally impractical.
+
+### Chain Rule
+
+The chain rule is a fundamental concept in calculus and optimization. It allows derivatives 
+of composite functions to be computed efficiently and forms the mathematical foundation of 
+backpropagation in deep learning.
+
+If a function depends on another function:
+
+$$
+y = f(g(x))
+$$
+
+then the derivative of $y$ with respect to $x$ is:
+
+$$
+\frac{dy}{dx}
+=
+\frac{dy}{dg}
+\frac{dg}{dx}
+$$
+
+The chain rule decomposes complex derivatives into products of simpler derivatives.
+
+#### Example
+
+Consider the function:
+
+$$
+y = (3x + 1)^2
+$$
+
+Define:
+
+$$
+u = 3x + 1
+$$
+
+Then:
+
+$$
+y = u^2
+$$
+
+Using the chain rule:
+
+$$
+\frac{dy}{dx}
+=
+\frac{dy}{du}
+\frac{du}{dx}
+$$
+
+Compute each derivative:
+
+$$
+\frac{dy}{du} = 2u
+$$
+
+$$
+\frac{du}{dx} = 3
+$$
+
+Substituting:
+
+$$
+\frac{dy}{dx}
+=
+2u \cdot 3
+$$
+
+Since $u = 3x + 1$:
+
+$$
+\frac{dy}{dx}
+=
+6(3x + 1)
+$$
+
+#### Chain Rule in Multiple Dimensions
+
+In machine learning, functions often depend on many variables. For a multivariable function:
+
+$$
+z = f(x, y)
+$$
+
+where:
+
+$$
+x = g(t)
+\quad \text{and} \quad
+y = h(t)
+$$
+
+the chain rule becomes:
+
+$$
+\frac{dz}{dt}
+=
+\frac{\partial z}{\partial x}
+\frac{dx}{dt}
++
+\frac{\partial z}{\partial y}
+\frac{dy}{dt}
+$$
+
+This generalized form is heavily used in neural networks.
+
+#### Importance in Machine Learning
+
+The chain rule is essential for:
+
+- Backpropagation
+- Gradient descent
+- Automatic differentiation
+- Deep neural networks
+- Computational graphs
+
+Modern deep learning frameworks compute gradients by repeatedly applying the chain 
+rule through layers of a neural network.
+
+#### Example: Chain Rule with PyTorch
+
+```python
+import torch
+
+# VARIABLE WITH GRADIENT TRACKING
+x = torch.tensor(2.0, requires_grad=True)
+
+# COMPOSITE FUNCTION
+y = (3 * x + 1) ** 2
+
+# COMPUTE DERIVATIVE
+y.backward()
+
+# RESULTS
+print("x =", x.item())
+print("y =", y.item())
+print("dy/dx =", x.grad.item())
+```
+
+#### Mathematical Verification
+
+The function is:
+
+$$
+y = (3x + 1)^2
+$$
+
+Using the chain rule:
+
+$$
+\frac{dy}{dx}
+=
+2(3x + 1)(3)
+$$
+
+For $x = 2$:
+
+$$
+\frac{dy}{dx}
+=
+2(7)(3)
+=
+42
+$$
+
+The result computed using automatic differentiation matches the analytical derivative.
 
 
 
