@@ -493,16 +493,68 @@ computationally impractical.
 Probability and statistics are fundamental for understanding uncertainty, noise, 
 model evaluation, and probabilistic learning.
 
-### Topics
+### Gaussian Distribution
 
-- Random variables
-- Probability distributions
-- Gaussian distribution
-- Mean and variance
-- Covariance and correlation
-- Sampling
+The Gaussian distribution, also called the normal distribution, is one of the most important probability 
+distributions in statistics and machine learning. It describes continuous variables that tend to cluster 
+around a mean value.
 
-### Example: Gaussian Distribution
+The probability density function of a Gaussian distribution is:
+
+$$
+p(x)
+=
+\frac{1}{
+\sqrt{2\pi\sigma^2}
+}
+\exp
+\left(
+-\frac{
+(x - \mu)^2
+}{
+2\sigma^2
+}
+\right)
+$$
+
+where:
+
+- $\mu$ is the mean of the distribution
+- $\sigma^2$ is the variance
+- $\sigma$ is the standard deviation
+
+#### Properties of the Gaussian Distribution
+
+The Gaussian distribution has several important properties:
+
+- Symmetric around the mean
+- Bell-shaped curve
+- Mean, median, and mode are equal
+- Controlled by only two parameters: mean and variance
+
+#### Standard Normal Distribution
+
+A Gaussian distribution with:
+
+$$
+\mu = 0
+$$
+
+and
+
+$$
+\sigma^2 = 1
+$$
+
+is called the standard normal distribution.
+
+It is commonly written as:
+
+$$
+\mathcal{N}(0, 1)
+$$
+
+#### Example: Gaussian Distribution
 
 ```python
 import torch
@@ -530,6 +582,249 @@ x = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
 print("Mean:", torch.mean(x))
 print("Standard deviation:", torch.std(x))
 ```
+
+
+### Bayesian Inference
+
+Bayesian inference is a probabilistic framework for updating beliefs using observed data. It is based on Bayes' theorem, which relates prior knowledge to new evidence.
+
+Bayes' theorem is given by:
+
+$$
+P(\theta \mid D)
+=
+\frac{
+P(D \mid \theta) P(\theta)
+}{
+P(D)
+}
+$$
+
+where:
+
+- $P(\theta \mid D)$ is the posterior distribution
+- $P(D \mid \theta)$ is the likelihood
+- $P(\theta)$ is the prior distribution
+- $P(D)$ is the evidence or marginal likelihood
+
+#### Interpretation
+
+Bayesian inference updates our belief about parameters $\theta$ after observing data $D$.
+
+The process can be summarized as:
+
+$$
+\text{Posterior}
+=
+\frac{
+\text{Likelihood} \times \text{Prior}
+}{
+\text{Evidence}
+}
+$$
+
+#### Advantages of Bayesian Methods
+
+Bayesian approaches provide:
+
+- Uncertainty quantification
+- Robustness with limited data
+- Probabilistic predictions
+- Incorporation of prior knowledge
+
+These properties are especially important in scientific machine learning and decision-making under uncertainty.
+
+#### Example: Coin Toss Inference
+
+Suppose we want to estimate the probability of obtaining heads in a coin toss.
+
+If:
+- Prior belief: $P(\theta)$
+- Observed data: number of heads and tails
+
+then Bayesian inference computes the posterior probability distribution over $\theta$.
+
+As more observations are collected, the posterior becomes more concentrated around the true probability.
+
+#### Applications in Machine Learning
+
+Bayesian methods are widely used in:
+
+- Bayesian neural networks
+- Probabilistic graphical models
+- Scientific modeling
+- Reinforcement learning
+- Uncertainty estimation
+- Hyperparameter optimization
+
+
+### Gaussian Processes
+
+Gaussian Processes (GPs) are nonparametric probabilistic models used for regression and uncertainty estimation.
+
+A Gaussian Process defines a probability distribution over functions:
+
+$$
+f(x)
+\sim
+\mathcal{GP}(m(x), k(x, x'))
+$$
+
+where:
+
+- $m(x)$ is the mean function
+- $k(x, x')$ is the covariance kernel function
+
+A Gaussian Process assumes that any finite collection of function values follows a multivariate Gaussian distribution.
+
+#### Mean Function
+
+The mean function is:
+
+$$
+m(x) = \mathbb{E}[f(x)]
+$$
+
+In practice, the mean is often assumed to be zero:
+
+$$
+m(x) = 0
+$$
+
+#### Covariance Kernel
+
+The kernel defines similarity between input points.
+
+One common kernel is the Radial Basis Function (RBF) kernel:
+
+$$
+k(x, x')
+=
+\sigma^2
+\exp
+\left(
+-\frac{
+||x - x'||^2
+}{
+2l^2
+}
+\right)
+$$
+
+where:
+
+- $\sigma^2$ controls the variance
+- $l$ is the length scale
+
+#### Intuition
+
+Gaussian Processes model smooth functions by assuming that nearby points have correlated outputs.
+
+Predictions include both:
+- A mean estimate
+- A predictive uncertainty
+
+This makes Gaussian Processes particularly useful when uncertainty quantification is important.
+
+#### Gaussian Process Regression
+
+Given training data:
+
+$$
+X = \{x_1, x_2, \dots, x_n\}
+$$
+
+and target values:
+
+$$
+\mathbf{y} = [y_1, y_2, \dots, y_n]^T
+$$
+
+Gaussian Process regression predicts function values at new points while estimating uncertainty.
+
+#### Advantages
+
+Gaussian Processes provide:
+
+- Uncertainty estimates
+- Flexible nonlinear modeling
+- Strong performance with small datasets
+- Interpretable probabilistic predictions
+
+#### Limitations
+
+Gaussian Processes scale poorly with dataset size because they require inversion of the covariance matrix:
+
+$$
+\mathcal{O}(n^3)
+$$
+
+where $n$ is the number of training samples.
+
+#### Applications in Machine Learning
+
+Gaussian Processes are commonly used in:
+
+- Bayesian optimization
+- Scientific machine learning
+- Time series modeling
+- Robotics
+- Active learning
+- Surrogate modeling
+- Materials science and molecular modeling
+
+#### Example: Gaussian Process Regression in Python
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF
+
+# TRAINING DATA
+X = np.array([[1.0], [3.0], [5.0], [6.0], [8.0]])
+y = np.sin(X).ravel()
+
+# DEFINE KERNEL
+kernel = 1.0 * RBF(length_scale=1.0)
+
+# CREATE GAUSSIAN PROCESS MODEL
+gp = GaussianProcessRegressor(kernel=kernel)
+
+# TRAIN MODEL
+gp.fit(X, y)
+
+# TEST POINTS
+X_test = np.linspace(0, 10, 100).reshape(-1, 1)
+
+# PREDICTIONS
+y_pred, sigma = gp.predict(X_test, return_std=True)
+
+# PLOT RESULTS
+plt.figure(figsize=(8, 5))
+
+plt.plot(X, y, 'o', label='Training Data')
+plt.plot(X_test, y_pred, label='GP Mean Prediction')
+
+plt.fill_between(
+    X_test.ravel(),
+    y_pred - 2 * sigma,
+    y_pred + 2 * sigma,
+    alpha=0.3,
+    label='Uncertainty'
+)
+
+plt.xlabel("x")
+plt.ylabel("f(x)")
+plt.legend()
+
+plt.show()
+```
+
+This example demonstrates how Gaussian Processes provide both predictions and 
+uncertainty estimates, which is one of their main advantages over standard regression methods.
+
 
 
 ## 4. Information Theory
