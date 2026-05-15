@@ -359,134 +359,6 @@ for step in range(20):
     print(f"Step {step}: x = {x.item():.4f}, loss = {loss.item():.4f}")
 ```
 
-### Automatic Differentiation
-
-Automatic differentiation is a computational technique used to evaluate derivatives 
-efficiently and accurately. It is a core component of modern machine learning frameworks 
-such as PyTorch, TensorFlow, and JAX.
-
-Unlike symbolic differentiation, automatic differentiation does not manipulate mathematical 
-expressions symbolically. Unlike numerical differentiation, it does not rely on finite 
-difference approximations.
-
-Instead, automatic differentiation applies the chain rule systematically through a 
-sequence of elementary operations.
-
-Given a composite function:
-
-$$
-f(x) = f_3(f_2(f_1(x)))
-$$
-
-the chain rule states:
-
-$$
-\frac{df}{dx}
-=
-\frac{df_3}{df_2}
-\frac{df_2}{df_1}
-\frac{df_1}{dx}
-$$
-
-Machine learning frameworks construct a computational graph that tracks operations and 
-automatically computes gradients during backpropagation.
-
-#### Forward and Reverse Mode Differentiation
-
-There are two main approaches:
-
-#### Forward Mode
-
-Gradients are propagated from inputs to outputs.
-
-Efficient when:
-- The number of inputs is small
-- The number of outputs is large
-
-#### Reverse Mode
-
-Gradients are propagated backward from outputs to inputs.
-
-Efficient when:
-- The number of parameters is very large
-- The output is scalar
-
-Reverse-mode automatic differentiation is the foundation of backpropagation in deep learning.
-
-#### Computational Graphs
-
-A computational graph represents mathematical operations as nodes connected by edges.
-
-For example:
-
-$$
-y = x^2 + 3x
-$$
-
-can be decomposed into elementary operations:
-- Multiplication
-- Addition
-
-The framework stores intermediate values and computes derivatives automatically.
-
-#### Example: Automatic Differentiation with PyTorch
-
-```python
-import torch
-
-# CREATE A TENSOR WITH GRADIENT TRACKING
-x = torch.tensor(2.0, requires_grad=True)
-
-# DEFINE A FUNCTION
-y = x**2 + 3*x + 1
-
-# COMPUTE DERIVATIVE dy/dx
-y.backward()
-
-# PRINT RESULTS
-print("x =", x.item())
-print("y =", y.item())
-print("dy/dx =", x.grad.item())
-```
-
-#### Mathematical Verification
-
-The function is:
-
-$$
-y = x^2 + 3x + 1
-$$
-
-Its analytical derivative is:
-
-$$
-\frac{dy}{dx} = 2x + 3
-$$
-
-For $x = 2$:
-
-$$
-\frac{dy}{dx} = 2(2) + 3 = 7
-$$
-
-The value computed using automatic differentiation matches the analytical result.
-
-#### Importance in Machine Learning
-
-Automatic differentiation enables efficient training of neural networks by computing 
-gradients of loss functions with respect to millions of parameters.
-
-Applications include:
-
-- Backpropagation
-- Gradient descent optimization
-- Physics-informed neural networks
-- Scientific machine learning
-- Deep generative models
-
-Without automatic differentiation, training modern deep learning models would be 
-computationally impractical.
-
 ### Chain Rule
 
 The chain rule is a fundamental concept in calculus and optimization. It allows derivatives 
@@ -654,8 +526,133 @@ $$
 42
 $$
 
-The result computed using automatic differentiation matches the analytical derivative.
+### Automatic Differentiation
 
+Automatic differentiation is a computational technique used to evaluate derivatives 
+efficiently and accurately. It is a core component of modern machine learning frameworks 
+such as PyTorch, TensorFlow, and JAX.
+
+Unlike symbolic differentiation, automatic differentiation does not manipulate mathematical 
+expressions symbolically. Unlike numerical differentiation, it does not rely on finite 
+difference approximations.
+
+Instead, automatic differentiation applies the chain rule systematically through a 
+sequence of elementary operations.
+
+Given a composite function:
+
+$$
+f(x) = f_3(f_2(f_1(x)))
+$$
+
+the chain rule states:
+
+$$
+\frac{df}{dx}
+=
+\frac{df_3}{df_2}
+\frac{df_2}{df_1}
+\frac{df_1}{dx}
+$$
+
+Machine learning frameworks construct a computational graph that tracks operations and 
+automatically computes gradients during backpropagation.
+
+#### Forward and Reverse Mode Differentiation
+
+There are two main approaches:
+
+#### Forward Mode
+
+Gradients are propagated from inputs to outputs.
+
+Efficient when:
+- The number of inputs is small
+- The number of outputs is large
+
+#### Reverse Mode
+
+Gradients are propagated backward from outputs to inputs.
+
+Efficient when:
+- The number of parameters is very large
+- The output is scalar
+
+Reverse-mode automatic differentiation is the foundation of backpropagation in deep learning.
+
+#### Computational Graphs
+
+A computational graph represents mathematical operations as nodes connected by edges.
+
+For example:
+
+$$
+y = x^2 + 3x
+$$
+
+can be decomposed into elementary operations:
+- Multiplication
+- Addition
+
+The framework stores intermediate values and computes derivatives automatically.
+
+#### Example: Automatic Differentiation with PyTorch
+
+```python
+import torch
+
+# CREATE A TENSOR WITH GRADIENT TRACKING
+x = torch.tensor(2.0, requires_grad=True)
+
+# DEFINE A FUNCTION
+y = x**2 + 3*x + 1
+
+# COMPUTE DERIVATIVE dy/dx
+y.backward()
+
+# PRINT RESULTS
+print("x =", x.item())
+print("y =", y.item())
+print("dy/dx =", x.grad.item())
+```
+
+#### Mathematical Verification
+
+The function is:
+
+$$
+y = x^2 + 3x + 1
+$$
+
+Its analytical derivative is:
+
+$$
+\frac{dy}{dx} = 2x + 3
+$$
+
+For $x = 2$:
+
+$$
+\frac{dy}{dx} = 2(2) + 3 = 7
+$$
+
+The value computed using automatic differentiation matches the analytical result.
+
+#### Importance in Machine Learning
+
+Automatic differentiation enables efficient training of neural networks by computing 
+gradients of loss functions with respect to millions of parameters.
+
+Applications include:
+
+- Backpropagation
+- Gradient descent optimization
+- Physics-informed neural networks
+- Scientific machine learning
+- Deep generative models
+
+Without automatic differentiation, training modern deep learning models would be 
+computationally impractical.
 
 
 ## 3. Probability and Statistics
