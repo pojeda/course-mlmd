@@ -114,20 +114,207 @@ print("\nNumPy matrix multiplication using @ operator:")
 print(C_numpy_alt)
 ```
 
+You can add the following subsection after the matrix multiplication section and before moving to the next major topic.
+
+### Singular Value Decomposition (SVD)
+
+Singular Value Decomposition (SVD) is one of the most important matrix factorization techniques in linear algebra and machine learning. It decomposes a matrix into orthogonal components and reveals its intrinsic geometric structure.
+
+Given a matrix $A \in \mathbb{R}^{m \times n}$, the Singular Value Decomposition is:
+
+$$
+A = U \Sigma V^T
+$$
+
+where:
+
+- $U$ is an orthogonal matrix containing the left singular vectors
+- $\Sigma$ is a diagonal matrix containing the singular values
+- $V^T$ contains the right singular vectors
+
+The singular values are always non-negative and are usually ordered from largest to smallest:
+
+$$
+\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_r \geq 0
+$$
+
+where $r$ is the rank of the matrix.
+
+#### Geometric Interpretation
+
+SVD can be interpreted as a sequence of geometric transformations:
+
+1. Rotation of the input space by $V^T$
+2. Scaling along orthogonal directions by $\Sigma$
+3. Rotation into the output space by $U$
+
+This decomposition reveals the most important directions of variation in the data.
+
+#### Applications in Machine Learning
+
+SVD is widely used in machine learning and scientific computing:
+
+- Dimensionality reduction
+- Principal Component Analysis (PCA)
+- Noise reduction and denoising
+- Recommender systems
+- Compression of large matrices
+- Latent semantic analysis in natural language processing
+
+#### Low-Rank Approximation
+
+A matrix can be approximated using only the largest singular values:
+
+$$
+A_k = U_k \Sigma_k V_k^T
+$$
+
+where $k < r$.
+
+This produces the best rank-$k$ approximation of the matrix in the least-squares sense.
+
+#### Example: Singular Value Decomposition in Python
+
+```python
+import numpy as np
+import torch
+
+# MATRIX FOR SVD
+A_numpy = np.array([
+    [1.0, 2.0],
+    [3.0, 4.0],
+    [5.0, 6.0]
+])
+
+A_torch = torch.tensor([
+    [1.0, 2.0],
+    [3.0, 4.0],
+    [5.0, 6.0]
+])
+
+# NUMPY SVD
+U_numpy, S_numpy, VT_numpy = np.linalg.svd(A_numpy)
+
+print("NumPy SVD")
+print("\nU matrix:")
+print(U_numpy)
+
+print("\nSingular values:")
+print(S_numpy)
+
+print("\nV^T matrix:")
+print(VT_numpy)
+
+# PYTORCH SVD
+U_torch, S_torch, VT_torch = torch.linalg.svd(A_torch)
+
+print("\n\nPyTorch SVD")
+print("\nU matrix:")
+print(U_torch)
+
+print("\nSingular values:")
+print(S_torch)
+
+print("\nV^T matrix:")
+print(VT_torch)
+
+# RECONSTRUCT ORIGINAL MATRIX
+Sigma_numpy = np.zeros((3, 2))
+np.fill_diagonal(Sigma_numpy, S_numpy)
+
+A_reconstructed = U_numpy @ Sigma_numpy @ VT_numpy
+
+print("\nReconstructed matrix:")
+print(A_reconstructed)
+```
+
+SVD is a fundamental tool in deep learning, scientific computing, and data analysis because it provides 
+a compact and interpretable representation of matrices while preserving the most important information in the data.
+
 
 ## 2. Optimization
 
 Optimization is the process of finding model parameters that minimize a loss function. Most 
 machine learning algorithms rely on optimization techniques such as gradient descent.
 
-### Topics
 
-- Functions and derivatives
-- Gradients
-- Chain rule
-- Gradient descent
-- Learning rates
-- Loss minimization
+
+### Taylor Series and Local Approximations
+
+Taylor expansions provide the mathematical foundation for understanding:
+
+* Gradient-based optimization
+* Newton's method
+* Second-order optimization
+* Local approximations of loss functions
+* Curvature and Hessians
+* Stability analysis
+
+In machine learning, optimization algorithms often rely on local approximations of functions, 
+and Taylor series explain why these approximations work.
+
+Taylor series approximate a function locally around a point using derivatives.
+For a function $f(x)$ expanded around $x_0$:
+
+$$
+f(x)
+=
+f(x_0)
++
+f'(x_0)(x - x_0)
++
+\frac{1}{2}f''(x_0)(x - x_0)^2
++
+\cdots
+$$
+
+The first-order approximation is:
+
+$$
+f(x)
+\approx
+f(x_0)
++
+f'(x_0)(x - x_0)
+$$
+
+This approximation forms the basis of gradient descent methods.
+
+The second-order approximation includes curvature information:
+
+$$
+f(x)
+\approx
+f(x_0)
++
+f'(x_0)(x - x_0)
++
+\frac{1}{2}f''(x_0)(x - x_0)^2
+$$
+
+In multiple dimensions, the Taylor expansion becomes:
+
+$$
+f(\mathbf{x})
+\approx
+f(\mathbf{x}_0)
++
+\nabla f(\mathbf{x}_0)^T
+(\mathbf{x} - \mathbf{x}_0)
++
+\frac{1}{2}
+(\mathbf{x} - \mathbf{x}_0)^T
+H
+(\mathbf{x} - \mathbf{x}_0)
+$$
+
+where:
+
+- $\nabla f$ is the gradient
+- $H$ is the Hessian matrix
+
+These approximations are fundamental in optimization algorithms used in machine learning.
+
 
 ### Gradient Descent Concept
 
@@ -143,7 +330,7 @@ Where:
 - $\eta$ is the learning rate
 - $L(\theta)$ is the loss function
 
-### Example: Gradient Descent in PyTorch
+#### Example: Gradient Descent in PyTorch
 
 ```python
 import torch
@@ -170,6 +357,136 @@ for step in range(20):
 
     print(f"Step {step}: x = {x.item():.4f}, loss = {loss.item():.4f}")
 ```
+
+### Automatic Differentiation
+
+Automatic differentiation is a computational technique used to evaluate derivatives 
+efficiently and accurately. It is a core component of modern machine learning frameworks 
+such as PyTorch, TensorFlow, and JAX.
+
+Unlike symbolic differentiation, automatic differentiation does not manipulate mathematical 
+expressions symbolically. Unlike numerical differentiation, it does not rely on finite 
+difference approximations.
+
+Instead, automatic differentiation applies the chain rule systematically through a 
+sequence of elementary operations.
+
+Given a composite function:
+
+$$
+f(x) = f_3(f_2(f_1(x)))
+$$
+
+the chain rule states:
+
+$$
+\frac{df}{dx}
+=
+\frac{df_3}{df_2}
+\frac{df_2}{df_1}
+\frac{df_1}{dx}
+$$
+
+Machine learning frameworks construct a computational graph that tracks operations and 
+automatically computes gradients during backpropagation.
+
+#### Forward and Reverse Mode Differentiation
+
+There are two main approaches:
+
+#### Forward Mode
+
+Gradients are propagated from inputs to outputs.
+
+Efficient when:
+- The number of inputs is small
+- The number of outputs is large
+
+#### Reverse Mode
+
+Gradients are propagated backward from outputs to inputs.
+
+Efficient when:
+- The number of parameters is very large
+- The output is scalar
+
+Reverse-mode automatic differentiation is the foundation of backpropagation in deep learning.
+
+#### Computational Graphs
+
+A computational graph represents mathematical operations as nodes connected by edges.
+
+For example:
+
+$$
+y = x^2 + 3x
+$$
+
+can be decomposed into elementary operations:
+- Multiplication
+- Addition
+
+The framework stores intermediate values and computes derivatives automatically.
+
+#### Example: Automatic Differentiation with PyTorch
+
+```python
+import torch
+
+# CREATE A TENSOR WITH GRADIENT TRACKING
+x = torch.tensor(2.0, requires_grad=True)
+
+# DEFINE A FUNCTION
+y = x**2 + 3*x + 1
+
+# COMPUTE DERIVATIVE dy/dx
+y.backward()
+
+# PRINT RESULTS
+print("x =", x.item())
+print("y =", y.item())
+print("dy/dx =", x.grad.item())
+```
+
+#### Mathematical Verification
+
+The function is:
+
+$$
+y = x^2 + 3x + 1
+$$
+
+Its analytical derivative is:
+
+$$
+\frac{dy}{dx} = 2x + 3
+$$
+
+For $x = 2$:
+
+$$
+\frac{dy}{dx} = 2(2) + 3 = 7
+$$
+
+The value computed using automatic differentiation matches the analytical result.
+
+#### Importance in Machine Learning
+
+Automatic differentiation enables efficient training of neural networks by computing 
+gradients of loss functions with respect to millions of parameters.
+
+Applications include:
+
+- Backpropagation
+- Gradient descent optimization
+- Physics-informed neural networks
+- Scientific machine learning
+- Deep generative models
+
+Without automatic differentiation, training modern deep learning models would be 
+computationally impractical.
+
+
 
 ## 3. Probability and Statistics
 
