@@ -86,6 +86,7 @@ transform input data into meaningful predictions through adjustable weights and 
 A **feedforward neural network** processes information sequentially from the input layer to the output layer 
 without feedback connections or recurrent cycles.
 
+![neuron-perceptron](../images/neuron-perceptron.png){: style="width: 600px;"}
 
 ## Architecture Components
 
