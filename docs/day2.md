@@ -81,12 +81,14 @@ By training on FDA-approved drugs, the model learns:
 ### 1.2 Neural Network Basics
 
 A neural network is a computational model composed of interconnected layers of artificial neurons that learn to 
-transform input data into meaningful predictions through adjustable weights and biases.
+transform input data into meaningful predictions through adjustable weights and biases (Rosenblatt, Psychological Review, 65, 386, 1958).
+
+
+![neuron-perceptron](../images/neuron-perceptron.png){: style="width: 600px;"}
+
 
 A **feedforward neural network** processes information sequentially from the input layer to the output layer 
 without feedback connections or recurrent cycles.
-
-![neuron-perceptron](../images/neuron-perceptron.png){: style="width: 600px;"}
 
 ## Architecture Components
 
