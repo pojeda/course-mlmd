@@ -1237,3 +1237,10 @@ This course introduced the core mathematical concepts underlying machine learnin
 - Information theory for measuring information and learning
 - Graph theory for relational data
 - Dimensionality reduction for visualization and feature compression
+
+
+## Resources and Further Reading
+
+* Marc Peter Deisenroth, A. Aldo Faisal, and Cheng Soon Ong; Mathematics for Machine Learning,
+Cambridge University Press, 2020.
+
