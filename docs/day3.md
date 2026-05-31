@@ -490,12 +490,11 @@ Basic MPNNs operate only on graph topology and often ignore molecular geometry.
   * EGNN
   * SE(3)-Transformers
 
-
-
-- hasta aca
 ## 2. Graph Attention Networks
 
-Graph Attention Networks (GATs) introduce attention mechanisms to graph learning, allowing the model to learn which neighbors are most important for each node. This is a significant advancement over basic message passing, where all neighbors contribute equally to a node's update.
+Graph Attention Networks (GATs) introduce attention mechanisms to graph learning, allowing the model to learn which neighbors 
+are most important for each node. This is a significant advancement over basic message passing, where all neighbors contribute 
+equally to a node's update.
 
 #### Motivation and Intuition
 
@@ -507,7 +506,8 @@ In molecular contexts, not all bonds are equally important for determining a pro
 - Certain bonds participate in conjugation or resonance, making them more significant
 - In protein-ligand binding, only residues near the binding site matter
 
-**Analogy to NLP**: Just as in language, where "bank" means different things in "river bank" vs "savings bank" depending on context, an atom's role depends on which neighbors are most relevant.
+**Analogy to NLP**: Just as in language, where "bank" means different things in "river bank" vs "savings bank" depending on 
+context, an atom's role depends on which neighbors are most relevant.
 
 GATs allow the network to automatically learn these context-dependent importance weights.
 
@@ -515,27 +515,29 @@ GATs allow the network to automatically learn these context-dependent importance
 
 **Core Idea:**
 
-Unlike MPNNs that use fixed aggregation (sum, mean) or hand-crafted edge weights, GATs learn attention coefficients α_{ij} that adaptively weigh the importance of each neighbor j for node i.
+Unlike MPNNs that use fixed aggregation (sum, mean) or hand-crafted edge weights, GATs learn attention coefficients α_{ij} 
+that adaptively weigh the importance of each neighbor j for node i.
 
 **Mathematical Framework:**
 
 The attention mechanism consists of three steps:
 
 **Step 1: Compute Attention Logits**
-```
+
+$$
 e_{ij} = LeakyReLU(a^T [W h_i || W h_j])
-```
+$$
 
 Breaking this down:
-- **W h_i** and **W h_j**: First, transform node features through a shared weight matrix W
+- **$W h_i$** and **$W h_j$**: First, transform node features through a shared weight matrix W
   - This projects features into a common space where comparisons are meaningful
   - Dimension: [d_in] → [d_out]
   
-- **[W h_i || W h_j]**: Concatenate transformed features of node i and neighbor j
+- **$[W h_i || W h_j]$**: Concatenate transformed features of node i and neighbor j
   - Creates a pairwise feature vector
   - Dimension: [2 × d_out]
   
-- **a^T [...]**: Apply learned attention vector a
+- **$a^T [...]$**: Apply learned attention vector a
   - Reduces to scalar attention logit e_{ij}
   - The attention vector a learns what feature combinations indicate importance
   - Dimension: [2 × d_out] → [1]
@@ -547,13 +549,14 @@ Breaking this down:
 **Intuition**: The attention logit e_{ij} measures how relevant neighbor j is to node i, based on their feature compatibility.
 
 **Step 2: Normalize to Attention Coefficients**
-```
+
+$$
 α_{ij} = softmax_j(e_{ij}) = exp(e_{ij}) / Σ_{k∈N(i)} exp(e_{ik})
-```
+$$
 
 - **Softmax normalization**: Ensures attention weights sum to 1 over all neighbors
 - **Comparison**: Only neighbors compete for attention (not all nodes in graph)
-- **Interpretation**: α_{ij} ∈ (0, 1) represents the probability-like importance of neighbor j
+- **Interpretation**: $α_{ij} ∈ (0, 1)$ represents the probability-like importance of neighbor j
 
 **Why softmax?**
 - Preserves differentiability (can backpropagate)
@@ -561,25 +564,26 @@ Breaking this down:
 - Normalized weights prevent exploding values in aggregation
 
 **Step 3: Aggregate with Attention Weights**
-```
-h_i' = σ(Σ_{j∈N(i)} α_{ij} W h_j)
-```
+
+$$
+h_{i'} = σ(Σ_{j∈N(i)} α_{ij} W h_j)
+$$
 
 - **Weighted sum**: Each neighbor contributes proportionally to its attention weight
-- **W h_j**: Uses the same transformation from step 1 (parameter sharing)
+- **$W h_j$**: Uses the same transformation from step 1 (parameter sharing)
 - **σ**: Activation function (typically ELU or ReLU)
 
 **Complete Forward Pass Example:**
 
 For an atom with 3 neighbors:
-1. Compute logits: e_{i1} = 0.8, e_{i2} = 0.3, e_{i3} = -0.2
-2. Apply softmax: α_{i1} = 0.52, α_{i2} = 0.31, α_{i3} = 0.17
-3. Aggregate: h_i' = σ(0.52 × W h_1 + 0.31 × W h_2 + 0.17 × W h_3)
+1. Compute logits: $e_{i1} = 0.8, e_{i2} = 0.3, e_{i3} = -0.2$
+2. Apply softmax: $α_{i1} = 0.52, α_{i2} = 0.31, α_{i3} = 0.17$
+3. Aggregate: $h_{i'} = σ(0.52 × W h_1 + 0.31 × W h_2 + 0.17 × W h_3)$
 
 **Key Properties:**
 
 - **Self-attention**: Can include self-loops (i,i) so nodes attend to themselves
-- **Asymmetric**: α_{ij} ≠ α_{ji} (attention from i→j differs from j→i)
+- **Asymmetric**: $α_{ij} \ne α_{ji}$ (attention from i→j differs from j→i)
 - **Local**: Only attends to direct neighbors (preserves graph structure)
 - **Permutation invariant**: Order of neighbors doesn't matter
 
@@ -588,15 +592,16 @@ For an atom with 3 neighbors:
 To stabilize learning and capture different types of relationships simultaneously, GATs employ multiple independent attention mechanisms (heads).
 
 **Multi-Head Aggregation (Hidden Layers):**
-```
-h_i' = ||_{k=1}^K σ(Σ_{j∈N(i)} α_{ij}^k W^k h_j)
-```
+
+$$
+h_{i'} = ||_{k=1}^K σ(Σ_{j∈N(i)} α_{ij}^k W^k h_j)
+$$
 
 Where:
 - K = number of attention heads
-- Each head k has its own parameters: W^k and a^k
+- Each head $k$ has its own parameters: $W^k$ and $a^k$
 - || denotes concatenation of head outputs
-- Output dimension: K × d_out
+- Output dimension: $K × d_{out}$
 
 **Why Multiple Heads?**
 
@@ -606,12 +611,14 @@ Different heads can learn complementary attention patterns:
 - **Head 3**: Might focus on steric bulk (for size effects)
 - **Head 4**: Might attend to formal charges
 
-**Intuition from Chemistry**: Just as a chemist considers multiple factors simultaneously (electronics, sterics, orbital interactions), multiple heads capture different aspects of molecular structure.
+**Intuition from Chemistry**: Just as a chemist considers multiple factors simultaneously (electronics, sterics, orbital interactions), 
+multiple heads capture different aspects of molecular structure.
 
 **Multi-Head Averaging (Output Layer):**
-```
-h_i' = σ((1/K) Σ_{k=1}^K Σ_{j∈N(i)} α_{ij}^k W^k h_j)
-```
+
+$$
+h_{i'} = σ((1/K) Σ_{k=1}^K Σ_{j∈N(i)} α_{ij}^k W^k h_j)
+$$
 
 For the final layer, averaging instead of concatenation:
 - Keeps output dimension consistent with target
@@ -637,13 +644,18 @@ dropout = 0.1-0.3  # On attention coefficients (attention dropout)
 **1. Adaptive Neighborhoods**
 
 Unlike fixed aggregation:
-```
-# Fixed (GCN-style)
-h_i' = Σ_{j∈N(i)} (1/√(d_i × d_j)) W h_j  # predetermined weights
 
-# Adaptive (GAT)
+##### Fixed (GCN-style)
+
+$$
+h_i' = Σ_{j∈N(i)} (1/√(d_i × d_j)) W h_j  # predetermined weights
+$$
+
+##### Adaptive (GAT)
+
+$$
 h_i' = Σ_{j∈N(i)} α_{ij} W h_j  # learned weights
-```
+$$
 
 **Benefits:**
 - Automatically focuses on relevant neighbors
@@ -658,7 +670,7 @@ While downweighting inert carbon chains.
 
 **2. Interpretability**
 
-Attention weights α_{ij} can be visualized and interpreted:
+Attention weights $α_{ij}$ can be visualized and interpreted:
 
 ```python
 # Extract attention weights
@@ -712,16 +724,20 @@ This is critical for:
 **GATv2: More Expressive Attention**
 
 Original GAT limitation: Attention is somewhat static
-```
-# GAT: Transform then attend
+
+##### GAT: Transform then attend
+
+$$
 e_{ij} = a^T [W h_i || W h_j]  # a can only linearly combine features
-```
+$$
 
 GATv2 improvement: Dynamic attention
-```
-# GATv2: Attend then transform
+
+##### GATv2: Attend then transform
+
+$$
 e_{ij} = a^T LeakyReLU(W [h_i || h_j])  # Non-linearity before attention
-```
+$$
 
 **Why it's better:**
 - The non-linearity is applied AFTER concatenation
@@ -740,12 +756,12 @@ Challenge: Chemical bonds have important attributes (single/double/triple, stere
 
 **Solution**: Incorporate edge features into attention
 
-```
+$$
 e_{ij} = a^T [W h_i || W h_j || E e_{ij}]
-```
+$$
 
 Where:
-- e_{ij} = edge feature vector (bond type, distance, ring membership)
+- $e_{ij}$ = edge feature vector (bond type, distance, ring membership)
 - E = edge embedding matrix
 - Now attention depends on both node features AND edge features
 
@@ -756,18 +772,19 @@ Where:
 - Representing stereochemistry
 
 **Example**: In conjugated systems, π-bonds should have higher attention than σ-bonds:
-```
-# Single bond: e_{ij} = [1,0,0] → lower attention
-# Double bond: e_{ij} = [0,1,0] → higher attention (for delocalization)
-# Triple bond: e_{ij} = [0,0,1] → highest attention
-```
+
+##### Single bond: $e_{ij} = [1,0,0]$ → lower attention
+##### Double bond: $e_{ij} = [0,1,0]$ → higher attention (for delocalization)
+##### Triple bond: $e_{ij} = [0,0,1]$ → highest attention
+
 
 **Graph Transformer Networks:**
 
 Extension to full graph attention (not just neighbors):
-```
+
+$$
 α_{ij} for all pairs (i,j) in graph  # Not just edges
-```
+$$
 
 **Trade-offs:**
 - **Pro**: Can capture long-range interactions
@@ -840,7 +857,7 @@ for head in range(num_heads):
     visualize_attention_head(head, attention_weights)
 ```
 
----
+--- hasta aca ---
 
 ### 3. Equivariant Networks for 3D Structures
 
