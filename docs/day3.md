@@ -1,4267 +1,2801 @@
-# Day 3: Graph Neural Networks and Geometric Deep Learning
+# Day 1: Foundations of Machine Learning for Molecular Systems
 
-Day 3 focuses on Graph Neural Networks (GNNs) and their applications in molecular and materials science. We will 
-explore how graphs can represent molecular structures and how specialized neural network architectures learn from 
-these representations while respecting physical symmetries and chemical constraints.
+## Course Overview
+Welcome to the Machine Learning and Deep Learning for Biomolecular Systems and Material Science course. This 
+program will equip you with the knowledge and skills to apply cutting-edge ML techniques to molecular design, 
+property prediction, and materials discovery.
 
+## Learning Objectives
 
-## 1. Message Passing Neural Networks
+- Understand the fundamental ML concepts relevant to molecular sciences
+- Learn multiple molecular representation methods and their trade-offs
+- Implement basic ML models for molecular property prediction
+- Work with chemical databases and molecular descriptors
+- Understand the unique challenges of applying ML to chemistry
 
-Message Passing Neural Networks (MPNNs) provide the foundation for many modern graph neural networks used in molecular 
-property prediction. They offer a unified framework for learning from graph-structured data, making them especially suitable 
-for molecular systems where atoms and bonds naturally form graphs.
 
-### Core Concepts
+## 1. Introduction to ML in Molecular Sciences
 
-### 1. Graph Representation
+### 1.1 Why Machine Learning for Molecules?
 
-In molecular graphs, chemical structures are naturally represented as graphs:
+The chemical space is vast—estimates suggest there are 10^60 possible drug-like molecules, far 
+more than atoms in the universe. Traditional approaches to drug discovery and materials design involve:
 
-##### **Nodes** represent atoms and contain feature vectors such as:
+- Synthesizing and testing compounds one by one (expensive, slow)
+- Running quantum mechanical calculations for each molecule (computationally expensive)
+- Trial-and-error experimentation (low success rate)
 
-  * Atomic number
-  * Formal charge and partial charge
-  * Hybridization state ($sp$, $sp^2$, $sp^3$)
-  * Number of bonded hydrogen atoms
-  * Aromaticity
-  * Chirality
-  * Atomic mass
-  * Degree (number of bonded neighbors)
+Machine learning has revolutionized our ability to:
 
-##### **Edges** represent chemical bonds and may include:
+**Predict Properties Without Experiments**
 
-  * Bond type (single, double, triple, aromatic)
-  * Bond length or interatomic distance
-  * Stereochemistry (cis/trans or E/Z)
-  * Conjugation
-  * Ring membership
+- Calculate solubility, toxicity, binding affinity computationally
+- Screen millions of compounds in silico before synthesis
+- Reduce time from years to weeks
 
-The graph topology preserves molecular connectivity and encodes the relationships that determine chemical and physical properties.
+**Discover Structure-Property Relationships**
 
+- Identify which molecular features drive desired properties
+- Understand mechanisms of action
+- Transfer knowledge across molecular families
 
-### Why Message Passing?
+**Navigate Chemical Space Efficiently**
 
-The central idea behind MPNNs is that the properties of an atom depend not only on the atom itself, but also on its chemical environment.
+- Explore 10^60 possible molecules intelligently
+- Focus experimental resources on most promising candidates
+- Find novel scaffolds outside known chemistry
 
-Message passing mimics how chemical information propagates through molecules:
+**Accelerate Discovery Pipelines**
 
-* Inductive effects propagate through $\sigma$ bonds
-* Resonance effects propagate through conjugated systems
-* Steric effects depend on neighboring spatial arrangements
+- Traditional drug discovery: 10-15 years, $2.6B per drug
+- ML-assisted discovery: Potentially 2-3x faster, significantly cheaper
+- Example: Insilico Medicine designed a novel drug candidate in 46 days
 
-By iteratively exchanging information between neighboring atoms, the network learns increasingly expressive representations 
-of molecular structure.
+### 1.2 Success Stories
 
+**COVID-19 Drug Repurposing**
 
+- ML models screened 6,000+ FDA-approved drugs against SARS-CoV-2
+- Identified Baricitinib (arthritis drug) as potential treatment
+- Approved by FDA for COVID-19 treatment in 2020
 
-### 2. Message Passing Framework
+**Antibiotic Discovery**
 
-An MPNN typically consists of three stages repeated over several iterations.
+- ML identified Halicin, a novel antibiotic
+- Effective against drug-resistant bacteria
+- Different from existing antibiotics (discovered through ML, not traditional chemistry)
 
-### 1. Message Phase
+**Materials Science**
 
-At iteration $t$, each node receives messages from its neighbors:
+- ML accelerated discovery of solid electrolytes for batteries
+- Predicted thermal conductivity of materials 1000x faster than simulations
+- Identified new photovoltaic materials
 
-$$
-m_v^{(t+1)} = \sum_{u \in \mathcal{N}(v)}
-M_t\left(h_v^{(t)}, h_u^{(t)}, e_{uv}\right)
-$$
+### 1.3 Key Challenges in Molecular ML
 
-Where:
+#### High Dimensionality
+Molecules exist in complex, high-dimensional spaces:
 
-* $h_v^{(t)}$ is the hidden representation of node $v$
-* $h_u^{(t)}$ is the hidden representation of neighboring node $u$
-* $e_{uv}$ represents edge features
-* $\mathcal{N}(v)$ denotes the neighbors of node $v$
-* $M_t$ is a learnable message function
+- 3D coordinates for each atom
+- Electronic structure information
+- Conformational flexibility
+- Quantum mechanical properties
 
-### Intuition
+**Solution**: Learn compact representations that capture essential features
 
-Each atom "listens" to information from its bonded neighbors and receives messages describing the local chemical environment.
+#### Data Scarcity
+Unlike computer vision (millions of labeled images), molecular datasets are small:
 
+- Typical drug dataset: 1,000 - 100,000 compounds
+- Experimental measurements are expensive and time-consuming
+- Many properties are difficult to measure accurately
 
-### Update Phase
+**Solution**: Transfer learning, data augmentation, semi-supervised learning
 
-The node representation is updated using the aggregated message:
+#### Physical Constraints
+Models must respect fundamental laws:
 
-$$
-h_v^{(t+1)} =
-U_t\left(h_v^{(t)}, m_v^{(t+1)}\right)
-$$
+- Conservation of energy
+- Valence rules (atoms have specific bonding patterns)
+- Symmetries (rotation, translation, permutation)
+- Quantum mechanical principles
 
-Where $U_t$ is typically implemented using:
+**Solution**: Physics-informed neural networks, equivariant architectures
 
-* A feedforward neural network
-* A GRU (Gated Recurrent Unit)
-* An LSTM
+#### Interpretability Requirements
+Black-box predictions aren't enough in science:
 
-### Intuition
+- Need to understand WHY predictions work
+- Identify key molecular features
+- Generate hypotheses for experiments
+- Build trust with domain experts
 
-Each atom updates its internal representation after incorporating information from neighboring atoms.
+**Solution**: Attention mechanisms, feature importance analysis, explainable AI
 
+#### Distribution Shift
+Models trained on one chemical space may fail on another:
 
-###  Aggregation Functions
+- Different molecular scaffolds
+- Novel functional groups
+- Extreme property values
 
-The summation operator in the message phase can be replaced by different aggregation schemes.
+**Solution**: Domain adaptation, uncertainty quantification, active learning
 
-#### Sum Aggregation
 
-$$
-\sum_{u \in \mathcal{N}(v)} M_t(\cdot)
-$$
+## 2. Molecular Representations
 
-* Sensitive to neighborhood size
-* Appropriate for extensive properties
+The choice of molecular representation is crucial—it determines what information is available to 
+the model and how efficiently it can learn.
 
-#### Mean Aggregation
+### 2.1 SMILES (Simplified Molecular Input Line Entry System)
 
-$$
-\frac{1}{|\mathcal{N}(v)|}
-\sum_{u \in \mathcal{N}(v)} M_t(\cdot)
-$$
+SMILES is a text-based notation that represents molecular structure as a string.
 
-* Degree-normalized
-* More stable for variable graph sizes
+#### Basic SMILES Syntax
 
-#### Max Aggregation
-
-$$
-\max_{u \in \mathcal{N}(v)} M_t(\cdot)
-$$
-
-* Captures dominant features
-* May lose distributed information
-
-#### Attention-Based Aggregation
-
-$$
-\sum_{u \in \mathcal{N}(v)}
-\alpha_{vu} M_t(\cdot)
-$$
-
-where $\alpha_{vu}$ are learned attention weights.
-
-This approach is used in Graph Attention Networks (GATs).
-
-
-
-### 2. Readout Phase
-
-After $T$ message-passing iterations, each node has a final embedding $h_v^{(T)}$.
-
-To predict graph-level properties, node embeddings are aggregated into a graph representation:
-
-$$
-y = R(  h_v^{(T)} \mid v \in G  )
-$$
-
-where $R$ is the readout function.
-
-### Common Readout Functions
-
-#### Sum Pooling
-
-$$
-R = \sum_v h_v^{(T)}
-$$
-
-* Suitable for extensive properties
-* Sensitive to molecular size
-
-#### Mean Pooling
-
-$$
-R =
-\frac{1}{|V|}
-\sum_v h_v^{(T)}
-$$
-
-* Size-invariant
-* Useful for intensive properties
-
-#### Max Pooling
-
-$$
-R = \max_v h_v^{(T)}
-$$
-
-* Captures dominant features
-
-#### Set2Set Pooling
-
-A learnable attention-based mechanism that iteratively attends to node embeddings using recurrent neural networks.
-
-
-### 3. Receptive Fields and Network Depth
-
-The number of message-passing iterations determines the receptive field.
-
-* $T = 1$: information from immediate neighbors
-* $T = 2$: information from neighbors-of-neighbors
-* $T = k$: information propagates across $k$ bonds
-
-Typical values:
-
-* Small molecules (e.g., QM9 dataset): $T = 3$–$5$
-* Proteins and biomolecules: $T = 5$–$10$
-
-### Trade-Off
-
-Deeper message passing increases the receptive field but may lead to **over-smoothing**, where node embeddings become excessively similar.
-
-
-### 4. Key Variants of Message Passing Networks
-
-#### Graph Convolutional Networks (GCNs)
-
-Graph Convolutional Networks simplify message passing using normalized graph convolutions:
-
-$$
-H^{(t+1)}
-=
-\sigma\left(
-D^{-1/2}\tilde{A}D^{-1/2}
-H^{(t)}W^{(t)}
-\right)
-$$
-
-Where:
-
-* $\tilde{A} = A + I$ is the adjacency matrix with self-loops
-* $D$ is the degree matrix
-* $W^{(t)}$ is a learnable weight matrix
-* $\sigma$ is a nonlinear activation function
-
-### Advantages
-
-* Computationally efficient
-* Stable normalization
-* Easy to train
-
-### Limitations
-
-* Limited handling of edge features
-* Fixed aggregation scheme
-* Reduced expressive power for certain graph structures
-
-
-### GraphSAGE
-
-GraphSAGE introduces neighborhood sampling for scalability:
-
-$$
-h_v^{(t+1)}
-=
-\sigma (
-W \cdot
-\text{CONCAT}
-(
-h_v^{(t)},
-\text{AGG}
-(
-h_u^{(t)}
-\mid
-u \in \text{Sample}(\mathcal{N}(v))
-)
-)
-)
-$$
-
-### Key Ideas
-
-* Randomly samples neighbors
-* Supports multiple aggregation functions
-* Enables inductive learning on unseen graphs
-
-### Benefits
-
-* Scales efficiently to large datasets
-* Suitable for large molecular databases
-* Works well with variable graph sizes
-
-
-## 2. Neural Message Passing for Quantum Chemistry
-
-The original MPNN framework for quantum chemistry introduced edge-conditioned message functions:
-
-$$
-m_v^{(t+1)}
-=
-\sum_{u \in \mathcal{N}(v)}
-A_t(e_{uv}) h_u^{(t)}
-$$
-
-where $A_t(e_{uv})$ is a neural network that generates edge-specific transformation matrices.
-
-Node updates are commonly performed using GRUs:
-
-$$
-h_v^{(t+1)}
-=
-\text{GRU}
-\left(
-h_v^{(t)},
-m_v^{(t+1)}
-\right)
-$$
-
-### Advantages
-
-* Different bond types can transmit information differently
-* GRUs improve gradient flow
-* Supports deeper message passing
-
-### Virtual Edges
-
-Additional edges may connect non-bonded atoms within a spatial cutoff distance to capture:
-
-* Long-range interactions
-* Conformational effects
-* Weak intermolecular interactions
-
-### Typical MPNN Workflow
-
-```python
-# Initialize node embeddings
-h_v = embedding(x_v)
-
-# Message passing
-for t in range(T):
-
-    for edge (v, u):
-
-        m_vu = EdgeNetwork(e_vu) @ h_u
-
-    m_v = sum(m_vu)
-
-    h_v = GRU(h_v, m_v)
-
-# Graph readout
-h_G = Readout({h_v})
-
-# Final prediction
-y = MLP(h_G)
-```
-
-
-### Applications in Chemistry and Materials Science
-
-#### Molecular Property Prediction
-
-MPNNs are highly effective for predicting:
-
-#### Quantum Mechanical Properties
-
-Examples from the QM9 dataset include:
-
-* HOMO/LUMO energies
-* Internal energy
-* Enthalpy
-* Free energy
-* Heat capacity
-* Atomization energy
-
-These properties strongly depend on molecular connectivity and local electronic environments.
-
-
-#### Physical Properties
-
-Examples include:
-
-* Solubility
-* Density
-* Melting and boiling points
-* Refractive index
-* Viscosity
-
-Incorporating 3D geometry often improves performance.
-
-
-#### Biological Activity Prediction
-
-Applications include:
-
-* Toxicity prediction
-* Binding affinity prediction
-* ADMET property estimation
-* Blood-brain barrier permeability
-
-These models are widely used in early-stage drug discovery.
-
-
-#### Reaction Outcome Prediction
-
-MPNNs can predict reaction products from reactants and conditions:
-
-$$
-\text{Reactant Graphs}
-\rightarrow
-\text{MPNN}
-\rightarrow
-\text{Product Distribution}
-$$
-
-Reaction conditions such as temperature, solvent, and catalysts can be incorporated as global features.
-
-#### Retrosynthesis Planning
-
-Retrosynthesis models predict precursor molecules for a target compound:
-
-$$
-\text{Target Molecule}
-\rightarrow
-\text{MPNN}
-\rightarrow
-\text{Candidate Precursors}
-$$
-
-These systems assist chemists in designing synthetic routes.
-
-
-### Drug Discovery and Virtual Screening
-
-Applications include:
-
-* High-throughput virtual screening
-* Multi-task property prediction
-* Active learning
-* Transfer learning on molecular datasets
-
-Once trained, these models can evaluate thousands of molecules per second.
-
-
-### De Novo Molecular Design
-
-MPNNs are frequently combined with generative models to design molecules with target properties.
-
-Applications include:
-
-* Reinforcement learning
-* Genetic algorithms
-* Property-guided molecular generation
-
-
-#### Limitations and Challenges
-
-#### Over-Smoothing
-
-With many message-passing layers, node embeddings can become nearly identical.
-
-#### Possible Solutions
-
-* Residual connections
-* Jumping knowledge networks
-* Normalization techniques
-
-### Limited Expressivity
-
-Some graph structures cannot be distinguished by standard message-passing schemes.
-
-### Possible Solutions
-
-* Higher-order graph representations
-* More expressive aggregation mechanisms
-* Subgraph-based methods
-
-
-### Scalability
-
-Large molecular systems and protein graphs can become computationally expensive.
-
-### Possible Solutions
-
-* Neighbor sampling
-* Hierarchical pooling
-* Graph coarsening
-
-
-### Lack of 3D Geometric Information
-
-Basic MPNNs operate only on graph topology and often ignore molecular geometry.
-
-### Possible Solutions
-
-* Include distances as edge features
-* Use geometric or equivariant neural networks
-* Incorporate rotationally equivariant architectures such as:
-
-  * SchNet
-  * DimeNet
-  * EGNN
-  * SE(3)-Transformers
-
-## 2. Graph Attention Networks
-
-Graph Attention Networks (GATs) introduce attention mechanisms to graph learning, allowing the model to learn which neighbors 
-are most important for each node. This is a significant advancement over basic message passing, where all neighbors contribute 
-equally to a node's update.
-
-#### Motivation and Intuition
-
-**Why Attention for Graphs?**
-
-In molecular contexts, not all bonds are equally important for determining a property:
-- In a large molecule, a specific functional group might dominate reactivity
-- Some atoms are in the "core" structure while others are in peripheral substituents
-- Certain bonds participate in conjugation or resonance, making them more significant
-- In protein-ligand binding, only residues near the binding site matter
-
-**Analogy to NLP**: Just as in language, where "bank" means different things in "river bank" vs "savings bank" depending on 
-context, an atom's role depends on which neighbors are most relevant.
-
-GATs allow the network to automatically learn these context-dependent importance weights.
-
-#### Attention Mechanism
-
-**Core Idea:**
-
-Unlike MPNNs that use fixed aggregation (sum, mean) or hand-crafted edge weights, GATs learn attention coefficients α_{ij} 
-that adaptively weigh the importance of each neighbor j for node i.
-
-**Mathematical Framework:**
-
-The attention mechanism consists of three steps:
-
-**Step 1: Compute Attention Logits**
-
-$$
-e_{ij} = LeakyReLU(a^T [W h_i || W h_j])
-$$
-
-Breaking this down:
-- **$W h_i$** and **$W h_j$**: First, transform node features through a shared weight matrix W
-  - This projects features into a common space where comparisons are meaningful
-  - Dimension: [d_in] → [d_out]
-  
-- **$[W h_i || W h_j]$**: Concatenate transformed features of node i and neighbor j
-  - Creates a pairwise feature vector
-  - Dimension: [2 × d_out]
-  
-- **$a^T [...]$**: Apply learned attention vector a
-  - Reduces to scalar attention logit e_{ij}
-  - The attention vector a learns what feature combinations indicate importance
-  - Dimension: [2 × d_out] → [1]
-  
-- **LeakyReLU**: Non-linearity with slope α for negative values (typically α=0.2)
-  - Allows negative attention scores (before softmax)
-  - Prevents dead neurons from ReLU saturation
-
-**Intuition**: The attention logit e_{ij} measures how relevant neighbor j is to node i, based on their feature compatibility.
-
-**Step 2: Normalize to Attention Coefficients**
-
-$$
-α_{ij} = softmax_j(e_{ij}) = exp(e_{ij}) / Σ_{k∈N(i)} exp(e_{ik})
-$$
-
-- **Softmax normalization**: Ensures attention weights sum to 1 over all neighbors
-- **Comparison**: Only neighbors compete for attention (not all nodes in graph)
-- **Interpretation**: $α_{ij} ∈ (0, 1)$ represents the probability-like importance of neighbor j
-
-**Why softmax?**
-- Preserves differentiability (can backpropagate)
-- Creates sharp distinctions (high e_{ij} → high α_{ij})
-- Normalized weights prevent exploding values in aggregation
-
-**Step 3: Aggregate with Attention Weights**
-
-$$
-h_{i'} = σ(Σ_{j∈N(i)} α_{ij} W h_j)
-$$
-
-- **Weighted sum**: Each neighbor contributes proportionally to its attention weight
-- **$W h_j$**: Uses the same transformation from step 1 (parameter sharing)
-- **σ**: Activation function (typically ELU or ReLU)
-
-**Complete Forward Pass Example:**
-
-For an atom with 3 neighbors:
-1. Compute logits: $e_{i1} = 0.8, e_{i2} = 0.3, e_{i3} = -0.2$
-2. Apply softmax: $α_{i1} = 0.52, α_{i2} = 0.31, α_{i3} = 0.17$
-3. Aggregate: $h_{i'} = σ(0.52 × W h_1 + 0.31 × W h_2 + 0.17 × W h_3)$
-
-**Key Properties:**
-
-- **Self-attention**: Can include self-loops (i,i) so nodes attend to themselves
-- **Asymmetric**: $α_{ij} \ne α_{ji}$ (attention from i→j differs from j→i)
-- **Local**: Only attends to direct neighbors (preserves graph structure)
-- **Permutation invariant**: Order of neighbors doesn't matter
-
-#### Multi-Head Attention
-
-To stabilize learning and capture different types of relationships simultaneously, GATs employ multiple independent attention mechanisms (heads).
-
-**Multi-Head Aggregation (Hidden Layers):**
-
-$$
-h_{i'} = ||_{k=1}^K σ(Σ_{j∈N(i)} α_{ij}^k W^k h_j)
-$$
-
-Where:
-- K = number of attention heads
-- Each head $k$ has its own parameters: $W^k$ and $a^k$
-- || denotes concatenation of head outputs
-- Output dimension: $K × d_{out}$
-
-**Why Multiple Heads?**
-
-Different heads can learn complementary attention patterns:
-- **Head 1**: Might focus on electronegative atoms (for polarity)
-- **Head 2**: Might focus on aromatic neighbors (for conjugation)
-- **Head 3**: Might focus on steric bulk (for size effects)
-- **Head 4**: Might attend to formal charges
-
-**Intuition from Chemistry**: Just as a chemist considers multiple factors simultaneously (electronics, sterics, orbital interactions), 
-multiple heads capture different aspects of molecular structure.
-
-**Multi-Head Averaging (Output Layer):**
-
-$$
-h_{i'} = σ((1/K) Σ_{k=1}^K Σ_{j∈N(i)} α_{ij}^k W^k h_j)
-$$
-
-For the final layer, averaging instead of concatenation:
-- Keeps output dimension consistent with target
-- Ensembles the predictions from different heads
-- More stable for final predictions
-
-**Implementation Considerations:**
-
-```python
-# Typical hyperparameters
-num_heads = 4-8  # More heads = more capacity but more parameters
-hidden_dim = 64-256  # Per-head dimension
-dropout = 0.1-0.3  # On attention coefficients (attention dropout)
-```
-
-**Computational Complexity:**
-- Attention computation: O(|E| × d_out) - linear in edges
-- Memory for attention: O(|E| × K) - stores attention per head
-- Highly parallelizable (all attention coefficients computed independently)
-
-#### Advantages of GATs
-
-**1. Adaptive Neighborhoods**
-
-Unlike fixed aggregation:
-
-##### Fixed (GCN-style)
-
-$$
-h_i' = Σ_{j∈N(i)} (1/√(d_i × d_j)) W h_j  # predetermined weights
-$$
-
-##### Adaptive (GAT)
-
-$$
-h_i' = Σ_{j∈N(i)} α_{ij} W h_j  # learned weights
-$$
-
-**Benefits:**
-- Automatically focuses on relevant neighbors
-- Can ignore uninformative connections
-- Adapts to different chemical contexts
-
-**Example**: In a drug molecule, GAT can learn to focus on:
-- Pharmacophore groups (active parts)
-- Hydrogen bond donors/acceptors
-- Hydrophobic regions
-While downweighting inert carbon chains.
-
-**2. Interpretability**
-
-Attention weights $α_{ij}$ can be visualized and interpreted:
-
-```python
-# Extract attention weights
-attention_weights = model.get_attention()  # shape: [num_edges, num_heads]
-
-# Visualize for a molecule
-mol_graph = molecule.to_graph()
-highlight_edges_by_weight(mol_graph, attention_weights, threshold=0.3)
-```
-
-**What we can learn:**
-- Which atoms influence predictions most
-- How information flows through the molecule
-- Whether the model learned chemically meaningful patterns
-- Debugging: Are attention patterns reasonable?
-
-**Example insights:**
-- High attention on C=O bonds for carbonyl chemistry
-- Focus on aromatic rings for π-stacking predictions
-- Attention following conjugation pathways
-
-**3. Parallelizability**
-
-All attention coefficients for all edges can be computed in parallel:
-```python
-# Pseudo-code
-edge_features = concat(h[edges[:,0]], h[edges[:,1]])  # All edges at once
-attention_logits = attention_network(edge_features)  # Parallel
-attention_weights = softmax_per_node(attention_logits)  # Parallel within neighbors
-```
-
-**Speed advantages:**
-- GPU-friendly (matrix operations)
-- Scales well to large molecules
-- No sequential dependencies (unlike RNNs)
-
-**4. Inductive Learning**
-
-GATs can generalize to completely new graph structures:
-- Train on small molecules, test on large ones
-- Learn patterns that transfer across different molecular classes
-- No fixed graph structure required during training
-
-This is critical for:
-- Generalizing to novel drug candidates
-- Transfer learning across datasets
-- Handling molecules with varying sizes
-
-#### GAT Variants and Extensions
-
-**GATv2: More Expressive Attention**
-
-Original GAT limitation: Attention is somewhat static
-
-##### GAT: Transform then attend
-
-$$
-e_{ij} = a^T [W h_i || W h_j]  # a can only linearly combine features
-$$
-
-GATv2 improvement: Dynamic attention
-
-##### GATv2: Attend then transform
-
-$$
-e_{ij} = a^T LeakyReLU(W [h_i || h_j])  # Non-linearity before attention
-$$
-
-**Why it's better:**
-- The non-linearity is applied AFTER concatenation
-- Allows more complex attention functions
-- Empirically: 10-30% better performance on many benchmarks
-- Fixes theoretical expressivity limitations of original GAT
-
-**When to use GATv2:**
-- Complex molecules with subtle structural differences
-- When original GAT plateaus in performance
-- Tasks requiring fine-grained attention distinctions
-
-**Molecular GAT: Edge Features**
-
-Challenge: Chemical bonds have important attributes (single/double/triple, stereochemistry) that basic GAT ignores.
-
-**Solution**: Incorporate edge features into attention
-
-$$
-e_{ij} = a^T [W h_i || W h_j || E e_{ij}]
-$$
-
-Where:
-- $e_{ij}$ = edge feature vector (bond type, distance, ring membership)
-- E = edge embedding matrix
-- Now attention depends on both node features AND edge features
-
-**Applications:**
-- Distinguishing single vs double bonds
-- Incorporating 3D distances
-- Using bond order information
-- Representing stereochemistry
-
-**Example**: In conjugated systems, π-bonds should have higher attention than σ-bonds:
-
-##### Single bond: $e_{ij} = [1,0,0]$ → lower attention
-##### Double bond: $e_{ij} = [0,1,0]$ → higher attention (for delocalization)
-##### Triple bond: $e_{ij} = [0,0,1]$ → highest attention
-
-
-**Graph Transformer Networks:**
-
-Extension to full graph attention (not just neighbors):
-
-$$
-α_{ij} for all pairs (i,j) in graph  # Not just edges
-$$
-
-**Trade-offs:**
-- **Pro**: Can capture long-range interactions
-- **Pro**: More flexible attention patterns
-- **Con**: O(|V|²) complexity (vs O(|E|) for GAT)
-- **Con**: May lose graph structural bias
-
-**Use when:** Long-range interactions matter (large molecules, proteins)
-
-#### Practical Tips for Using GATs
-
-**Hyperparameter Selection:**
-
-```python
-# Good starting points
-num_layers = 3-5  # Deeper than this risks over-smoothing
-num_heads = 4-8  # More heads for complex tasks
-hidden_dim = 64-128 per head
-dropout = 0.1-0.3  # Higher dropout for small datasets
-learning_rate = 0.001  # Adam optimizer
-
-# For QM9 dataset
-config = {
-    'num_layers': 4,
-    'num_heads': 4,
-    'hidden_dim': 128,
-    'dropout': 0.2,
-    'attention_dropout': 0.1  # Separate dropout on attention weights
-}
-```
-
-**Common Pitfalls:**
-
-1. **Forgetting self-loops**: Add explicit (i,i) edges or include h_i in aggregation
-2. **Over-smoothing**: Too many layers → all nodes become similar
-3. **Attention collapse**: All attention goes to one neighbor (use attention dropout)
-4. **Memory issues**: K heads × L layers can use lots of GPU memory
-
-**Best Practices:**
-
-```python
-# 1. Add residual connections
-h_i' = h_i + GAT(h_i)  # Prevents over-smoothing
-
-# 2. Use layer normalization
-h_i' = LayerNorm(h_i + GAT(h_i))  # Stabilizes training
-
-# 3. Attention dropout
-α_{ij} = Dropout(softmax(e_{ij}))  # Regularizes attention
-
-# 4. Edge features when available
-e_{ij} = [bond_type, distance, ring_membership]  # Richer edges
-```
-
-**Visualization Strategies:**
-
-```python
-# 1. Attention heatmaps
-plot_attention_matrix(attention_weights, molecule)
-
-# 2. Highlight important edges
-highlight_edges_above_threshold(molecule, attention_weights > 0.3)
-
-# 3. Track attention across layers
-for layer in model.layers:
-    visualize_attention_distribution(layer.attention)
-
-# 4. Compare heads
-for head in range(num_heads):
-    visualize_attention_head(head, attention_weights)
-```
-
---- hasta aca ---
-
-### 3. Equivariant Networks for 3D Structures
-
-Geometric deep learning architectures respect the symmetries and geometric properties of 3D molecular structures, making them particularly powerful for computational chemistry and materials science. These networks go beyond simple graph connectivity to leverage the full 3D geometry of molecules.
-
-#### Motivation: Why Geometry Matters
-
-**The 3D Problem:**
-
-Traditional GNNs treat molecular graphs as topological structures, ignoring spatial arrangements:
-- Two molecules with the same connectivity but different 3D shapes (stereoisomers) would be treated identically
-- Bond angles and dihedral angles contain crucial information
-- 3D distance-based interactions (van der Waals, electrostatics) are not captured
-- Forces and other vector properties require 3D information
-
-**Example**: Consider two stereoisomers:
-```
-cis-2-butene:  H₃C-CH=CH-CH₃ (groups on same side)
-trans-2-butene: H₃C-CH=CH-CH₃ (groups on opposite sides)
-```
-These have:
-- Identical graph connectivity
-- Different 3D structures
-- Different physical properties (melting point, boiling point, reactivity)
-
-A topology-only GNN cannot distinguish them, but a geometry-aware network can.
-
-#### Understanding Symmetries
-
-**Physical Symmetries in Molecular Systems:**
-
-Molecular properties must respect fundamental physical symmetries:
-
-1. **Translation Invariance**: 
-   ```
-   Property(molecule) = Property(molecule + translation vector)
-   ```
-   - Moving the entire molecule in space doesn't change its energy or properties
-   - Only relative positions matter, not absolute coordinates
-   - Mathematically: E(R + t) = E(R) for any translation t
-
-2. **Rotation Invariance**:
-   ```
-   Property(molecule) = Property(rotate(molecule, θ))
-   ```
-   - Rotating the molecule doesn't change scalar properties (energy, dipole magnitude)
-   - Physical measurements don't depend on orientation in space
-   - Mathematically: E(QR) = E(R) for any rotation matrix Q
-
-3. **Permutation Invariance**:
-   ```
-   Property(atoms[1,2,3,...]) = Property(atoms[permutation])
-   ```
-   - Labeling atoms 1,2,3 vs 3,1,2 shouldn't change properties
-   - Physical reality has no preferred ordering
-   - Node ordering is an artifact of representation
-
-4. **Reflection (for some properties)**:
-   - Chiral molecules break reflection symmetry
-   - Achiral molecules maintain E(R) = E(mirror(R))
-
-**Invariance vs Equivariance:**
-
-- **Invariant**: Output doesn't change under transformation
-  - Example: Energy is rotation-invariant scalar
-  - E(rotate(molecule)) = E(molecule)
-
-- **Equivariant**: Output transforms consistently with input
-  - Example: Forces are rotation-equivariant vectors
-  - F(rotate(molecule)) = rotate(F(molecule))
-  - If you rotate the molecule, forces rotate the same way
-
-**Why This Matters:**
-
-Networks that violate these symmetries will:
-- Learn to recognize rotated versions as different molecules (inefficient)
-- Require much more training data to learn all orientations
-- Fail to generalize to new orientations
-- Predict unphysical results (energy changing with rotation)
-
-Networks that respect symmetries:
-- Are more data-efficient (one orientation teaches all)
-- Generalize better to new configurations
-- Satisfy physical laws by construction
-- Often achieve better accuracy with fewer parameters
-
-#### SchNet (Continuous-filter Convolutional Neural Network)
-
-SchNet pioneered the use of continuous convolutions for molecular modeling, treating molecules as continuous 3D objects rather than discrete graphs.
-
-**Core Philosophy:**
-
-Instead of learning fixed filters for discrete bond types, SchNet learns continuous functions that depend smoothly on interatomic distances. This mirrors physics: interactions depend on distance in a continuous way (not discrete jumps).
-
-**Architecture Overview:**
-
-```
-Input: 
-  - Atomic numbers Z = [Z₁, Z₂, ..., Z_N]
-  - 3D coordinates R = [r₁, r₂, ..., r_N]
-
-Output:
-  - Molecular property (energy, HOMO, etc.)
-```
-
-**Step 1: Atomic Embeddings**
-
-Each atom type is embedded into a feature space:
-```
-x_i^(0) = Embedding(Z_i)  # Lookup table: atomic number → d-dimensional vector
-```
-
-For example:
-- Carbon (Z=6) → [0.12, -0.34, 0.56, ...]
-- Nitrogen (Z=7) → [0.08, -0.29, 0.61, ...]
-- Oxygen (Z=8) → [0.15, -0.41, 0.48, ...]
-
-**Step 2: Continuous Filter Generation**
-
-The innovation of SchNet: filters are functions of distance, not learned for discrete bins.
-
-```
-# Compute all pairwise distances
-d_ij = ||r_i - r_j||  # Euclidean distance
-
-# Expand distances using radial basis functions (RBFs)
-e_ij = [exp(-(d_ij - μ_k)² / σ²) for k in range(K)]
-
-# Generate filter weights from expanded distances
-W_ij = MLP(e_ij)  # Neural network: ℝ^K → ℝ^(d×d)
-```
-
-**Radial Basis Functions (RBFs):**
-
-RBFs create a smooth representation of distances:
-```
-# Example: Gaussian RBFs centered at different distances
-μ = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, ...]  # Centers in Ångströms
-σ = 0.1  # Width
-
-For distance d_ij = 1.8 Å:
-  RBF₁(1.8) = exp(-(1.8-0.5)²/0.01) ≈ 0.00  # Far from center
-  RBF₂(1.8) = exp(-(1.8-1.0)²/0.01) ≈ 0.00
-  RBF₃(1.8) = exp(-(1.8-1.5)²/0.01) ≈ 0.74  # Close to center
-  RBF₄(1.8) = exp(-(1.8-2.0)²/0.01) ≈ 0.82  # Closest center
-  ...
-```
-
-This creates a smooth, continuous representation that:
-- Captures nuances between bond lengths
-- Allows interpolation to unseen distances
-- Provides smooth gradients for optimization
-
-**Step 3: Interaction Blocks (Message Passing)**
-
-```
-# For each interaction layer t:
-x_i^(t+1) = x_i^(t) + Σ_{j≠i} x_j^(t) ⊙ W_ij^(t)
-
-Where:
-  ⊙ is element-wise multiplication (Hadamard product)
-  W_ij^(t) = FilterNetwork_t(d_ij) is the distance-dependent filter
-```
-
-**Detailed Breakdown:**
-
-1. **Cutoff Function**: Only interact with nearby atoms
-   ```
-   if d_ij > r_cutoff (typically 5-10 Å):
-       W_ij = 0  # No interaction
-   else:
-       W_ij = FilterNetwork(d_ij) × smooth_cutoff(d_ij)
-   ```
-
-   Smooth cutoff prevents discontinuities:
-   ```
-   f_cutoff(d) = 0.5 × [cos(π × d / r_cutoff) + 1]  if d < r_cutoff
-                 0                                     otherwise
-   ```
-
-2. **Filter Network Architecture**:
-   ```
-   e = RBF_expansion(d_ij)      # [K] vector
-   h = Dense(e)                  # [K] → [hidden_dim]
-   h = ShiftedSoftplus(h)        # Smooth non-linearity
-   W = Dense(h)                  # [hidden_dim] → [d×d]
-   W = W × f_cutoff(d_ij)       # Apply cutoff
-   ```
-
-3. **Atom-wise Update**:
-   ```
-   # Aggregate filtered neighbor features
-   m_i = Σ_{j∈neighbors(i)} x_j ⊙ W_ij
-   
-   # Update with residual connection
-   x_i = x_i + m_i
-   ```
-
-**Step 4: Output Modules**
-
-After T interaction blocks:
-```
-# Atom-wise energy contributions
-E_i = MLP_atom(x_i^(T))  # Scalar per atom
-
-# Sum for total energy (size-extensive property)
-E_total = Σ_i E_i
-
-# Or average for intensive properties
-Property = (1/N) Σ_i MLP(x_i^(T))
-```
-
-**Key Design Choices:**
-
-1. **Only distances, not coordinates**:
-   - Distances are rotation and translation invariant
-   - ||r_i - r_j|| is the same regardless of overall position/orientation
-   - This guarantees the network is invariant
-
-2. **Continuous filters**:
-   - Smoothly adapts to any distance
-   - Better than discrete binning (1.0-1.5 Å, 1.5-2.0 Å, ...)
-   - Allows accurate interpolation
-
-3. **Shifted Softplus activation**:
-   ```
-   ShiftedSoftplus(x) = log(0.5 × exp(x) + 0.5)
-   ```
-   - Smooth everywhere (unlike ReLU)
-   - Important for force prediction: forces = -∇E
-   - Provides smooth gradients
-
-**Strengths:**
-- **Efficient**: Linear in number of atoms (with cutoff)
-- **Scalable**: Handles molecules from 10 to 1000+ atoms
-- **Accurate**: State-of-the-art on QM9 and other benchmarks
-- **End-to-end differentiable**: Can predict forces via backpropagation
-- **Physically motivated**: Design mirrors physics of interactions
-
-**Limitations:**
-- **Distance-only**: Doesn't explicitly capture angles
-- **Isotropic**: Treats all directions equally (no directionality)
-- **Cannot predict vector properties directly**: Forces require gradients
-
-**Implementation Notes:**
-
-```python
-# Typical hyperparameters
-num_interactions = 6        # Depth of network
-num_gaussians = 50          # Number of RBF centers
-cutoff = 5.0                # Interaction cutoff (Å)
-hidden_dim = 128            # Feature dimension
-num_filters = 128           # Filter network dimension
-```
-
-#### DimeNet (Directional Message Passing Neural Network)
-
-DimeNet extends SchNet by incorporating angular information, making it significantly more expressive for molecular modeling.
-
-**Key Innovation: Beyond Distances**
-
-While distances capture bond lengths, many properties depend on:
-- **Bond angles**: H-O-H angle in water determines properties
-- **Dihedral angles**: Rotations around single bonds affect conformation
-- **Triplet interactions**: Three-body terms in force fields
-
-**Physics Analogy**: 
-- SchNet ≈ Lennard-Jones potential (pairwise, distance-only)
-- DimeNet ≈ Force fields with angle terms (CHARMM, AMBER)
-
-**Architecture: Directional Messages**
-
-DimeNet introduces messages that depend on triplets of atoms (i,j,k):
-
-```
-                k
-               /
-              /θ_{ijk}
-             /
-            j -------- i
-          d_jk      d_ij
-```
-
-**Step 1: Distance and Angle Embeddings**
-
-```
-# Distance embedding (like SchNet)
-e_dist(d_ij) = RBF_expansion(d_ij)
-
-# NEW: Angle embedding
-θ_{ijk} = angle between vectors (r_j - r_i) and (r_k - r_j)
-e_angle(θ_{ijk}) = SphericalBasisFunctions(θ_{ijk})
-```
-
-**Spherical Basis Functions:**
-
-Instead of Gaussians (for distances), use spherical harmonics for angles:
-```
-# Angles are periodic: 0° = 360°
-# Use basis that respects this periodicity
-
-SBF_k(θ) = Σ_n c_{nk} × exp(-(n - n_0)²/σ²) × sin(nθ)
-
-# These form a complete basis for representing angular functions
-```
-
-**Step 2: Directional Message Passing**
-
-The crucial innovation - messages depend on geometric triplets:
-
-```
-# For each atom i:
-m_ij = Σ_{k∈N(j), k≠i} MessageBlock(d_ij, d_jk, θ_{ijk}) ⊙ x_k
-```
-
-Let's break down `MessageBlock(d_ij, d_jk, θ_{ijk})`:
-
-```python
-def MessageBlock(d_ij, d_jk, theta_ijk):
-    # Embed distances
-    rbf_ij = RBF(d_ij)        # [n_rbf]
-    rbf_jk = RBF(d_jk)        # [n_rbf]
-    
-    # Embed angle
-    sbf = SphericalBasis(theta_ijk)  # [n_sbf]
-    
-    # Combine using bilinear layer
-    # This learns correlations between distances and angles
-    W = BilinearLayer(rbf_ij, rbf_jk, sbf)  # [d × d] matrix
-    
-    return W
-```
-
-**Bilinear Layer Explained:**
-
-The bilinear layer is crucial for combining geometric features:
-
-```
-W = Σ_m Σ_n Σ_l  U_{mnl} × rbf_ij[m] × rbf_jk[n] × sbf[l]
-
-Where U is a learned tensor of parameters
-```
-
-This allows the network to learn patterns like:
-- "When d_ij ≈ 1.5 Å AND d_jk ≈ 1.2 Å AND θ ≈ 120°" → strong interaction
-- Captures correlations between geometric features
-- More expressive than treating features independently
-
-**Step 3: Update with Directional Information**
-
-```
-# Aggregate directional messages
-m_i = Σ_{j∈N(i)} m_ij
-
-# Update node features
-x_i = Update(x_i, m_i)  # Typically a residual network
-```
-
-**Why This Works Better:**
-
-1. **Angular Information**: Distinguishes linear vs bent vs tetrahedral
-   - Example: CO₂ (linear, 180°) vs H₂O (bent, 104.5°)
-   - Same atom types, different angles → different properties
-
-2. **Dihedral Sensitivity**: Captures rotational barriers
-   - Ethane: staggered vs eclipsed conformations
-   - Different angles → different energies
-
-3. **Three-Body Interactions**: More realistic physics
-   - Many quantum effects involve three atoms
-   - Necessary for accurate force fields
-
-**Maintaining Rotational Invariance:**
-
-Despite using angles, DimeNet remains rotationally invariant because:
-- Angles are invariant: θ_{ijk} doesn't change under rotation
-- Only distances and angles used (not absolute coordinates)
-- No preferred orientation in space
-
-**DimeNet++ Improvements:**
-
-The original DimeNet was slow. DimeNet++ optimized:
-
-```
-# DimeNet: T-shaped message passing
-Message: k → j → i  (sequential)
-
-# DimeNet++: Optimized message aggregation
-Message: All k → all j → all i  (more parallel)
-```
-
-**Optimization strategies:**
-1. **Shared bilinear layers**: Reduce parameters
-2. **Efficient triplet enumeration**: Better data structures
-3. **Grouped convolutions**: Reduce computational cost
-4. **Memory-efficient attention**: Lower memory footprint
-
-**Performance:**
-- DimeNet++: 2-5× faster than DimeNet
-- Same or better accuracy
-- Can handle larger molecules (100+ atoms)
-
-**Advantages:**
-- **Higher accuracy**: 20-40% better MAE on QM9 vs SchNet
-- **Captures geometry**: Angles and dihedrals encoded
-- **Physics-aware**: Mirrors force field design
-- **Still rotationally invariant**: Maintains symmetries
-
-**Disadvantages:**
-- **Computational cost**: O(N × k²) where k is coordination number
-- **Memory**: Stores triplets, not just pairs
-- **Complexity**: More hyperparameters to tune
-
-**Use Cases:**
-- High-accuracy property prediction
-- Conformational energy differences
-- Transition state geometries
-- Systems where angles matter (chelates, rings, etc.)
-
-#### PaiNN (Polarizable Atom Interaction Neural Network)
-
-PaiNN represents a paradigm shift: instead of just invariant features, it maintains both scalar (invariant) and vector (equivariant) representations.
-
-**Motivation: Vector Properties**
-
-Many important properties are vectors (have direction):
-- **Forces**: F = -∇E (gradient of energy)
-- **Dipole moments**: μ = Σ_i q_i r_i
-- **Magnetic moments**: Direction matters
-- **Polarizability**: Tensorial response to fields
-
-Previous models (SchNet, DimeNet):
-- Can only predict scalar outputs directly
-- Forces require numerical differentiation: F = -dE/dR
-- Inefficient and sometimes inaccurate
-
-PaiNN: 
-- Predicts vectors directly
-- Learns force fields end-to-end
-- Truly equivariant architecture
-
-**Equivariance Explained:**
-
-For a rotation matrix Q:
-```
-Invariant (scalar): f(QR) = f(R)
-    Example: ||v|| = ||Qv||  (length unchanged)
-
-Equivariant (vector): f(QR) = Q f(R)
-    Example: Qv rotates the same way as input
-
-Equivariant (rank-2 tensor): f(QR) = Q f(R) Q^T
-    Example: Stress tensor transforms
-```
-
-**Feature Representation:**
-
-Each atom i has TWO types of features:
-
-1. **Scalar features** s_i ∈ ℝ^d:
-   - Rotation invariant
-   - Examples: atomic charge, energy contribution, electron density
-   - Transforms: s_i → s_i (unchanged under rotation)
-
-2. **Vector features** v_i ∈ ℝ^(d×3):
-   - Rotation equivariant  
-   - Examples: dipole moment, force vector, polarization
-   - Transforms: v_i → Q v_i (rotates with molecule)
-
-**Architecture Overview:**
-
-```
-Input: (s_i^(0), v_i^(0)) for each atom
-       s_i^(0) = embedding(Z_i)  # Initial: just element type
-       v_i^(0) = 0                # Initial: no directional info
-
-Message Passing Layers:
-    (s_i, v_i) → MessagePass → (s_i', v_i')
-    
-Output: 
-    Scalar: energy = Σ_i MLP(s_i^(T))
-    Vector: forces = Σ_i v_i^(T)  # Or per-atom force contribution
-```
-
-**Message Passing in PaiNN:**
-
-Each layer consists of three parts:
-
-**Part 1: Scalar Message Passing**
-
-```python
-# Compute scalar messages from neighbors
-for j in neighbors(i):
-    d_ij = ||r_j - r_i||  # Distance
-    dir_ij = (r_j - r_i) / d_ij  # Unit direction vector
-    
-    # Filter based on distance
-    φ_ij = FilterNetwork(d_ij)  # Like SchNet
-    
-    # Scalar message (rotation invariant)
-    m_s_ij = φ_ij ⊙ s_j
-    
-    # Also incorporate magnitude of vector features
-    m_s_ij += φ_ij ⊙ ||v_j||²  # Invariant: length squared
-
-# Aggregate
-m_s_i = Σ_j m_s_ij
-
-# Update scalars
-s_i = s_i + MLP(m_s_i)
-```
-
-**Part 2: Vector Message Passing**
-
-This is where equivariance happens:
-
-```python
-# Compute vector messages
-for j in neighbors(i):
-    d_ij = ||r_j - r_i||
-    dir_ij = (r_j - r_i) / d_ij  # ← KEY: Direction vector
-    
-    φ_ij = FilterNetwork(d_ij)
-    
-    # Vector message (rotation equivariant!)
-    # Multiply by direction to make equivariant
-    m_v_ij = φ_ij ⊙ v_j  # Element-wise filter
-    m_v_ij += (φ_ij ⊙ s_j) × dir_ij  # Scalar-to-vector term
-    
-# Aggregate vectors
-m_v_i = Σ_j m_v_ij
-
-# Update vectors
-v_i = v_i + m_v_i
-```
-
-**Why this is equivariant:**
-
-```
-Under rotation Q:
-    dir_ij → Q dir_ij  (direction rotates)
-    v_j → Q v_j        (vector features rotate)
-    
-    m_v_ij = φ_ij ⊙ v_j + (φ_ij ⊙ s_j) × dir_ij
-         → φ_ij ⊙ (Q v_j) + (φ_ij ⊙ s_j) × (Q dir_ij)
-         = Q [φ_ij ⊙ v_j + (φ_ij ⊙ s_j) × dir_ij]
-         = Q m_v_ij  ✓
-```
-
-**Part 3: Mixing Scalars and Vectors**
-
-Cross-interactions between scalar and vector features:
-
-```python
-# Vector → Scalar: Extract invariant info from vectors
-s_i = s_i + MLP(||v_i||)  # Length is invariant
-s_i = s_i + MLP(v_i · v_i)  # Dot product is invariant
-
-# Scalar → Vector: Modulate vectors by scalars
-v_i = v_i ⊙ σ(U s_i)  # Element-wise gating
-```
-
-**Complete Update Equations:**
-
-```
-# Scalar update
-Δs_i = Σ_j [W_s(d_ij) ⊙ s_j + W_vs(d_ij) ⊙ ||v_j||²]
-s_i = s_i + MLP(Δs_i + ||v_i||²)
-
-# Vector update  
-Δv_i = Σ_j [W_v(d_ij) ⊙ v_j + W_sv(d_ij) ⊙ s_j ⊙ (r_j - r_i) / d_ij]
-v_i = v_i + Δv_i
-
-# Mix scalar and vector
-s_i = s_i + U_vs ||v_i||
-v_i = (W_vv v_i) ⊙ σ(U_sv s_i)
-```
-
-**Output Predictions:**
-
-```python
-# Energy (scalar invariant)
-E_i = MLP_scalar(s_i)
-E_total = Σ_i E_i
-
-# Forces (vector equivariant)
-F_i = v_i  # Already in correct format!
-# Or: F_i = Linear(v_i) for learned scaling
-
-# Other vector properties
-dipole = Σ_i q_i × v_i  # If q_i are charges
-```
-
-**Advantages of PaiNN:**
-
-1. **Direct vector prediction**:
-   - Forces without numerical differentiation
-   - More accurate and efficient
-   - Can predict multiple vector properties
-
-2. **True equivariance**:
-   - Guarantees physical consistency
-   - Rotated inputs → correctly rotated outputs
-   - No violation of physics
-
-3. **Expressive representations**:
-   - Vectors encode directional information
-   - Richer than scalar-only features
-   - Better for anisotropic systems
-
-4. **Force field learning**:
-   - Can be trained on forces directly
-   - Learns better potential energy surfaces
-   - Useful for molecular dynamics
-
-**Training Considerations:**
-
-```python
-# Loss function combining energy and forces
-loss = w_E ||E_pred - E_true||² + w_F ||F_pred - F_true||²
-
-# Typical weights
-w_E = 1.0   # Energy in eV or kcal/mol
-w_F = 100.0  # Forces in eV/Å (forces are smaller, need higher weight)
-```
-
-**Applications:**
-
-1. **Molecular Dynamics**:
-   - Learn accurate force fields from DFT
-   - 1000× faster than ab initio MD
-   - Maintains accuracy of quantum calculations
-
-2. **Transition State Search**:
-   - Accurate forces guide optimization
-   - Find saddle points efficiently
-   - Predict reaction barriers
-
-3. **Dipole Moment Prediction**:
-   - Important for spectroscopy
-   - Drug-like properties
-   - Solvent effects
-
-4. **Polarizability**:
-   - Response to external fields
-   - Optical properties
-   - Intermolecular interactions
-
-**Implementation Notes:**
-
-```python
-# Hyperparameters
-num_layers = 5
-hidden_dim_scalar = 128
-hidden_dim_vector = 64  # Vectors have 3× more parameters (x,y,z)
-num_rbf = 20
-cutoff = 5.0
-
-# Vector features typically smaller dimension to save memory
-# v_i ∈ ℝ^(d×3) uses 3× memory of s_i ∈ ℝ^d
-```
-
-#### Comparison of Approaches
-
-| Model | Distance | Angles | Equivariance | Outputs | Complexity | Use Case |
-|-------|----------|--------|--------------|---------|------------|----------|
-| **SchNet** | ✓ | ✗ | Invariant | Scalars | O(N×k) | Fast, general purpose, good baseline |
-| **DimeNet** | ✓ | ✓ | Invariant | Scalars | O(N×k²) | High accuracy, angle-dependent properties |
-| **DimeNet++** | ✓ | ✓ | Invariant | Scalars | O(N×k²)* | DimeNet with 3-5× speedup |
-| **PaiNN** | ✓ | Implicit | Equivariant | Scalars + Vectors | O(N×k) | Forces, vector properties, MD |
-
-*DimeNet++ optimized but same computational complexity
-
-**When to Choose Each:**
-
-**SchNet:**
--  Need fast inference
--  Large molecules (>100 atoms)
--  Don't need highest accuracy
--  Conformational search (many evaluations)
-- X Highly angle-dependent properties
-- X Need force predictions
-
-**DimeNet/DimeNet++:**
--  Need highest accuracy
--  Angle and dihedral effects important
--  Small to medium molecules (<50 atoms)
--  Property prediction only
-- X Computational budget limited
-- X Need force predictions
-- X Very large molecules
-
-**PaiNN:**
--  Need force predictions
--  Molecular dynamics simulations
--  Vector property prediction
--  Want equivariant representations
--  Good accuracy/speed trade-off
-- X Only need scalar properties
-- X Maximum simplicity desired
-
-**Practical Decision Tree:**
-
-```
-Do you need vector outputs (forces, dipoles)?
-├─ Yes → Use PaiNN
-└─ No
-    │
-    └─ Is accuracy critical and dataset small?
-        ├─ Yes → Use DimeNet++
-        └─ No → Use SchNet (fastest)
-```
-
-**Benchmarks (QM9 dataset, HOMO energy):**
-
-```
-Method          MAE (meV)   Time/molecule   Parameters
-SchNet          41          0.5 ms          600K
-DimeNet         33          3.0 ms          2M  
-DimeNet++       29          1.2 ms          2M
-PaiNN           35          0.8 ms          800K
-
-Note: Exact numbers vary by implementation and hardware
-```
-
----
-
-### 4. Protein-Ligand Interaction Modeling
-
-Understanding how small molecules (ligands) bind to proteins is crucial for drug discovery. GNNs provide powerful tools for modeling these complex interactions, potentially accelerating the drug development pipeline from years to months.
-
-#### The Drug Discovery Challenge
-
-**Traditional Drug Discovery:**
-
-1. **Target Identification**: Identify disease-related protein (months-years)
-2. **Hit Discovery**: Screen 10⁵-10⁶ compounds experimentally (months, $$$)
-3. **Lead Optimization**: Iteratively improve binding (years, $$$$)
-4. **Clinical Trials**: Test in humans (years, $$$$$)
-
-**Total**: 10-15 years, $1-2 billion per drug
-
-**AI-Accelerated Discovery:**
-
-GNNs can predict binding without experiments:
-- Virtual screening: 10⁶ compounds in hours
-- Structure-based optimization
-- Reduced experimental testing
-- Faster iteration cycles
-
-**Impact**: Several AI-discovered drugs now in clinical trials
-
-#### Problem Formulation
-
-**Key Tasks:**
-
-1. **Binding Affinity Prediction**: 
-   - Predict the strength of protein-ligand binding
-   - Metrics: IC₅₀, Ki, Kd, ΔG_bind
-   - Range: nM (strong) to mM (weak)
-   - Applications: Virtual screening, lead optimization
-
-2. **Binding Pose Prediction**: 
-   - Determine the 3D orientation of ligand in binding pocket
-   - Must satisfy spatial constraints
-   - Account for protein flexibility
-   - Applications: Structure-based drug design
-
-3. **Virtual Screening**: 
-   - Rank large libraries of compounds
-   - Prioritize for experimental testing
-   - Requires fast inference (<1s per compound)
-   - Applications: Hit discovery, library filtering
-
-4. **Selectivity Prediction**:
-   - Binding to target vs off-targets
-   - Crucial for drug safety
-   - Multi-protein modeling
-   - Applications: Toxicity prediction, side effect profiling
-
-**Input Data:**
-
-```
-Protein:
-  - Sequence: MKTAYIAKQRQ... (amino acid sequence)
-  - Structure: 3D coordinates of atoms or residues
-  - Features: Secondary structure, surface accessibility, physicochemical properties
-
-Ligand:
-  - SMILES: CC(C)CC1=CC=C(C=C1)C(C)C(=O)O (structure string)
-  - 3D Conformation: Atomic coordinates
-  - Features: Atom types, charges, pharmacophore points
-
-Complex:
-  - Binding pose (if known from X-ray crystallography)
-  - Interaction types (H-bonds, hydrophobic, π-stacking)
-```
-
-#### Representation Strategies
-
-**Challenge**: How to represent a protein-ligand complex as a graph?
-
-**Strategy 1: Separate Protein and Ligand Graphs**
-
-```
-   [Protein Graph]    [Ligand Graph]
-   Nodes: Residues    Nodes: Atoms
-   Edges: Contacts    Edges: Bonds
-          ↓                  ↓
-      [GNN_prot]        [GNN_lig]
-          ↓                  ↓
-      h_protein         h_ligand
-          └─────→ [Concatenate] ←─────┘
-                       ↓
-                   [MLP head]
-                       ↓
-                   Affinity
-```
-
-**Protein Graph Construction:**
-
-```python
-# Option A: Residue-level (coarse-grained)
-for residue in protein.residues:
-    node_features = [
-        residue.amino_acid_type,     # One-hot: 20 amino acids
-        residue.secondary_structure,  # Helix, sheet, coil
-        residue.surface_accessibility,
-        residue.charge,
-        residue.hydrophobicity
-    ]
-    
-# Edges: spatial proximity
-for i, j in combinations(residues, 2):
-    if distance(i.CA, j.CA) < 10.0:  # C-alpha distance
-        add_edge(i, j, distance=distance(i.CA, j.CA))
-
-# Option B: Atom-level (fine-grained)
-for atom in protein.atoms:
-    node_features = [
-        atom.element,
-        atom.charge,
-        atom.in_backbone,
-        atom.in_sidechain
-    ]
-```
-
-**Ligand Graph Construction:**
-
-```python
-# Atoms as nodes
-for atom in ligand.atoms:
-    node_features = [
-        atom.atomic_number,
-        atom.formal_charge,
-        atom.hybridization,    # sp, sp2, sp3
-        atom.is_aromatic,
-        atom.num_hydrogens,
-        atom.degree,
-        atom.chirality
-    ]
-
-# Bonds as edges
-for bond in ligand.bonds:
-    edge_features = [
-        bond.bond_type,    # Single, double, triple, aromatic
-        bond.is_conjugated,
-        bond.is_in_ring,
-        bond.stereo        # E/Z, cis/trans
-    ]
-```
-
-**Pros:**
-- Simple architecture
-- Can pre-train on protein/ligand datasets separately
-- Modular: easy to swap GNN architectures
-
-**Cons:**
-- No explicit inter-molecular interactions
-- Late fusion may miss important binding details
-- Less interpretable (black box combination)
-
-**Strategy 2: Joint Protein-Ligand Interaction Graph**
-
-```
-    Protein nodes + Ligand nodes
-            ↓
-    Intra-molecular edges (protein bonds, ligand bonds)
-            +
-    Inter-molecular edges (binding interactions)
-            ↓
-        [Joint GNN]
-            ↓
-      [Global pooling]
-            ↓
-         Affinity
-```
-
-**Interaction Graph Construction:**
-
-```python
-# Combine protein and ligand into one graph
-G = Graph()
-
-# Add protein nodes
-G.add_nodes(protein_atoms, type='protein')
-
-# Add ligand nodes  
-G.add_nodes(ligand_atoms, type='ligand')
-
-# Add intra-molecular edges
-G.add_edges(protein_bonds)
-G.add_edges(ligand_bonds)
-
-# Add inter-molecular edges (KEY!)
-for p_atom in protein_atoms:
-    for l_atom in ligand_atoms:
-        dist = distance(p_atom, l_atom)
-        if dist < 5.0:  # Interaction cutoff
-            interaction_type = classify_interaction(p_atom, l_atom, dist)
-            G.add_edge(p_atom, l_atom, 
-                      distance=dist,
-                      interaction=interaction_type)
-```
-
-**Interaction Types:**
-
-Classify inter-molecular edges by interaction:
-
-```python
-def classify_interaction(p_atom, l_atom, distance):
-    interactions = []
-    
-    # Hydrogen bond
-    if is_h_bond_donor(p_atom) and is_h_bond_acceptor(l_atom):
-        if distance < 3.5 and angle_ok:
-            interactions.append('H-bond')
-    
-    # Hydrophobic
-    if is_hydrophobic(p_atom) and is_hydrophobic(l_atom):
-        if distance < 4.5:
-            interactions.append('hydrophobic')
-    
-    # Pi-stacking
-    if is_aromatic(p_atom) and is_aromatic(l_atom):
-        if 3.5 < distance < 4.5:
-            interactions.append('pi-stacking')
-    
-    # Electrostatic
-    if charge(p_atom) * charge(l_atom) < 0:  # Opposite charges
-        interactions.append('electrostatic')
-    
-    # Salt bridge
-    if is_charged_residue(p_atom) and is_charged_group(l_atom):
-        if distance < 4.0:
-            interactions.append('salt-bridge')
-    
-    return interactions
-```
-
-**Pros:**
-- Explicit interaction modeling
-- Message passing directly between protein and ligand
-- More interpretable (can visualize key interactions)
-- Better captures binding geometry
-
-**Cons:**
-- Larger graphs (more nodes and edges)
-- Requires 3D structure (binding pose)
-- More complex to implement
-
-**Strategy 3: Attention-Based Cross-Attention**
-
-```
-    [Protein GNN] → h_protein_nodes
-    [Ligand GNN]  → h_ligand_nodes
-          ↓              ↓
-    [Cross-Attention Layer]
-          ↓
-    Attended features
-          ↓
-    [Prediction head]
-```
-
-**Cross-Attention Mechanism:**
-
-```python
-# Protein attends to ligand
-for p_node in protein_nodes:
-    # Compute attention to all ligand nodes
-    attention = []
-    for l_node in ligand_nodes:
-        # Attention score based on features and geometry
-        score = attention_function(
-            h_protein[p_node], 
-            h_ligand[l_node],
-            distance(p_node, l_node)
-        )
-        attention.append(score)
-    
-    # Softmax normalize
-    attention = softmax(attention)
-    
-    # Attended ligand features
-    h_protein[p_node] += weighted_sum(attention, h_ligand)
-
-# Ligand attends to protein (symmetric)
-for l_node in ligand_nodes:
-    # Similar process in reverse
-    ...
-```
-
-**Attention Function:**
-
-```python
-def attention_function(h_p, h_l, distance):
-    # Feature similarity
-    feat_sim = dot_product(W_p @ h_p, W_l @ h_l)
-    
-    # Distance penalty (closer = more attention)
-    dist_weight = exp(-distance / sigma)
-    
-    # Combined score
-    score = feat_sim * dist_weight
-    return score
-```
-
-**Pros:**
-- Learns which protein-ligand pairs interact
-- Flexible: works without predefined interaction edges
-- Can handle multiple binding modes
-- Interpretable attention weights
-
-**Cons:**
-- O(N_protein × N_ligand) complexity
-- May overfit on small datasets
-- Requires careful regularization
-
-#### Architecture Patterns
-
-**Pattern 1: Separate Encoding with Late Fusion**
-
-```python
-class SeparateFusionModel(nn.Module):
-    def __init__(self):
-        self.protein_gnn = GNN(protein_features, hidden_dim)
-        self.ligand_gnn = GNN(ligand_features, hidden_dim)
-        self.fusion_mlp = MLP(2 * hidden_dim, output_dim)
-    
-    def forward(self, protein_graph, ligand_graph):
-        # Encode separately
-        h_prot = self.protein_gnn(protein_graph)
-        h_lig = self.ligand_gnn(ligand_graph)
-        
-        # Global pooling
-        z_prot = global_mean_pool(h_prot, protein_graph.batch)
-        z_lig = global_mean_pool(h_lig, ligand_graph.batch)
-        
-        # Concatenate and predict
-        z = torch.cat([z_prot, z_lig], dim=-1)
-        affinity = self.fusion_mlp(z)
-        return affinity
-```
-
-**Pattern 2: Joint Encoding**
-
-```python
-class JointGraphModel(nn.Module):
-    def __init__(self):
-        self.gnn = GNN(node_features, hidden_dim, num_layers=5)
-        self.interaction_embedding = nn.Embedding(num_interactions, edge_dim)
-        self.readout = Set2Set(hidden_dim)
-        self.predictor = MLP(hidden_dim, 1)
-    
-    def forward(self, complex_graph):
-        # Embed interactions
-        edge_attr = self.interaction_embedding(complex_graph.edge_type)
-        
-        # Joint message passing
-        h = self.gnn(complex_graph.x, 
-                     complex_graph.edge_index,
-                     edge_attr)
-        
-        # Global pooling
-        z = self.readout(h, complex_graph.batch)
-        
-        # Predict affinity
-        affinity = self.predictor(z)
-        return affinity
-```
-
-**Pattern 3: Cross-Attention**
-
-```python
-class CrossAttentionModel(nn.Module):
-    def __init__(self):
-        self.protein_encoder = GNN(protein_features, hidden_dim)
-        self.ligand_encoder = GNN(ligand_features, hidden_dim)
-        self.cross_attention = CrossAttentionLayer(hidden_dim)
-        self.predictor = MLP(hidden_dim, 1)
-    
-    def forward(self, protein_graph, ligand_graph, distances):
-        # Encode separately
-        h_prot = self.protein_encoder(protein_graph)
-        h_lig = self.ligand_encoder(ligand_graph)
-        
-        # Cross-attention
-        h_prot_updated, h_lig_updated = self.cross_attention(
-            h_prot, h_lig, distances
-        )
-        
-        # Pool both
-        z_prot = global_attention_pool(h_prot_updated)
-        z_lig = global_attention_pool(h_lig_updated)
-        
-        # Predict from combined representation
-        affinity = self.predictor(z_prot + z_lig)
-        return affinity
-```
-
-#### Key Considerations
-
-**1. Geometric Information**
-
-3D coordinates are essential for accurate binding prediction:
-
-```python
-# Distance features (crucial!)
-edge_features = []
-
-for edge in edges:
-    i, j = edge
-    d = distance(coords[i], coords[j])
-    
-    # Distance encoding
-    rbf = gaussian_rbf(d, centers=[1.0, 2.0, 3.0, 4.0, 5.0])
-    edge_features.append(rbf)
-    
-    # Direction (for equivariant models)
-    direction = (coords[j] - coords[i]) / d
-    
-# Use in GNN
-h = GNN(nodes, edges, edge_features)
-```
-
-**Why geometry matters:**
-- Binding pocket shape determines complementarity
-- Hydrogen bonds have geometric constraints (distance + angle)
-- Hydrophobic interactions are distance-dependent
-- Steric clashes prevent binding
-
-**2. Data Challenges**
-
-**Limited Experimental Data:**
-
-```
-Available binding data:
-- PDBbind: ~20,000 protein-ligand complexes
-- ChEMBL: ~2M bioactivity measurements (but many without structures)
-- BindingDB: ~2M Ki/Kd values
-
-Compare to:
-- ImageNet: 14M images
-- GPT training: trillions of tokens
-
-Challenge: Deep learning typically needs more data
-```
-
-**Solutions:**
-
-a) **Data Augmentation:**
-```python
-# Rotation augmentation
-for angle in [0, 90, 180, 270]:
-    rotated_complex = rotate(complex, angle)
-    train_on(rotated_complex)
-
-# Conformational sampling
-for conf in generate_conformations(ligand, n=10):
-    augmented_complex = (protein, conf)
-    train_on(augmented_complex)
-
-# Noise injection
-for noise_level in [0.1, 0.2]:
-    noisy_coords = coords + noise_level * random_normal()
-    train_on(noisy_coords)
-```
-
-b) **Transfer Learning:**
-```python
-# Pre-train on easier tasks
-model.pretrain(
-    task='molecular_property_prediction',
-    dataset='QM9',  # Millions of molecules
-    epochs=100
-)
-
-# Fine-tune on binding
-model.finetune(
-    task='binding_affinity',
-    dataset='PDBbind',  # Thousands of complexes
-    epochs=50,
-    learning_rate=1e-4  # Lower learning rate
-)
-```
-
-c) **Multi-Task Learning:**
-```python
-# Learn related tasks simultaneously
-loss = (w1 * loss_binding_affinity +
-        w2 * loss_binding_pose +
-        w3 * loss_protein_function +
-        w4 * loss_ligand_properties)
-
-# Shared representations benefit all tasks
-# More efficient use of limited data
-```
-
-**Missing Structures:**
-
-Many bioactivity measurements lack 3D structures:
-
-```python
-# Sequence-only prediction (when no structure)
-if protein_structure is None:
-    # Use sequence-based protein representation
-    h_prot = ProteinLanguageModel(protein_sequence)
-else:
-    # Use structure-based GNN
-    h_prot = ProteinGNN(protein_structure)
-```
-
-**3. Interpretability**
-
-Understanding WHY a compound binds is as important as predicting IF it binds:
-
-**Attention Visualization:**
-
-```python
-# Extract attention weights
-attentions = model.get_attention_weights()
-
-# Identify key protein residues
-important_residues = []
-for residue, attention in zip(residues, attentions):
-    if attention > threshold:
-        important_residues.append(residue)
-
-# Visualize in 3D
-visualize_protein_ligand(
-    protein, 
-    ligand,
-    highlight_residues=important_residues,
-    highlight_atoms=high_attention_ligand_atoms
-)
-```
-
-**Interaction Decomposition:**
-
-```python
-# Analyze contribution of each interaction type
-for interaction_type in ['H-bond', 'hydrophobic', 'pi-stack']:
-    # Ablation: remove this interaction type
-    affinity_without = model.predict(
-        complex, 
-        exclude_interaction=interaction_type
-    )
-    
-    contribution = affinity_full - affinity_without
-    print(f"{interaction_type}: {contribution:.2f} kcal/mol")
-```
-
-**Gradient-Based Explanations:**
-
-```python
-# Which atoms matter most?
-ligand.requires_grad = True
-affinity = model(protein, ligand)
-affinity.backward()
-
-# Atoms with large gradients are important
-importance = ligand.grad.norm(dim=-1)
-visualize_atom_importance(ligand, importance)
-```
-
-**Applications:**
-
-1. **SAR (Structure-Activity Relationship)**:
-   - "This hydrogen bond donor is crucial"
-   - "Hydrophobic tail can be modified"
-   - Guides medicinal chemistry
-
-2. **Failure Analysis**:
-   - "Model focuses on wrong pocket"
-   - "Missed key water-mediated H-bond"
-   - Improves model training
-
-3. **Knowledge Discovery**:
-   - Identify novel binding motifs
-   - Understand selectivity patterns
-   - Generate hypotheses for experiments
-
-#### State-of-the-Art Models
-
-**EquiBind (2021)**
-
-```
-Key Innovation: SE(3)-equivariant blind docking
-
-Architecture:
-- Separate protein and ligand encoders
-- Equivariant graph neural network (EGNN)
-- Predicts keypoint matches
-- Direct coordinate prediction (no search)
-
-Performance:
-- 38% success rate (<2Å RMSD) on PDBbind
-- 1000× faster than traditional docking
-- Fully differentiable
-```
-
-**GraphDTA / DeepDTA (2018)**
-
-```
-Key Innovation: End-to-end learning from sequences
-
-Architecture:
-- CNN for protein sequences
-- GNN for ligand graphs
-- Concatenation + MLP
-- Trained on drug-target affinity
-
-Performance:
-- Competitive on Davis and KIBA datasets
-- Works without 3D structures
-- Fast inference for virtual screening
-```
-
-**ATOM3D (2021)**
-
-```
-Key Innovation: 3D structure benchmarks
-
-Datasets:
-- Protein-ligand binding (PDB)
-- Protein structure prediction
-- RNA structure
-- Molecular dynamics
-
-Models:
-- SchNet, DimeNet applied to biomolecules
-- Transformers with 3D positional encoding
-- Graph transformers
-```
-
-**TANKBind (2023)**
-
-```
-Key Innovation: Equivariant blind docking with diffusion
-
-Architecture:
-- Diffusion model for pose generation
-- Equivariant score matching
-- Iterative refinement
-- Confidence estimation
-
-Performance:
-- State-of-the-art on blind docking
-- Handles protein flexibility
-- Generalizes to unseen proteins
-```
-
-#### Practical Workflow
-
-```python
-# 1. Data preparation
-from biopandas.pdb import PandasPdb
-
-# Load protein
-protein = PandasPdb().fetch_pdb('1a2b')
-protein_graph = protein_to_graph(protein)
-
-# Load ligand
-ligand = Chem.MolFromMol2File('ligand.mol2')
-ligand_graph = mol_to_graph(ligand)
-
-# 2. Model training
-model = ProteinLigandGNN(
-    protein_features=37,
-    ligand_features=11,
-    hidden_dim=128,
-    num_layers=4
-)
-
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-
-for epoch in range(100):
-    for protein_graph, ligand_graph, affinity in dataloader:
-        pred_affinity = model(protein_graph, ligand_graph)
-        loss = F.mse_loss(pred_affinity, affinity)
-        
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-# 3. Virtual screening
-candidates = load_library('drugbank.sdf')  # 10,000 compounds
-
-predictions = []
-for ligand in tqdm(candidates):
-    ligand_graph = mol_to_graph(ligand)
-    affinity = model(protein_graph, ligand_graph)
-    predictions.append((ligand, affinity))
-
-# Sort by predicted affinity
-predictions.sort(key=lambda x: x[1], reverse=True)
-
-# Test top 100 experimentally
-top_hits = predictions[:100]
-```
-
-#### Future Directions
-
-1. **Physics-Informed Neural Networks**:
-   - Incorporate electrostatics, solvation
-   - Constrain predictions with physical laws
-   - Hybrid quantum/classical approaches
-
-2. **Generative Models**:
-   - Generate ligands for target protein
-   - Optimize for multiple objectives
-   - De novo drug design
-
-3. **Allostery and Dynamics**:
-   - Model protein conformational changes
-   - Long-range allosteric effects
-   - Molecular dynamics integration
-
-4. **Multi-Target Modeling**:
-   - Selectivity across protein families
-   - Polypharmacology
-   - Side effect prediction
-
----
-
-### 5. Crystal Structures for Materials Science
-
-GNNs are revolutionizing materials science by predicting properties of crystalline materials from their atomic structures. This enables high-throughput screening of millions of hypothetical materials, dramatically accelerating materials discovery.
-
-#### Understanding Crystalline Materials
-
-**What Makes Crystals Different?**
-
-Unlike molecules, crystals are:
-- **Infinite**: Periodic repetition in 3D space
-- **Ordered**: Atoms arranged in regular lattices
-- **Defined by symmetry**: Space groups and point groups
-- **Bulk properties**: Properties of the infinite system, not just a cluster
-
-**Real-World Impact:**
-
-Materials with specific properties enable technology:
-- **Batteries**: Li-ion conductors (electric vehicles)
-- **Solar cells**: High-efficiency photovoltaics
-- **Catalysts**: Green chemical production
-- **Semiconductors**: Computing and electronics
-- **Superconductors**: Lossless power transmission
-
-**The Discovery Challenge:**
-
-```
-Possible stable materials: ~10^50 (combinatorial explosion!)
-Known materials: ~200,000 (Materials Project, ICSD)
-Fully characterized: ~50,000
-Currently used: ~10,000
-
-DFT calculation: 1-1000 CPU-hours per material
-ML prediction: 0.001 seconds per material
-
-Speed-up: 10^6× faster!
-```
-
-#### Crystal Representation
-
-**Unit Cell Description:**
-
-A crystal is fully specified by:
-
-1. **Lattice Vectors**: Define the unit cell
-   ```
-   a⃗ = [a_x, a_y, a_z]  # First lattice vector
-   b⃗ = [b_x, b_y, b_z]  # Second lattice vector  
-   c⃗ = [c_x, c_y, c_z]  # Third lattice vector
-   
-   Lattice matrix: L = [a⃗ | b⃗ | c⃗]
-   ```
-
-2. **Lattice Parameters**:
-   ```
-   a, b, c = lengths of vectors (Ångströms)
-   α, β, γ = angles between vectors (degrees)
-   ```
-
-3. **Basis**: Atomic positions within the unit cell
-   ```
-   Fractional coordinates: (u, v, w) where 0 ≤ u,v,w < 1
-   Cartesian coordinates: r⃗ = u·a⃗ + v·b⃗ + w·c⃗
-   ```
-
-4. **Space Group**: Symmetry operations
-   ```
-   230 possible space groups in 3D
-   Examples: P21/c (monoclinic), Fm3̄m (cubic), P63/mmc (hexagonal)
-   ```
-
-**Example: Diamond (Carbon)**
-
-```
-Lattice: Face-centered cubic (FCC)
-  a = b = c = 3.567 Å
-  α = β = γ = 90°
-
-Basis: Two carbon atoms at
-  C₁: (0, 0, 0)
-  C₂: (0.25, 0.25, 0.25)
-
-Space group: Fd3̄m (227)
-
-Infinite crystal:
-  All positions (n₁, n₂, n₃) + basis
-  where n₁, n₂, n₃ ∈ ℤ
-```
-
-#### Periodic Boundary Conditions
-
-**The Periodicity Challenge:**
-
-For graph construction, we need neighbors, but:
-- Atoms near cell boundaries have neighbors in adjacent cells
-- Must account for periodic images
-- Same atom appears infinitely many times
-
-**Graph Construction Algorithm:**
-
-```python
-def construct_crystal_graph(atoms, lattice, cutoff_radius):
-    """
-    Build graph respecting periodic boundaries
-    """
-    graph = Graph()
-    
-    # Add nodes for atoms in unit cell
-    for atom in atoms:
-        graph.add_node(
-            element=atom.element,
-            position=atom.frac_coords,  # Fractional coordinates
-            features=get_atom_features(atom)
-        )
-    
-    # Find neighbors using minimum image convention
-    for i, atom_i in enumerate(atoms):
-        for j, atom_j in enumerate(atoms):
-            # Check all periodic images of atom_j
-            for n1 in [-1, 0, 1]:
-                for n2 in [-1, 0, 1]:
-                    for n3 in [-1, 0, 1]:
-                        # Skip self-loops (unless different cells)
-                        if i == j and (n1, n2, n3) == (0, 0, 0):
-                            continue
-                        
-                        # Compute distance through periodic boundaries
-                        image_position = atom_j.frac_coords + [n1, n2, n3]
-                        cart_position = lattice.to_cartesian(image_position)
-                        distance = np.linalg.norm(
-                            cart_position - lattice.to_cartesian(atom_i.frac_coords)
-                        )
-                        
-                        if distance < cutoff_radius:
-                            graph.add_edge(
-                                i, j,
-                                distance=distance,
-                                cell_offset=(n1, n2, n3),  # Which periodic image
-                                direction=cart_position - atom_i.cart_coords
-                            )
-    
-    return graph
-```
-
-**Minimum Image Convention:**
-
-```
-For each pair of atoms, consider all periodic images
-Choose the closest one (minimum distance)
-
-Example: 1D crystal with cell size 10 Å
-  Atom A at x=1
-  Atom B at x=9
-  
-  Direct distance: |9-1| = 8 Å
-  Through boundary: |9-1-10| = 2 Å  ← MINIMUM (use this!)
-  
-This handles wrapped distances correctly
-```
-
-**Challenges:**
-
-1. **Variable coordination**: Atoms may have different numbers of neighbors
-2. **Long-range order**: Some properties depend on distant atoms
-3. **Supercell construction**: May need to replicate unit cell for larger cutoffs
-
-#### Property Prediction Tasks
-
-**Electronic Properties**
-
-These determine conducting and optical behavior:
-
-**1. Band Gap (E_g)**
-```
-Definition: Energy difference between valence and conduction bands
-Units: eV
-Range: 0 (metal) to >10 eV (insulator)
-
-Applications:
-- E_g ≈ 1.3 eV: Solar cells (optimal for sunlight)
-- E_g > 5 eV: Transparent insulators (windows)
-- E_g = 0: Metals (wires, electrodes)
-
-Prediction challenge: 
-- DFT often underestimates (by 30-50%)
-- GNNs can learn correction factors
-```
-
-**2. Formation Energy (E_f)**
-```
-Definition: Energy to form compound from elements
-Formula: E_f = E_compound - Σ_i n_i × E_element(i)
-Units: eV/atom
-
-Applications:
-- E_f < 0: Thermodynamically stable
-- E_f > 0.1 eV/atom: Likely unstable
-- Guides synthesis feasibility
-
-Prediction: Critical for materials discovery
-```
-
-**3. Energy Above Hull (E_hull)**
-```
-Definition: Energy above stable composition convex hull
-Measures: Thermodynamic stability relative to competing phases
-
-E_hull = 0: On convex hull (thermodynamically stable)
-E_hull < 0.025 eV/atom: Potentially synthesizable
-E_hull > 0.1 eV/atom: Very unlikely to be stable
-
-Applications:
-- Virtual materials screening
-- Stability prediction before synthesis
-```
-
-**Mechanical Properties**
-
-Determine material strength and elasticity:
-
-**1. Bulk Modulus (B)**
-```
-Definition: Resistance to uniform compression
-Formula: B = -V (∂P/∂V)_T
-Units: GPa
-Range: 1 GPa (soft) to 400 GPa (diamond)
-
-Applications:
-- High B: Armor, cutting tools
-- Low B: Flexible substrates, cushioning
-```
-
-**2. Shear Modulus (G)**
-```
-Definition: Resistance to shear deformation
-Units: GPa
-
-Applications:
-- G/B ratio indicates ductility
-- High G: Stiff materials
-- Critical for structural applications
-```
-
-**3. Elastic Constants (C_ij)**
-```
-Tensor: 6×6 matrix (21 independent components for general case)
-Symmetry: Reduces components based on crystal system
-  - Cubic: 3 independent constants
-  - Hexagonal: 5 constants
-  - Triclinic: 21 constants
-
-Applications:
-- Full mechanical characterization
-- Anisotropic behavior prediction
-```
-
-**Thermodynamic Properties**
-
-**1. Phonon Properties**
-```
-Frequency spectrum: Vibrational modes
-Heat capacity: C_v(T) from phonons
-Thermal expansion: α(T)
-Thermal conductivity: κ
-
-Challenge: Requires dynamical matrix (expensive!)
-GNN potential: Fast phonon calculations
-```
-
-**2. Free Energy**
+**Simple Molecules**:
 ```
-Temperature-dependent stability
-Phase transitions
-Chemical potential
-
-Applications:
-- Phase diagram prediction
-- High-temperature materials
-```
-
-#### Specialized Architectures
-
-**CGCNN (Crystal Graph Convolutional Neural Networks)**
-
-One of the first GNN architectures specifically designed for crystals.
-
-**Architecture:**
-
-```python
-class CGCNNConv(nn.Module):
-    """CGCNN convolution layer"""
-    def __init__(self, node_features, edge_features, hidden):
-        self.node_fc = nn.Linear(2*node_features + edge_features, hidden)
-        self.bn = nn.BatchNorm1d(hidden)
-    
-    def forward(self, x, edge_index, edge_attr):
-        # For each edge (i → j)
-        i, j = edge_index
-        
-        # Concatenate: [h_i || h_j || e_ij]
-        messages = torch.cat([x[i], x[j], edge_attr], dim=-1)
-        
-        # Transform and normalize
-        messages = self.bn(self.node_fc(messages))
-        messages = F.softplus(messages)
-        
-        # Aggregate to each node
-        # Sum over all incoming edges
-        x_new = scatter_add(messages, i, dim=0)
-        
-        return x + x_new  # Residual connection
-```
-
-**Key Features:**
-
-1. **Distance-based edge weights**:
-   ```python
-   def edge_features(distance, cutoff=8.0):
-       # Gaussian distance encoding
-       centers = torch.linspace(0, cutoff, 100)
-       gamma = (centers[1] - centers[0])
-       return torch.exp(-gamma * (distance - centers)**2)
-   ```
-
-2. **Pooling for crystal-level properties**:
-   ```python
-   # Average over all atoms
-   h_crystal = global_mean_pool(h_atoms, batch)
-   
-   # Or weighted by composition
-   h_crystal = Σ_i (n_i / N_total) × h_i
-   ```
-
-3. **Handling variable composition**:
-   ```python
-   # Works for any stoichiometry
-   # Na₂Cl₂: 2 Na nodes, 2 Cl nodes
-   # Na₁₀Cl₁₀: 10 Na nodes, 10 Cl nodes
-   # Same model, different graph sizes
-   ```
-
-**Training:**
-
-```python
-# Dataset: Materials Project
-dataset = CrystalDataset('materials_project')
-
-model = CGCNN(
-    atom_features=92,  # One-hot: 92 elements
-    edge_features=100,  # Gaussian RBFs
-    hidden_dim=128,
-    num_layers=4
-)
-
-# Predict formation energy
-for crystal_graph in dataloader:
-    pred_energy = model(crystal_graph)
-    loss = F.mse_loss(pred_energy, crystal_graph.y)
-```
-
-**Performance:**
-- MAE ≈ 0.04 eV/atom for formation energy
-- Handles diverse chemistries (metals, semiconductors, insulators)
-- Fast: 1000× faster than DFT
-
-**MEGNet (MatErials Graph Network)**
-
-Multi-level graph network with atom, bond, and global state.
-
-**Three-Level Architecture:**
-
-```
-        ┌─────────────┐
-        │ Global State│  (lattice, volume, composition)
-        │   g ∈ ℝᵈ    │
-        └──────┬──────┘
-               │
-      ┌────────┴────────┐
-      │                 │
-┌─────▼─────┐    ┌──────▼──────┐
-│Atom States│    │ Bond States │
-│  v ∈ ℝᵈ   │◄──►│   e ∈ ℝᵈ    │
-└───────────┘    └─────────────┘
-```
-
-**Update Rules:**
-
-```python
-# Bond update: use atoms + global
-e_ij' = φ_e([e_ij || v_i || v_j || g])
-
-# Atom update: aggregate bonds + global  
-v_i' = φ_v([v_i || Σ_j e_ij' || g])
-
-# Global update: aggregate atoms + bonds
-g' = φ_g([g || Σ_i v_i' || Σ_ij e_ij'])
-```
-
-**Advantages:**
-
-1. **Multi-scale information**:
-   - Local: Atom and bond features
-   - Global: Crystal-level properties (volume, space group)
-   
-2. **Richer representations**:
-   - Bonds have their own learned features
-   - Global state captures extensive properties
-
-3. **Better for complex properties**:
-   - Properties that depend on global structure
-   - Example: Thermal conductivity (collective behavior)
-
-**Applications:**
-
-```python
-# Multi-task learning
-model = MEGNet(tasks=[
-    'formation_energy',
-    'band_gap',
-    'bulk_modulus',
-    'shear_modulus'
-])
-
-# Shared encoder, separate heads
-h_shared = model.encode(crystal)
-E_f = model.head_energy(h_shared)
-E_g = model.head_gap(h_shared)
-B = model.head_bulk(h_shared)
-G = model.head_shear(h_shared)
-```
-
-**SchNet for Crystals**
-
-Adapting continuous filters for periodic systems.
-
-**Modifications for Periodicity:**
-
-```python
-class SchNetCrystal(nn.Module):
-    def __init__(self):
-        self.rbf_expansion = GaussianRBF(cutoff=5.0)
-        self.interaction_blocks = nn.ModuleList([
-            InteractionBlock() for _ in range(6)
-        ])
-    
-    def forward(self, crystal):
-        # Handle periodic images
-        distances, cell_offsets = get_neighbor_distances(
-            crystal.frac_coords,
-            crystal.lattice,
-            cutoff=5.0
-        )
-        
-        # Distance features (same as molecular SchNet)
-        edge_features = self.rbf_expansion(distances)
-        
-        # Message passing with periodic edges
-        h = self.embed(crystal.atomic_numbers)
-        for block in self.interaction_blocks:
-            h = block(h, crystal.edge_index, edge_features)
-        
-        # Crystal-level pooling
-        return global_mean_pool(h, crystal.batch)
+Methane:    C
+Ethanol:    CCO
+Benzene:    c1ccccc1  (lowercase = aromatic)
+Water:      O
 ```
-
-**Handling Variable Unit Cell Size:**
-
-```python
-# Challenge: Different crystals have different numbers of atoms
-# Solution: Normalization
-
-# Per-atom properties → extensive
-energy_per_atom = total_energy / num_atoms
-
-# Or use composition-weighted features
-composition = get_composition(crystal)  # {'Na': 2, 'Cl': 2}
-weights = [composition[atom] / sum(composition.values()) 
-           for atom in atoms]
-h_crystal = Σ_i weights[i] × h_i
-```
-
-**Allegro / NequIP**
-
-State-of-the-art equivariant models for materials.
-
-**E(3)-Equivariant Architecture:**
 
-```python
-class E3NN_Crystal(nn.Module):
-    """Based on e3nn library"""
-    def __init__(self):
-        # Irreducible representations (irreps)
-        # l=0: scalars (rotation invariant)
-        # l=1: vectors (rotation equivariant)
-        # l=2: rank-2 tensors
-        
-        self.irreps_in = "92x0e"  # 92 elements, scalar features
-        self.irreps_hidden = "128x0e + 64x1o + 32x2e"  # Mixed irreps
-        self.irreps_out = "1x0e"  # Energy (scalar)
-        
-        self.convolution = E3Convolution(
-            self.irreps_in, 
-            self.irreps_hidden
-        )
-    
-    def forward(self, crystal):
-        # Features transform correctly under rotations
-        # Scalars: unchanged
-        # Vectors: rotate with crystal
-        # Tensors: rotate as rank-2 tensors
-        ...
+**Branches**:
 ```
-
-**Applications:**
-
-1. **Force Field Learning**:
-   ```python
-   # Train on energy and forces
-   energy_pred = model(crystal)
-   forces_pred = -autograd.grad(energy_pred, crystal.coords)
-   
-   loss = (w_E * (energy_pred - energy_true)**2 +
-           w_F * (forces_pred - forces_true)**2)
-   ```
-
-2. **Molecular Dynamics**:
-   ```
-   Learned potential: 1000-10000× faster than DFT
-   Accuracy: Near DFT quality
-   Application: Simulate nanoseconds to microseconds
-   ```
-
-3. **Stress Tensor Prediction**:
-   ```python
-   # Stress tensor: rank-2 equivariant quantity
-   stress = model.predict_stress(crystal)
-   # Transforms as: σ → Q σ Q^T under rotation Q
-   ```
-
-#### Handling Periodicity: Technical Details
-
-**Minimum Image Convention in Practice:**
-
-```python
-def minimum_image_distance(frac_coords_i, frac_coords_j, lattice):
-    """
-    Compute minimum distance through periodic boundaries
-    """
-    # Difference in fractional coordinates
-    d_frac = frac_coords_j - frac_coords_i
-    
-    # Wrap to [-0.5, 0.5] (minimum image)
-    d_frac = d_frac - np.round(d_frac)
-    
-    # Convert to Cartesian
-    d_cart = lattice @ d_frac
-    
-    # Distance
-    return np.linalg.norm(d_cart)
+Isobutane:     CC(C)C
+               └─ branch in parentheses
 ```
-
-**Edge Attributes for Periodic Systems:**
 
-```python
-edge_attr = {
-    'distance': d_ij,
-    'direction': (r_j - r_i) / d_ij,  # Unit vector
-    'cell_offset': (n1, n2, n3),      # Which periodic image
-    'is_boundary': (n1 != 0 or n2 != 0 or n3 != 0)
-}
+**Double and Triple Bonds**:
 ```
-
-**Lattice as Global Feature:**
-
-```python
-# Include lattice parameters as global features
-lattice_features = torch.tensor([
-    a, b, c,           # Lengths
-    alpha, beta, gamma, # Angles
-    volume,            # Cell volume
-    np.log(volume),    # Log volume (more uniform distribution)
-])
-
-# Broadcast to all atoms
-for atom in crystal:
-    atom.features = torch.cat([atom.features, lattice_features])
+Ethene:     C=C
+Ethyne:     C#C
+CO2:        O=C=O
 ```
-
-#### Applications
-
-**Materials Discovery Workflow:**
-
-```python
-# 1. Generate candidate structures
-from pymatgen.io.cif import CifWriter
-from pymatgen.core import Structure
-
-candidates = []
-for composition in element_combinations:
-    for prototype in common_structures:
-        structure = substitute(prototype, composition)
-        if is_reasonable(structure):  # Basic filters
-            candidates.append(structure)
-
-print(f"Generated {len(candidates)} candidates")  # ~10⁶
 
-# 2. Screen with GNN
-model = load_model('megnet_bandgap.pt')
-
-promising = []
-for structure in tqdm(candidates):
-    graph = structure_to_graph(structure)
-    E_g = model.predict(graph)
-    
-    if 1.0 < E_g < 1.5:  # Target range for solar cells
-        promising.append((structure, E_g))
-
-print(f"Found {len(promising)} promising candidates")  # ~10³
-
-# 3. Refine with DFT
-for structure, E_g_predicted in promising[:100]:  # Top 100
-    E_g_dft = run_dft(structure)  # Expensive but accurate
-    
-    if abs(E_g_dft - E_g_predicted) < 0.2:
-        # GNN was accurate!
-        save_for_synthesis(structure)
-
-# 4. Experimental synthesis (top 10)
+**Rings**:
 ```
+Cyclohexane:    C1CCCCC1
+                └─ matching numbers close ring
 
-**Process Optimization:**
-
-```python
-# Predict stability under different conditions
-def predict_stability_map(composition):
-    structures = generate_polymorphs(composition)
-    
-    temperatures = np.linspace(300, 2000, 100)  # K
-    pressures = np.linspace(1, 100, 50)  # GPa
-    
-    phase_diagram = np.zeros((len(temperatures), len(pressures)))
-    
-    for i, T in enumerate(temperatures):
-        for j, P in enumerate(pressures):
-            energies = [
-                model.predict_free_energy(s, T, P) 
-                for s in structures
-            ]
-            phase_diagram[i,j] = np.argmin(energies)
-    
-    return phase_diagram
+Naphthalene:    c1ccc2ccccc2c1
+                └─ fused rings
 ```
-
-**Doping and Substitution:**
 
-```python
-# Explore chemical substitutions
-base_structure = Structure.from_file('LiFePO4.cif')
-
-for dopant in ['Mn', 'Co', 'Ni']:
-    for site in iron_sites:
-        doped = base_structure.copy()
-        doped.replace(site, dopant)
-        
-        # Predict properties of doped material
-        E_g = model.predict(doped, property='band_gap')
-        conductivity = model.predict(doped, property='ionic_conductivity')
-        
-        print(f"Li{dopant}PO4: E_g={E_g:.2f} eV, σ={conductivity:.2e} S/cm")
+**Stereochemistry**:
 ```
-
-**Catalysis Applications:**
-
-```python
-# Surface models for catalysis
-def model_surface(bulk_structure, miller_indices=(1,1,1)):
-    # Create surface slab
-    slab = bulk_structure.get_surface(miller_indices, thickness=4)
-    
-    # Add adsorbate
-    adsorbate = Molecule(['H', 'H'], [[0,0,0], [0,0,0.74]])
-    slab_with_ads = add_adsorbate(slab, adsorbate, site='ontop')
-    
-    # Predict adsorption energy
-    E_slab = model.predict_energy(slab)
-    E_slab_ads = model.predict_energy(slab_with_ads)
-    E_H2 = model.predict_energy(adsorbate)
-    
-    E_ads = E_slab_ads - E_slab - 0.5 * E_H2
-    return E_ads
+(R)-Alanine:    N[C@@H](C)C(=O)O
+                  └─ @ indicates chirality
 ```
-
-#### Challenges and Future Directions
-
-**Current Limitations:**
-
-1. **Size limitations**: Most models use small unit cells
-   - Typical: 10-50 atoms
-   - Real systems: Can have 100-1000 atoms (supercells, defects)
-
-2. **Accuracy vs speed trade-off**:
-   - GNNs: Fast but ~10% error
-   - DFT: Slow but ~1% error
-   - Need: Fast AND accurate
-
-3. **Out-of-distribution generalization**:
-   - Models trained on known materials
-   - May fail on truly novel chemistries
-   - Active learning can help
-
-**Emerging Directions:**
-
-1. **Foundation Models**:
-   ```
-   Pre-train on ALL known structures (~200K)
-   Transfer to specific tasks
-   Few-shot learning for new properties
-   ```
-
-2. **Inverse Design**:
-   ```
-   Input: Desired properties (E_g=1.3 eV, stable, earth-abundant)
-   Output: Candidate structures
-   Challenge: Generative models for crystals
-   ```
-
-3. **Multi-fidelity Learning**:
-   ```
-   Low-fidelity: GNN predictions (fast, many)
-   High-fidelity: DFT calculations (slow, few)
-   Combine: Bayesian optimization, active learning
-   ```
-
-4. **Uncertainty Quantification**:
-   ```python
-   prediction, uncertainty = model.predict_with_uncertainty(structure)
-   
-   if uncertainty < threshold:
-       # High confidence, trust prediction
-       use_prediction()
-   else:
-       # Low confidence, run DFT
-       run_dft_calculation()
-   ```
-
-## 6. Practical: Building a GAT for the QM9 Dataset
-
-In this practical example, we build a **Graph Attention Network (GAT)** to predict a quantum-chemical 
-molecular property from the QM9 dataset using PyTorch Geometric.
-
-QM9 contains small organic molecules with atom-level features, bond connectivity, 3D coordinates, and several 
-regression targets computed from quantum chemistry calculations. Here we predict the **HOMO energy**, which 
-is target index (2).
-
-The learning problem is:
-
-$$
-f_\theta(G) \rightarrow y
-$$
-
-where $G$ is a molecular graph and $y$ is the target molecular property.
-
-
-checked 12 may 2026
-```python
-# Graph Attention Network for QM9 Property Prediction
-# pip uninstall -y rdkit rdkit-pypi
-
-import copy
-import random
-import numpy as np
-import matplotlib.pyplot as plt
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
-from torch_geometric.datasets import QM9
-from torch_geometric.loader import DataLoader
-from torch_geometric.nn import GATConv, global_mean_pool
-
-
-# 1. Reproducibility
-seed = 42
-
-random.seed(seed)
-np.random.seed(seed)
-torch.manual_seed(seed)
-
-if torch.cuda.is_available():
-    torch.cuda.manual_seed_all(seed)
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
-
-# 2. Load QM9 Dataset
-
-print("Loading QM9 dataset...")
-
-dataset = QM9(root="./data/QM9")
-
-print(f"Total molecules: {len(dataset)}")
-print(f"Node feature dimension: {dataset.num_node_features}")
-print(f"Number of targets: {dataset[0].y.shape[-1]}")
-
-target_idx = 2
-target_name = "HOMO energy"
-
-sample = dataset[0]
-
-print("\nSample molecule:")
-print(f"  Number of atoms: {sample.num_nodes}")
-print(f"  Number of edges: {sample.num_edges}")
-print(f"  Node feature shape: {sample.x.shape}")
-print(f"  Edge index shape: {sample.edge_index.shape}")
-print(f"  Target shape: {sample.y.shape}")
-
-
-# 3. Train / Validation / Test Split
-
-num_molecules = len(dataset)
-indices = torch.randperm(num_molecules)
-
-train_size = int(0.8 * num_molecules)
-val_size = int(0.1 * num_molecules)
-
-train_indices = indices[:train_size]
-val_indices = indices[train_size:train_size + val_size]
-test_indices = indices[train_size + val_size:]
-
-train_dataset = dataset[train_indices]
-val_dataset = dataset[val_indices]
-test_dataset = dataset[test_indices]
-
-print("\nDataset split:")
-print(f"  Train: {len(train_dataset)}")
-print(f"  Validation: {len(val_dataset)}")
-print(f"  Test: {len(test_dataset)}")
-
-
-# 4. Target Normalization
-
-train_targets = torch.cat([
-    data.y[:, target_idx] for data in train_dataset
-])
-
-target_mean = train_targets.mean()
-target_std = train_targets.std()
-
-print("\nTarget normalization:")
-print(f"  Target: {target_name}")
-print(f"  Mean: {target_mean:.4f}")
-print(f"  Std: {target_std:.4f}")
-
-
-# 5. DataLoaders
-
-batch_size = 64
-
-train_loader = DataLoader(
-    train_dataset,
-    batch_size=batch_size,
-    shuffle=True,
-    num_workers=0
-)
-
-val_loader = DataLoader(
-    val_dataset,
-    batch_size=batch_size,
-    shuffle=False,
-    num_workers=0
-)
-
-test_loader = DataLoader(
-    test_dataset,
-    batch_size=batch_size,
-    shuffle=False,
-    num_workers=0
-)
-
-
-# 6. Define the GAT Model
-
-class GATForQM9(nn.Module):
-    """
-    Graph Attention Network for QM9 molecular property prediction.
-
-    The model uses:
-    - an initial linear node embedding,
-    - several GATConv layers,
-    - residual connections,
-    - global mean pooling,
-    - and a final MLP regression head.
-    """
-
-    def __init__(
-        self,
-        num_node_features,
-        hidden_dim=128,
-        num_heads=4,
-        num_layers=4,
-        dropout=0.2
-    ):
-        super().__init__()
-
-        self.dropout_rate = dropout
-
-        self.node_embedding = nn.Linear(num_node_features, hidden_dim)
-
-        self.gat_layers = nn.ModuleList()
-        self.batch_norms = nn.ModuleList()
-
-        for _ in range(num_layers):
-            self.gat_layers.append(
-                GATConv(
-                    in_channels=hidden_dim,
-                    out_channels=hidden_dim,
-                    heads=num_heads,
-                    concat=False,
-                    dropout=dropout,
-                    add_self_loops=True
-                )
-            )
-
-            self.batch_norms.append(
-                nn.BatchNorm1d(hidden_dim)
-            )
-
-        self.regressor = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim, hidden_dim // 2),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim // 2, 1)
-        )
-
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        nn.init.kaiming_normal_(
-            self.node_embedding.weight,
-            nonlinearity="relu"
-        )
-        nn.init.zeros_(self.node_embedding.bias)
-
-        for layer in self.regressor:
-            if isinstance(layer, nn.Linear):
-                nn.init.kaiming_normal_(
-                    layer.weight,
-                    nonlinearity="relu"
-                )
-                nn.init.zeros_(layer.bias)
-
-    def forward(self, data):
-        x = data.x.float()
-        edge_index = data.edge_index
-        batch = data.batch
-
-        x = self.node_embedding(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout_rate, training=self.training)
-
-        for gat_layer, batch_norm in zip(self.gat_layers, self.batch_norms):
-            residual = x
-
-            x = gat_layer(x, edge_index)
-            x = batch_norm(x)
-            x = F.relu(x)
-            x = F.dropout(x, p=self.dropout_rate, training=self.training)
-
-            x = x + residual
-
-        graph_embedding = global_mean_pool(x, batch)
-
-        prediction = self.regressor(graph_embedding)
-
-        return prediction.view(-1)
-
-
-model = GATForQM9(
-    num_node_features=dataset.num_node_features,
-    hidden_dim=128,
-    num_heads=4,
-    num_layers=4,
-    dropout=0.2
-).to(device)
-
-num_parameters = sum(
-    p.numel() for p in model.parameters() if p.requires_grad
-)
-
-print(f"\nTrainable parameters: {num_parameters:,}")
-
-
-# 7. Training and Evaluation Functions
-
-def get_normalized_target(data):
-    target = data.y[:, target_idx].view(-1)
-    target = target.to(device)
-
-    return (target - target_mean.to(device)) / target_std.to(device)
-
-
-def denormalize_target(y_normalized):
-    return y_normalized * target_std.to(y_normalized.device) + target_mean.to(y_normalized.device)
-
-
-def train_one_epoch(model, loader, optimizer, criterion):
-    model.train()
-
-    total_loss = 0.0
-    total_graphs = 0
-
-    for data in loader:
-        data = data.to(device)
-
-        optimizer.zero_grad()
-
-        pred_normalized = model(data)
-        target_normalized = get_normalized_target(data)
-
-        loss = criterion(pred_normalized, target_normalized)
-
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        optimizer.step()
-
-        total_loss += loss.item() * data.num_graphs
-        total_graphs += data.num_graphs
-
-    return total_loss / total_graphs
-
-
-def evaluate(model, loader, criterion):
-    model.eval()
-
-    total_loss = 0.0
-    total_graphs = 0
-
-    all_predictions = []
-    all_targets = []
-
-    with torch.no_grad():
-        for data in loader:
-            data = data.to(device)
-
-            pred_normalized = model(data)
-            target_normalized = get_normalized_target(data)
-
-            loss = criterion(pred_normalized, target_normalized)
-
-            pred = denormalize_target(pred_normalized)
-            target = denormalize_target(target_normalized)
-
-            all_predictions.append(pred.cpu())
-            all_targets.append(target.cpu())
-
-            total_loss += loss.item() * data.num_graphs
-            total_graphs += data.num_graphs
-
-    predictions = torch.cat(all_predictions).numpy()
-    targets = torch.cat(all_targets).numpy()
-
-    mae = mean_absolute_error(targets, predictions)
-    rmse = np.sqrt(mean_squared_error(targets, predictions))
-    r2 = r2_score(targets, predictions)
-
-    return {
-        "loss": total_loss / total_graphs,
-        "mae": mae,
-        "rmse": rmse,
-        "r2": r2,
-        "predictions": predictions,
-        "targets": targets
-    }
-
-
-# 8. Train the Model
-
-criterion = nn.L1Loss()
-
-optimizer = torch.optim.AdamW(
-    model.parameters(),
-    lr=1e-3,
-    weight_decay=1e-5
-)
-
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer,
-    mode="min",
-    factor=0.5,
-    patience=10,
-    min_lr=1e-6
-)
-
-num_epochs = 100
-early_stop_patience = 20
-
-best_val_loss = float("inf")
-best_model_state = copy.deepcopy(model.state_dict())
-patience_counter = 0
-
-history = {
-    "train_loss": [],
-    "val_loss": [],
-    "val_mae": [],
-    "val_rmse": [],
-    "val_r2": [],
-    "learning_rate": []
-}
-
-print("\nStarting training...")
-print("=" * 70)
-
-for epoch in range(num_epochs):
-    train_loss = train_one_epoch(
-        model,
-        train_loader,
-        optimizer,
-        criterion
-    )
-
-    val_metrics = evaluate(
-        model,
-        val_loader,
-        criterion
-    )
-
-    val_loss = val_metrics["loss"]
-
-    scheduler.step(val_loss)
 
-    current_lr = optimizer.param_groups[0]["lr"]
+#### Working with SMILES in Python
 
-    history["train_loss"].append(train_loss)
-    history["val_loss"].append(val_loss)
-    history["val_mae"].append(val_metrics["mae"])
-    history["val_rmse"].append(val_metrics["rmse"])
-    history["val_r2"].append(val_metrics["r2"])
-    history["learning_rate"].append(current_lr)
+??? note "Example"
 
-    if val_loss < best_val_loss:
-        best_val_loss = val_loss
-        best_model_state = copy.deepcopy(model.state_dict())
-        patience_counter = 0
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import Draw
+    import matplotlib.pyplot as plt
 
-        torch.save({
-            "epoch": epoch,
-            "model_state_dict": best_model_state,
-            "target_mean": target_mean,
-            "target_std": target_std,
-            "target_idx": target_idx,
-            "val_loss": val_loss,
-            "val_mae": val_metrics["mae"]
-        }, "best_gat_qm9.pt")
+    # Create molecule from SMILES
+    smiles = "CC(=O)Oc1ccccc1C(=O)O"  # Aspirin
+    mol = Chem.MolFromSmiles(smiles)
 
+    # Check validity
+    if mol is None:
+        print("Invalid SMILES!")
     else:
-        patience_counter += 1
+        print(f"Valid molecule with {mol.GetNumAtoms()} atoms")
 
-    if (epoch + 1) % 10 == 0 or epoch == 0:
-        print(f"Epoch {epoch + 1:03d}/{num_epochs}")
-        print(f"  Train Loss: {train_loss:.4f}")
-        print(f"  Val Loss:   {val_loss:.4f}")
-        print(f"  Val MAE:    {val_metrics['mae']:.4f}")
-        print(f"  Val RMSE:   {val_metrics['rmse']:.4f}")
-        print(f"  Val R²:     {val_metrics['r2']:.4f}")
-        print(f"  LR:         {current_lr:.2e}")
-        print("-" * 70)
+    # Visualize
+    img = Draw.MolToImage(mol, size=(300, 300))
+    plt.imshow(img)
+    plt.axis('off')
+    plt.title('Aspirin')
+    #plt.show()
+    plt.savefig('aspirine.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
-    if patience_counter >= early_stop_patience:
-        print(f"Early stopping at epoch {epoch + 1}")
-        break
+    # Get canonical SMILES (standardized form)
+    canonical_smiles = Chem.MolToSmiles(mol)
+    print(f"Canonical SMILES: {canonical_smiles}")
 
-print("Training finished.")
+    # Generate randomized SMILES (useful for data augmentation)
+    for i in range(5):
+        random_smiles = Chem.MolToSmiles(mol, doRandom=True)
+        print(f"Random SMILES {i+1}: {random_smiles}")
+    ```
 
+#### Advantages of SMILES
 
-# 9. Test Set Evaluation
+- **Compact**: Short strings for complex molecules
+- **Human-readable**: Chemists can interpret them
+- **Widely used**: Most databases provide SMILES
+- **Easy to store**: Plain text format
 
-checkpoint = torch.load(
-    "best_gat_qm9.pt",
-    map_location=device
-)
+#### Limitations of SMILES
 
-model.load_state_dict(checkpoint["model_state_dict"])
+- **Not unique**: Same molecule can have multiple SMILES representations
 
-print("\nBest model:")
-print(f"  Epoch: {checkpoint['epoch'] + 1}")
-print(f"  Validation MAE: {checkpoint['val_mae']:.4f}")
-
-test_metrics = evaluate(
-    model,
-    test_loader,
-    criterion
-)
-
-print("\nTest results:")
-print(f"  MAE:  {test_metrics['mae']:.4f}")
-print(f"  RMSE: {test_metrics['rmse']:.4f}")
-print(f"  R²:   {test_metrics['r2']:.4f}")
-
-
-# 10. Plot Training Curves
-
-plt.figure(figsize=(12, 8))
-
-plt.subplot(2, 2, 1)
-plt.plot(history["train_loss"], label="Train Loss")
-plt.plot(history["val_loss"], label="Validation Loss")
-plt.xlabel("Epoch")
-plt.ylabel("Normalized MAE Loss")
-plt.title("Training and Validation Loss")
-plt.legend()
-plt.grid(alpha=0.3)
-
-plt.subplot(2, 2, 2)
-plt.plot(history["val_mae"])
-plt.xlabel("Epoch")
-plt.ylabel("MAE")
-plt.title("Validation MAE")
-plt.grid(alpha=0.3)
-
-plt.subplot(2, 2, 3)
-plt.plot(history["val_r2"])
-plt.xlabel("Epoch")
-plt.ylabel("R²")
-plt.title("Validation R²")
-plt.grid(alpha=0.3)
-
-plt.subplot(2, 2, 4)
-plt.plot(history["learning_rate"])
-plt.xlabel("Epoch")
-plt.ylabel("Learning Rate")
-plt.yscale("log")
-plt.title("Learning Rate Schedule")
-plt.grid(alpha=0.3)
-
-plt.tight_layout()
-plt.savefig("gat_qm9_training_curves.png", dpi=150)
-plt.show()
-
-
-# 11. Plot Predictions
-
-predictions = test_metrics["predictions"]
-targets = test_metrics["targets"]
-
-plt.figure(figsize=(6, 6))
-
-plt.scatter(targets, predictions, alpha=0.4)
-
-min_value = min(targets.min(), predictions.min())
-max_value = max(targets.max(), predictions.max())
-
-plt.plot(
-    [min_value, max_value],
-    [min_value, max_value],
-    linestyle="--"
-)
-
-plt.xlabel(f"True {target_name}")
-plt.ylabel(f"Predicted {target_name}")
-plt.title(f"GAT Predictions on QM9: {target_name}")
-plt.grid(alpha=0.3)
-plt.tight_layout()
-plt.savefig("gat_qm9_predictions.png", dpi=150)
-plt.show()
+```python
+# All represent ethanol:
+smiles_variants = ["CCO", "OCC", "C(O)C"]
+# Solution: Use canonical SMILES
 ```
 
+- **No 3D information**: Only connectivity, not geometry
 
-* The model predicts **normalized targets**, and metrics are computed after denormalization.
-* Residual connections are dimensionally consistent because all GAT layers use `concat=False`.
-* The model checkpoint is saved using a deep copy of `state_dict`.
-* `torch.load(..., map_location=device)` is used for safer loading.
-* The loss is averaged by the number of graphs, not by the number of batches.
-* `num_workers=0` is used for better compatibility across notebooks, Windows, and macOS.
-
-
-checked. 14 may 2026
 ```python
-# https://se.mathworks.com/help/deeplearning/ug/node-classification-using-graph-convolutional-network.html
-# GCN ON QM7 DATASET: ATOM LABEL PREDICTION FROM COULOMB MATRICES
+# Both are C3H8O but different 3D shapes:
+propanol = "CCCO"      # Linear
+isopropanol = "CC(O)C"  # Branched
+```
 
-import os
-import urllib.request
-import tempfile
-import numpy as np
-import scipy.io
-import scipy.sparse as sp
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
-import networkx as nx
+- **Sequence-based**: Hard to capture graph structure directly
 
-from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
-from sklearn.model_selection import train_test_split
+- **Fragile**: Single character error invalidates entire SMILES
 
+```python
+valid = "CCO"
+invalid = "C CO"  # Space breaks it
+```
 
-# 1. DOWNLOAD AND LOAD QM7 DATA
+### 2.2 SELFIES (Self-Referencing Embedded Strings)
 
-data_url = "https://quantum-machine.org/data/qm7.mat"
-output_folder = os.path.join(tempfile.gettempdir(), "qm7Data")
-data_file = os.path.join(output_folder, "qm7.mat")
+SELFIES is an alternative to SMILES that guarantees 100% valid molecules.
 
-os.makedirs(output_folder, exist_ok=True)
+??? note "Example"
 
-if not os.path.exists(data_file):
-    print("Downloading QM7 data...")
-    urllib.request.urlretrieve(data_url, data_file)
-    print("Done.")
+    ```python
+    import selfies as sf
+    from rdkit import Chem
 
-data = scipy.io.loadmat(data_file)
+    # Convert SMILES to SELFIES
+    smiles = "CCO"
+    selfies_str = sf.encoder(smiles)
+    print(f"SMILES: {smiles}")
+    print(f"SELFIES: {selfies_str}")
 
-# QM7 Coulomb matrices
-# Shape is usually: (7165, 23, 23)
-X_raw = data["X"]
+    # Convert SELFIES back to SMILES
+    smiles_back = sf.decoder(selfies_str)
+    print(f"Back to SMILES: {smiles_back}")
 
-# Atomic numbers
-# Shape is usually: (7165, 23)
-Z_raw = data["Z"]
+    # Verify it's a valid molecule
+    mol = Chem.MolFromSmiles(smiles_back)
+    print(f"Valid molecule: {mol is not None}")
+    ```
 
-print("Raw Coulomb matrix shape:", X_raw.shape)
-print("Raw atom data shape:", Z_raw.shape)
+### 2.2 Molecular Fingerprints
 
-# Convert to MATLAB-like format:
-# MATLAB used permute(data.X, [2 3 1])
-# Python version: (num_molecules, 23, 23) -> (23, 23, num_molecules)
-coulomb_data = np.transpose(X_raw, (1, 2, 0)).astype(np.float64)
-
-# Sort atomic numbers in descending order, like MATLAB sort(..., 'descend')
-atom_data = -np.sort(-Z_raw, axis=1)
-
-num_molecules = coulomb_data.shape[2]
-
-print("Number of molecules:", num_molecules)
-print("Coulomb data shape:", coulomb_data.shape)
-print("Atom data shape:", atom_data.shape)
+Fingerprints are fixed-length binary or count vectors that encode molecular structure.
 
 
-# 2. HELPER FUNCTIONS
+#### Morgan Fingerprints (ECFP - Extended Connectivity Fingerprints)
 
-def atomic_symbol(atomic_numbers):
-    """
-    Convert atomic numbers to atomic symbols.
-    QM7 mainly contains H, C, N, O, and S.
-    """
+Morgan fingerprints, also known as Extended Connectivity Fingerprints (ECFP), are one 
+of the most widely used molecular representations in cheminformatics and molecular machine 
+learning. They describe a molecule by examining the local chemical environment around each 
+atom. Instead of representing the molecule as a whole structure, Morgan fingerprints break 
+it into many small circular neighborhoods centered on individual atoms.
 
-    symbol_map = {
-        1: "H",
-        6: "C",
-        7: "N",
-        8: "O",
-        16: "S"
-    }
+The main idea is that each atom is first assigned an identifier based on its local properties, 
+such as atom type, bonding pattern, and connectivity. The algorithm then expands outward step 
+by step, collecting information from neighboring atoms at increasing radii. These local environments 
+are converted into numerical identifiers and stored in a fixed-length fingerprint vector. The 
+final result is a numerical representation that can be used for similarity search, clustering, 
+classification, regression, or other machine learning tasks.
 
-    atomic_numbers = np.asarray(atomic_numbers).astype(int)
+**Algorithm**:
 
-    return np.array([
-        symbol_map.get(z, str(z)) for z in atomic_numbers
-    ])
+1. Assign an initial identifier to each atom based on its chemical properties.
+2. Expand around each atom to include neighboring atoms within a chosen radius.
+3. Update the atom identifiers based on the surrounding chemical environment.
+4. Hash the resulting identifiers into a fixed-length fingerprint vector.
+5. Use the fingerprint as input for similarity analysis or machine learning models.
 
+??? note "Example"
 
-def coulomb_to_adjacency(coulomb_data, atom_data):
-    """
-    Convert Coulomb matrices into adjacency matrices.
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
+    import numpy as np
 
-    In a Coulomb matrix:
-    - diagonal entries represent atom-specific nuclear terms,
-    - off-diagonal entries represent pairwise Coulomb interactions.
+    # 
+    # 1. Create molecule from SMILES
+    # 
 
-    Here, an edge is created whenever an off-diagonal Coulomb entry is nonzero.
-    """
+    smiles = "CCO"  # Ethanol
 
-    max_nodes = coulomb_data.shape[0]
-    num_molecules = coulomb_data.shape[2]
+    mol = Chem.MolFromSmiles(smiles)
 
-    adjacency_data = np.zeros_like(coulomb_data, dtype=np.float32)
+    if mol is None:
+        raise ValueError("Invalid SMILES string")
 
-    for i in range(num_molecules):
-        atomic_numbers = atom_data[i]
-        num_nodes = np.count_nonzero(atomic_numbers)
+    # 
+    # 2. Create Morgan fingerprint generator
+    # 
 
-        C = coulomb_data[:num_nodes, :num_nodes, i]
-
-        A = (np.abs(C) > 0).astype(np.float32)
-
-        # Remove self-loops here.
-        # Self-loops are added later during GCN normalization.
-        np.fill_diagonal(A, 0.0)
-
-        adjacency_data[:num_nodes, :num_nodes, i] = A
-
-    return adjacency_data
-
-
-def normalize_adjacency(A):
-    """
-    Compute normalized adjacency:
-
-        A_norm = D^{-1/2} (A + I) D^{-1/2}
-
-    This is the standard normalization used in many GCN models.
-    """
-
-    A = A + sp.eye(A.shape[0], dtype=np.float32)
-
-    degree = np.asarray(A.sum(axis=1)).flatten()
-    degree_inv_sqrt = np.power(degree, -0.5)
-    degree_inv_sqrt[np.isinf(degree_inv_sqrt)] = 0.0
-
-    D_inv_sqrt = sp.diags(degree_inv_sqrt)
-
-    A_norm = D_inv_sqrt @ A @ D_inv_sqrt
-
-    return A_norm.tocoo()
-
-
-def scipy_sparse_to_torch_sparse(matrix, device):
-    """
-    Convert a SciPy sparse matrix to a PyTorch sparse tensor.
-    """
-
-    matrix = matrix.tocoo()
-
-    indices = torch.tensor(
-        np.vstack((matrix.row, matrix.col)),
-        dtype=torch.long,
-        device=device
+    morgan_gen = GetMorganGenerator(
+        radius=2,
+        fpSize=2048
     )
 
-    values = torch.tensor(
-        matrix.data,
-        dtype=torch.float32,
-        device=device
+    # 
+    # 3. Generate Morgan fingerprint as a bit vector
+    # 
+
+    morgan_fp = morgan_gen.GetFingerprint(mol)
+
+    # Convert bit vector to NumPy array
+    fp_array = np.array(morgan_fp)
+
+    print("Morgan bit fingerprint")
+    print("Fingerprint shape:", fp_array.shape)
+    print("Number of set bits:", int(fp_array.sum()))
+
+    # 
+    # 4. Generate Morgan count fingerprint
+    # 
+
+    count_fp_array = morgan_gen.GetCountFingerprintAsNumPy(mol)
+
+    print("\nMorgan count fingerprint")
+    print("Fingerprint shape:", count_fp_array.shape)
+    print("Total feature counts:", int(count_fp_array.sum()))
+    print("Number of nonzero features:", np.count_nonzero(count_fp_array))
+    ```
+
+A bit fingerprint stores whether a molecular feature is present or absent. A count fingerprint stores 
+how many times each feature appears. For many introductory examples, bit fingerprints are easier to explain, 
+while count fingerprints can provide more detailed information for machine learning.
+
+**Parameters**:
+
+- **Radius**: Larger radius captures more context
+  - Radius 1 (ECFP2): Immediate neighbors
+  - Radius 2 (ECFP4): Common choice, balances local and broader context
+  - Radius 3 (ECFP6): Larger substructures
+
+- **fpSize**: Fingerprint length
+
+  - 1024: Fast, but more collisions
+  - 2048: Common default
+  - 4096: More unique features, slower computationally
+
+#### MACCS Keys
+
+MACCS keys are fixed-length structural fingerprints composed of 166 predefined chemical 
+patterns commonly found in molecular structures. Each bit in the fingerprint indicates the 
+presence or absence of a specific substructure, functional group, or bonding pattern, making 
+MACCS keys useful for molecular similarity analysis, clustering, and cheminformatics applications.
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import MACCSkeys
+    import numpy as np
+
+    # 1. Create molecule
+
+    mol = Chem.MolFromSmiles("CCO")  # Ethanol
+
+    # 2. Generate MACCS fingerprint
+
+    maccs = MACCSkeys.GenMACCSKeys(mol)
+
+    print(f"MACCS keys length: {len(maccs)}")
+
+    # 
+    # 3. Example structural features
+
+    # Each bit corresponds to a predefined feature:
+    # Bit 1   -> Contains isotope
+    # Bit 44  -> Contains C-O bond
+    # Bit 79  -> Contains aromatic ring
+    # etc.
+
+    # 4. Convert fingerprint to NumPy array
+
+    maccs_array = np.array(
+        list(maccs.ToBitString()),
+        dtype=int
     )
 
-    shape = torch.Size(matrix.shape)
+    print("\nFingerprint shape:", maccs_array.shape)
+    print("Number of active bits:", maccs_array.sum())
+    ```
 
-    return torch.sparse_coo_tensor(indices, values, shape).coalesce()
+**Advantages**:
 
+- Interpretable: Each bit has defined meaning
+- Compact: Only 166 bits
+- Good for similarity searching
 
-def preprocess_data(adjacency_data, coulomb_data, atom_data):
-    """
-    Convert a collection of molecular graphs into one block-diagonal graph.
+**Limitations**:
 
-    Returns:
-        A_block:
-            Sparse block-diagonal adjacency matrix.
+- Fixed features: Can't capture novel patterns
+- Less flexible than Morgan fingerprints
 
-        X:
-            Node feature matrix.
-            Each node uses the diagonal Coulomb value as its feature.
+#### RDKit Fingerprints
 
-        labels:
-            Atomic-number labels for each node.
-    """
+RDKit fingerprints are topological molecular fingerprints that encode structural information 
+by analyzing atom paths and bond connectivity within a molecule. They are commonly used for 
+molecular similarity searches, clustering, and cheminformatics machine learning applications.
 
-    adjacency_blocks = []
-    features = []
-    labels = []
+??? note "Example"
 
-    num_molecules = adjacency_data.shape[2]
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import RDKFingerprint
+    import numpy as np
 
-    for i in range(num_molecules):
-        atomic_numbers = atom_data[i]
-        num_nodes = np.count_nonzero(atomic_numbers)
+    # 1. Create molecule
+    mol = Chem.MolFromSmiles("CCO")  # Ethanol
 
-        if num_nodes == 0:
-            continue
+    # 2. Generate RDKit fingerprint
 
-        A = adjacency_data[:num_nodes, :num_nodes, i]
-        C = coulomb_data[:num_nodes, :num_nodes, i]
-
-        # Node feature: diagonal Coulomb value
-        # For atom with nuclear charge Z:
-        # diagonal approximately equals 0.5 * Z^2.4
-        X = np.diag(C).reshape(-1, 1)
-
-        adjacency_blocks.append(sp.csr_matrix(A))
-        features.append(X)
-        labels.append(atomic_numbers[:num_nodes])
-
-    A_block = sp.block_diag(adjacency_blocks, format="csr")
-    X = np.vstack(features).astype(np.float32)
-    labels = np.concatenate(labels).astype(int)
-
-    return A_block, X, labels
-
-# 3. CONVERT COULOMB MATRICES TO GRAPH ADJACENCY MATRICES
-
-adjacency_data = coulomb_to_adjacency(coulomb_data, atom_data)
-
-print("Adjacency data shape:", adjacency_data.shape)
-
-
-# 4. VISUALIZE A FEW MOLECULES
-
-plt.figure(figsize=(10, 10))
-
-for i in range(9):
-    atomic_numbers = atom_data[i]
-    num_nodes = np.count_nonzero(atomic_numbers)
-
-    A = adjacency_data[:num_nodes, :num_nodes, i]
-    symbols = atomic_symbol(atomic_numbers[:num_nodes])
-
-    G = nx.from_numpy_array(A)
-
-    plt.subplot(3, 3, i + 1)
-    pos = nx.spring_layout(G, seed=42)
-
-    nx.draw(
-        G,
-        pos,
-        with_labels=True,
-        labels={j: symbols[j] for j in range(num_nodes)},
-        node_color="lightblue",
-        node_size=600,
-        font_size=10
+    rdkit_fp = RDKFingerprint(
+        mol,
+        fpSize=2048,
+        maxPath=7
     )
 
-    plt.title(f"Molecule {i + 1}")
+    # maxPath:
+    # Maximum bond path length considered
+    # when generating structural patterns
 
-plt.tight_layout()
-plt.show()
+    # 3. Convert to NumPy array
 
+    fp_array = np.array(
+        list(rdkit_fp.ToBitString()),
+        dtype=int
+    )
 
-# 5. PLOT ATOM LABEL FREQUENCIES
+    print("Fingerprint shape:", fp_array.shape)
+    print("Number of active bits:", fp_array.sum())
+    ```
 
-all_atomic_numbers = atom_data[atom_data > 0].astype(int)
-all_symbols = atomic_symbol(all_atomic_numbers)
 
-unique_symbols, counts = np.unique(all_symbols, return_counts=True)
+### Atom Pair and Topological Torsion Fingerprints
 
-plt.figure(figsize=(6, 4))
-plt.bar(unique_symbols, counts)
-plt.xlabel("Atom Label")
-plt.ylabel("Frequency")
-plt.title("Atom Label Counts in QM7")
-plt.tight_layout()
-plt.show()
+Atom pair fingerprints encode distances between atom pairs, while topological torsion fingerprints 
+capture sequential four-atom connectivity patterns.
 
+??? note "Example"
 
-# 6. TRAIN / VALIDATION / TEST SPLIT
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import rdMolDescriptors
 
-indices = np.arange(num_molecules)
+    # Create molecule
+    mol = Chem.MolFromSmiles("CCO")  # Ethanol
 
-idx_train, idx_temp = train_test_split(
-    indices,
-    test_size=0.2,
-    random_state=42,
-    shuffle=True
-)
+    # Atom pair fingerprint
 
-idx_val, idx_test = train_test_split(
-    idx_temp,
-    test_size=0.5,
-    random_state=42,
-    shuffle=True
-)
+    atom_pairs = rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(
+        mol,
+        nBits=2048
+    )
 
-print("Train molecules:", len(idx_train))
-print("Validation molecules:", len(idx_val))
-print("Test molecules:", len(idx_test))
+    # Topological torsion fingerprint
 
+    torsions = rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(
+        mol,
+        nBits=2048
+    )
 
-adjacency_train = adjacency_data[:, :, idx_train]
-adjacency_val = adjacency_data[:, :, idx_val]
-adjacency_test = adjacency_data[:, :, idx_test]
+    print("Atom pair fingerprint length:", len(atom_pairs))
+    print("Topological torsion fingerprint length:", len(torsions))
+    ```
 
-coulomb_train = coulomb_data[:, :, idx_train]
-coulomb_val = coulomb_data[:, :, idx_val]
-coulomb_test = coulomb_data[:, :, idx_test]
+#### Comparing Molecules with Fingerprints
 
-atom_train = atom_data[idx_train, :]
-atom_val = atom_data[idx_val, :]
-atom_test = atom_data[idx_test, :]
+Fingerprint similarity metrics quantify structural similarity between molecules by comparing 
+shared molecular features encoded in fingerprint vectors.
 
+??? note "Example"
 
-# 7. PREPROCESS TRAINING AND VALIDATION DATA
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+    from rdkit import DataStructs
 
-A_train, X_train, labels_train = preprocess_data(
-    adjacency_train,
-    coulomb_train,
-    atom_train
-)
+    # 1. Create molecules
 
-A_val, X_val, labels_val = preprocess_data(
-    adjacency_val,
-    coulomb_val,
-    atom_val
-)
+    mol1 = Chem.MolFromSmiles("CCO")        # Ethanol
+    mol2 = Chem.MolFromSmiles("CCCO")       # Propanol
+    mol3 = Chem.MolFromSmiles("c1ccccc1")   # Benzene
 
-# Normalize features using training statistics only.
-mu_x = X_train.mean(axis=0, keepdims=True)
-std_x = X_train.std(axis=0, keepdims=True)
+    # 2. Generate Morgan fingerprints
 
-std_x[std_x == 0] = 1.0
+    fp1 = AllChem.GetMorganFingerprintAsBitVect(
+        mol1,
+        radius=2,
+        nBits=2048
+    )
 
-X_train = (X_train - mu_x) / std_x
-X_val = (X_val - mu_x) / std_x
+    fp2 = AllChem.GetMorganFingerprintAsBitVect(
+        mol2,
+        radius=2,
+        nBits=2048
+    )
 
+    fp3 = AllChem.GetMorganFingerprintAsBitVect(
+        mol3,
+        radius=2,
+        nBits=2048
+    )
 
-# 8. ENCODE ATOM LABELS AS CLASS INDICES
+    # 3. Compute similarity metrics
 
-classes = np.unique(labels_train)
-class_to_idx = {atomic_number: i for i, atomic_number in enumerate(classes)}
-idx_to_class = {i: atomic_number for atomic_number, i in class_to_idx.items()}
+    # Tanimoto similarity
+    sim_12 = DataStructs.TanimotoSimilarity(fp1, fp2)
+    sim_13 = DataStructs.TanimotoSimilarity(fp1, fp3)
 
-y_train = np.array([class_to_idx[z] for z in labels_train], dtype=np.int64)
-y_val = np.array([class_to_idx[z] for z in labels_val], dtype=np.int64)
+    print(f"Similarity (ethanol, propanol): {sim_12:.3f}")
+    print(f"Similarity (ethanol, benzene):  {sim_13:.3f}")
 
-class_names = atomic_symbol(classes)
+    # Additional similarity metrics
+    dice = DataStructs.DiceSimilarity(fp1, fp2)
+    cosine = DataStructs.CosineSimilarity(fp1, fp2)
 
-print("Classes:", classes)
-print("Class names:", class_names)
+    print(f"\nDice similarity:   {dice:.3f}")
+    print(f"Cosine similarity: {cosine:.3f}")
+    ```
 
+## 3D Molecular Representations
 
-# 9. DEFINE GCN MODEL
+While fingerprints and graph-based methods describe molecular connectivity, many molecular 
+properties also depend strongly on three-dimensional geometry. 3D molecular representations 
+include spatial information such as atomic coordinates, bond distances, angles, and molecular 
+conformations. These representations are especially important for applications involving 
+molecular dynamics, docking, quantum chemistry, protein-ligand interactions, and materials modeling.
 
-class SimpleGCN(nn.Module):
-    """
-    Simple Graph Convolutional Network for node classification.
+Common 3D representations include:
 
-    The model predicts the atom type of each node using:
-    - the molecular graph structure,
-    - the diagonal Coulomb feature of each atom.
-    """
+* Cartesian coordinates
+* Distance matrices
+* Coulomb matrices
+* Atomic environments
+* Molecular conformations
 
-    def __init__(self, input_dim, hidden_dim, num_classes):
-        super().__init__()
+### Example: Generating 3D Coordinates with RDKit
 
-        self.linear1 = nn.Linear(input_dim, hidden_dim)
-        self.linear2 = nn.Linear(hidden_dim, hidden_dim)
-        self.linear3 = nn.Linear(hidden_dim, num_classes)
+??? note "Example"
 
-    def graph_conv(self, A_norm, X, layer):
-        """
-        One GCN operation:
+    ```python 
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
 
-            H = A_norm X W
+    # Create molecule from SMILES
+    mol = Chem.MolFromSmiles("CCO")  # Ethanol
 
-        where:
-        - A_norm is the normalized adjacency matrix,
-        - X is the node feature matrix,
-        - W is a trainable weight matrix.
-        """
+    # Add hydrogen atoms
+    mol = Chem.AddHs(mol)
 
-        X = torch.sparse.mm(A_norm, X)
-        X = layer(X)
+    # Generate 3D conformation
+    AllChem.EmbedMolecule(mol)
 
-        return X
+    # Optimize geometry
+    AllChem.UFFOptimizeMolecule(mol)
 
-    def forward(self, X, A_norm):
-        H1 = self.graph_conv(A_norm, X, self.linear1)
-        H1 = F.relu(H1)
+    # Print atomic coordinates
+    conf = mol.GetConformer()
 
-        H2 = self.graph_conv(A_norm, H1, self.linear2)
-        H2 = F.relu(H2)
+    print("Atomic coordinates:\n")
 
-        logits = self.graph_conv(A_norm, H2, self.linear3)
+    for atom in mol.GetAtoms():
 
-        return logits
-
-
-# 10. MOVE DATA TO PYTORCH
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Using device:", device)
-
-A_train_norm = normalize_adjacency(A_train)
-A_val_norm = normalize_adjacency(A_val)
-
-A_train_torch = scipy_sparse_to_torch_sparse(A_train_norm, device)
-A_val_torch = scipy_sparse_to_torch_sparse(A_val_norm, device)
-
-X_train_torch = torch.tensor(X_train, dtype=torch.float32, device=device)
-X_val_torch = torch.tensor(X_val, dtype=torch.float32, device=device)
-
-y_train_torch = torch.tensor(y_train, dtype=torch.long, device=device)
-y_val_torch = torch.tensor(y_val, dtype=torch.long, device=device)
-
-
-# 11. TRAIN MODEL
-
-input_dim = X_train.shape[1]
-hidden_dim = 32
-num_classes = len(classes)
-
-model = SimpleGCN(
-    input_dim=input_dim,
-    hidden_dim=hidden_dim,
-    num_classes=num_classes
-).to(device)
-
-optimizer = torch.optim.Adam(
-    model.parameters(),
-    lr=0.01,
-    weight_decay=1e-5
-)
-
-criterion = nn.CrossEntropyLoss()
-
-num_epochs = 1500
-validation_frequency = 300
-
-train_losses = []
-val_losses = []
-
-for epoch in range(1, num_epochs + 1):
-    model.train()
-
-    optimizer.zero_grad()
-
-    logits_train = model(X_train_torch, A_train_torch)
-
-    loss_train = criterion(logits_train, y_train_torch)
-
-    loss_train.backward()
-
-    optimizer.step()
-
-    train_losses.append(loss_train.item())
-
-    if epoch == 1 or epoch % validation_frequency == 0:
-        model.eval()
-
-        with torch.no_grad():
-            logits_val = model(X_val_torch, A_val_torch)
-            loss_val = criterion(logits_val, y_val_torch)
-
-        val_losses.append((epoch, loss_val.item()))
+        pos = conf.GetAtomPosition(atom.GetIdx())
 
         print(
-            f"Epoch {epoch:4d}/{num_epochs} | "
-            f"Training Loss: {loss_train.item():.4f} | "
-            f"Validation Loss: {loss_val.item():.4f}"
+            f"Atom {atom.GetSymbol():2s} "
+            f"-> x={pos.x:.3f}, y={pos.y:.3f}, z={pos.z:.3f}"
+        )
+    ```
+
+## Protein Representations
+
+Proteins are complex biological macromolecules that can be represented in several different 
+ways for machine learning applications. Depending on the problem, proteins may be described using 
+amino acid sequences, structural information, residue contact maps, graphs, embeddings, or atomistic 
+coordinates. Choosing an appropriate representation is essential for tasks such as protein 
+structure prediction, molecular dynamics, function prediction, and protein-ligand interaction modeling.
+
+Common protein representations include:
+
+* Amino acid sequences
+* One-hot encodings
+* Protein language model embeddings
+* Contact maps
+* Graph representations
+* Atomic coordinate representations
+
+### Example: Loading a Protein Structure with ASE
+
+??? note "Example"
+
+    ```python 
+    from ase.io import read
+
+    # Load protein structure from PDB file
+    protein = read("protein.pdb")
+
+    print("Number of atoms:", len(protein))
+
+    print("\nFirst five atoms:\n")
+
+    for atom in protein[:5]:
+
+        print(
+            f"{atom.symbol:2s} "
+            f"x={atom.position[0]:8.3f} "
+            f"y={atom.position[1]:8.3f} "
+            f"z={atom.position[2]:8.3f}"
+        )
+    ```
+
+This example demonstrates how atomistic protein structures can be loaded and manipulated using 
+[ASE (Atomic Simulation Environment)](https://wiki.fysik.dtu.dk/ase) for 
+scientific computing and machine learning workflows.
+
+The Coulomb matrix representation is described in the PRL article x
+
+??? note "Example"
+
+    ```python
+    # Coulomb matrix representation for a small protein-like backbone fragment
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # 1. Define a small protein-like fragment
+    # For simplicity, we use backbone atoms from two residues:
+    # N, CA, C, O, N, CA, C, O
+    #
+    # In a real protein, these coordinates would usually come
+    # from a PDB file.
+
+    atom_symbols = np.array([
+        "N", "C", "C", "O",
+        "N", "C", "C", "O"
+    ])
+
+    coordinates = np.array([
+        [0.00, 0.00, 0.00],   # N
+        [1.45, 0.10, 0.00],   # CA
+        [2.10, 1.45, 0.00],   # C
+        [1.55, 2.50, 0.00],   # O
+
+        [3.45, 1.40, 0.00],   # N
+        [4.20, 2.65, 0.10],   # CA
+        [5.65, 2.30, 0.00],   # C
+        [6.10, 1.20, 0.00]    # O
+    ])
+
+    # Atomic numbers
+    atomic_numbers = {
+        "H": 1,
+        "C": 6,
+        "N": 7,
+        "O": 8,
+        "S": 16
+    }
+
+    Z = np.array([atomic_numbers[symbol] for symbol in atom_symbols])
+
+    # 2. Compute Coulomb matrix
+
+    def coulomb_matrix(Z, coordinates):
+        """
+        Compute the Coulomb matrix.
+
+        Diagonal terms:
+            0.5 * Z_i^2.4
+
+        Off-diagonal terms:
+            Z_i * Z_j / distance(i, j)
+        """
+
+        n_atoms = len(Z)
+
+        C = np.zeros((n_atoms, n_atoms))
+
+        for i in range(n_atoms):
+            for j in range(n_atoms):
+
+                if i == j:
+                    C[i, j] = 0.5 * Z[i] ** 2.4
+
+                else:
+                    distance = np.linalg.norm(
+                        coordinates[i] - coordinates[j]
+                    )
+
+                    C[i, j] = Z[i] * Z[j] / distance
+
+        return C
+
+    C = coulomb_matrix(Z, coordinates)
+
+    print("Coulomb matrix shape:", C.shape)
+    print("\nCoulomb matrix:")
+    print(np.round(C, 2))
+
+    # 3. Convert matrix into a machine learning feature vector
+    # One common option is to flatten the matrix.
+    # For fixed-size systems, this can be used directly as an ML input.
+
+    feature_vector = C.flatten()
+
+    print("\nFeature vector shape:", feature_vector.shape)
+
+
+    # 4. Optional: use the sorted eigenvalues as a compact representation
+    # Eigenvalues are useful because they provide a fixed-length
+    # summary of the matrix and are invariant to atom ordering.
+
+    eigenvalues = np.linalg.eigvalsh(C)
+    eigenvalues = np.sort(eigenvalues)[::-1]
+
+    print("\nSorted Coulomb matrix eigenvalues:")
+    print(np.round(eigenvalues, 3))
+
+    # 5. Visualize the Coulomb matrix
+
+    plt.figure(figsize=(6, 5))
+
+    plt.imshow(C)
+
+    plt.colorbar(label="Coulomb matrix value")
+
+    plt.xticks(
+        ticks=np.arange(len(atom_symbols)),
+        labels=atom_symbols
+    )
+
+    plt.yticks(
+        ticks=np.arange(len(atom_symbols)),
+        labels=atom_symbols
+    )
+
+    plt.title("Coulomb Matrix for a Protein-Like Fragment")
+    plt.xlabel("Atom index")
+    plt.ylabel("Atom index")
+
+    plt.tight_layout()
+    plt.savefig("coulomb.png", dpi=300, bbox_inches="tight")
+    plt.show()
+    ```
+
+### 2.3 Molecular Descriptors
+
+Numerical features that capture molecular properties.
+
+#### Types of Descriptors
+
+**1. Physical Descriptors**
+
+Physical descriptors quantify fundamental molecular properties related to size, 
+polarity, hydrophobicity, and intermolecular interactions in chemical systems.
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import Descriptors, Crippen
+
+    # 1. Create molecule
+
+    # Aspirin
+    mol = Chem.MolFromSmiles(
+        "CC(=O)Oc1ccccc1C(=O)O"
+    )
+
+    # 2. Molecular weight
+
+    mw = Descriptors.MolWt(mol)
+
+    print(f"Molecular Weight: {mw:.2f} g/mol")
+
+    # 3. Lipophilicity (LogP)
+
+    # Octanol/water partition coefficient
+    logp = Crippen.MolLogP(mol)
+
+    print(f"LogP: {logp:.2f}")
+
+    # Lipinski guideline:
+    # LogP > 5 may indicate excessive lipophilicity
+
+    # 4. Topological Polar Surface Area (TPSA)
+
+    tpsa = Descriptors.TPSA(mol)
+
+    print(f"TPSA: {tpsa:.2f} Å²")
+
+    # Lower TPSA values are often associated with
+    # better membrane permeability
+
+    # 5. Molar Refractivity
+
+    mr = Crippen.MolMR(mol)
+
+    print(f"Molar Refractivity: {mr:.2f}")
+    ```
+
+**2. Structural Descriptors**
+
+Structural descriptors characterize molecular topology, flexibility, ring systems, 
+hydrogen bonding capacity, and atomic connectivity patterns influencing chemical behavior.
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import Descriptors
+
+    # 1. Create molecule
+
+    # Aspirin
+    mol = Chem.MolFromSmiles(
+        "CC(=O)Oc1ccccc1C(=O)O"
+    )
+
+    # 2. Hydrogen bond donors and acceptors
+
+    h_donors = Descriptors.NumHDonors(mol)
+    h_acceptors = Descriptors.NumHAcceptors(mol)
+
+    print(f"H-Bond Donors: {h_donors}")
+    print(f"H-Bond Acceptors: {h_acceptors}")
+
+    # 3. Rotatable bonds
+
+    # Measures molecular flexibility
+    rot_bonds = Descriptors.NumRotatableBonds(mol)
+
+    print(f"Rotatable Bonds: {rot_bonds}")
+
+    # 4. Ring information
+
+    num_rings = Descriptors.RingCount(mol)
+
+    aromatic_rings = Descriptors.NumAromaticRings(mol)
+
+    print(f"Total Rings: {num_rings}")
+    print(f"Aromatic Rings: {aromatic_rings}")
+
+    # 5. Fraction of sp3 carbons
+
+    # Indicates molecular saturation and 3D character
+    frac_sp3 = Descriptors.FractionCSP3(mol)
+
+    print(f"Fraction Csp3: {frac_sp3:.2f}")
+    ```
+
+**3. Topological Descriptors**
+
+Topological descriptors quantify molecular connectivity, branching, complexity, 
+and graph structure independently of three-dimensional molecular geometry or coordinates.
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import GraphDescriptors
+
+    # 1. Create molecule
+
+    # Aspirin
+    mol = Chem.MolFromSmiles(
+        "CC(=O)Oc1ccccc1C(=O)O"
+    )
+
+    # 2. Balaban J index
+
+    # Measures molecular branching and connectivity
+    balaban = GraphDescriptors.BalabanJ(mol)
+
+    print(f"Balaban J Index: {balaban:.3f}")
+
+    # 3. Bertz complexity index
+
+    # Estimates molecular structural complexity
+    bertz = GraphDescriptors.BertzCT(mol)
+
+    print(f"Bertz Complexity Index: {bertz:.3f}")
+
+    # 4. Chi connectivity indices
+
+    # Connectivity and branching descriptors
+    chi0 = GraphDescriptors.Chi0(mol)
+    chi1 = GraphDescriptors.Chi1(mol)
+
+    print(f"Chi0 Index: {chi0:.3f}")
+    print(f"Chi1 Index: {chi1:.3f}")
+    ```
+
+**4. 3D Descriptors**
+
+3D descriptors characterize molecular shape, spatial distribution, geometry, and 
+conformational properties using three-dimensional atomic coordinates and optimized 
+molecular structures.
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import AllChem, Descriptors3D
+
+    # 1. Create molecule
+
+    # Aspirin
+    mol = Chem.MolFromSmiles(
+        "CC(=O)Oc1ccccc1C(=O)O"
+    )
+
+    # 2. Generate 3D molecular structure
+
+    mol_3d = Chem.AddHs(mol)
+
+    # Generate 3D coordinates
+    AllChem.EmbedMolecule(
+        mol_3d,
+        randomSeed=42
+    )
+
+    # Geometry optimization
+    AllChem.MMFFOptimizeMolecule(mol_3d)
+
+    # 3. Compute 3D descriptors
+
+    # Molecular shape descriptor
+    asphericity = Descriptors3D.Asphericity(mol_3d)
+
+    # Measures deviation from spherical shape
+    eccentricity = Descriptors3D.Eccentricity(mol_3d)
+
+    # Shape and mass distribution descriptor
+    inertial_shape = Descriptors3D.InertialShapeFactor(mol_3d)
+
+    # Spatial distribution of atoms
+    radius_of_gyration = Descriptors3D.RadiusOfGyration(mol_3d)
+
+    # 4. Display results
+    print(f"Asphericity: {asphericity:.3f}")
+    print(f"Eccentricity: {eccentricity:.3f}")
+    print(f"Inertial Shape Factor: {inertial_shape:.3f}")
+    print(f"Radius of Gyration: {radius_of_gyration:.3f} Å")
+    ```
+
+#### Drug-Likeness Metrics
+
+Drug-likeness metrics evaluate whether a molecule possesses physicochemical and 
+structural properties commonly associated with successful pharmaceutical compounds.
+
+**Lipinski's Rule of Five**
+
+Lipinski’s Rule of Five estimates oral bioavailability using molecular weight, 
+hydrogen bonding, and lipophilicity-based physicochemical thresholds.
+
+**QED (Quantitative Estimate of Drug-likeness)**
+
+QED combines multiple molecular descriptors into a single score representing the 
+overall drug-like character of a compound.
+
+#### Creating Feature Vectors
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import Descriptors, Crippen, GraphDescriptors, QED
+    import pandas as pd
+
+    def calculate_molecular_descriptors(smiles):
+        """
+        Calculate a collection of common molecular descriptors.
+        """
+
+        mol = Chem.MolFromSmiles(smiles)
+
+        if mol is None:
+            return None
+
+        descriptors = {
+            # Physical
+            "MW": Descriptors.MolWt(mol),
+            "LogP": Crippen.MolLogP(mol),
+            "TPSA": Descriptors.TPSA(mol),
+            "MolMR": Crippen.MolMR(mol),
+
+            # Structural
+            "NumHDonors": Descriptors.NumHDonors(mol),
+            "NumHAcceptors": Descriptors.NumHAcceptors(mol),
+            "NumRotatableBonds": Descriptors.NumRotatableBonds(mol),
+            "NumHeteroatoms": Descriptors.NumHeteroatoms(mol),
+            "NumAromaticRings": Descriptors.NumAromaticRings(mol),
+            "NumSaturatedRings": Descriptors.NumSaturatedRings(mol),
+            "NumAliphaticRings": Descriptors.NumAliphaticRings(mol),
+            "RingCount": Descriptors.RingCount(mol),
+
+            # Complexity
+            "BertzCT": GraphDescriptors.BertzCT(mol),
+            "NumBridgeheadAtoms": Descriptors.NumBridgeheadAtoms(mol),
+            "NumSpiroAtoms": Descriptors.NumSpiroAtoms(mol),
+
+            # Surface-area descriptors
+            "LabuteASA": Descriptors.LabuteASA(mol),
+            "PEOE_VSA1": Descriptors.PEOE_VSA1(mol),
+
+            # Atom counts
+            "NumCarbon": sum(atom.GetAtomicNum() == 6 for atom in mol.GetAtoms()),
+            "NumNitrogen": sum(atom.GetAtomicNum() == 7 for atom in mol.GetAtoms()),
+            "NumOxygen": sum(atom.GetAtomicNum() == 8 for atom in mol.GetAtoms()),
+            "NumHalogens": sum(atom.GetAtomicNum() in [9, 17, 35, 53] for atom in mol.GetAtoms()),
+
+            # Saturation
+            "FractionCsp3": Descriptors.FractionCSP3(mol),
+
+            # Drug-likeness
+            "QED": QED.qed(mol),
+        }
+
+        return descriptors
+
+
+    # Example usage
+    smiles_list = [
+        "CCO",                              # Ethanol
+        "CC(=O)Oc1ccccc1C(=O)O",           # Aspirin
+        "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"     # Caffeine
+    ]
+
+    descriptor_list = [
+        calculate_molecular_descriptors(smiles)
+        for smiles in smiles_list
+    ]
+
+    df_descriptors = pd.DataFrame(descriptor_list)
+    df_descriptors.insert(0, "SMILES", smiles_list)
+
+    print(df_descriptors)
+    ```
+
+### 2.4 Graph Representations
+
+Molecular graphs represent atoms as nodes and chemical bonds as edges, preserving 
+connectivity and atom-level information.
+
+#### Graph Structure
+
+Molecules as graphs where atoms are nodes and bonds are edges.
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+    import networkx as nx
+
+    def mol_to_graph(smiles):
+        """Convert a molecule into a NetworkX graph."""
+
+        mol = Chem.MolFromSmiles(smiles)
+
+        if mol is None:
+            raise ValueError("Invalid SMILES string")
+
+        G = nx.Graph()
+
+        # Add nodes: atoms
+        for atom in mol.GetAtoms():
+            G.add_node(
+                atom.GetIdx(),
+                atomic_num=atom.GetAtomicNum(),
+                symbol=atom.GetSymbol(),
+                degree=atom.GetDegree(),
+                formal_charge=atom.GetFormalCharge(),
+                num_h=atom.GetTotalNumHs(),
+                hybridization=str(atom.GetHybridization()),
+                is_aromatic=atom.GetIsAromatic()
+            )
+
+        # Add edges: bonds
+        for bond in mol.GetBonds():
+            G.add_edge(
+                bond.GetBeginAtomIdx(),
+                bond.GetEndAtomIdx(),
+                bond_type=str(bond.GetBondType()),
+                is_conjugated=bond.GetIsConjugated(),
+                is_aromatic=bond.GetIsAromatic()
+            )
+
+        return G
+
+    # Example
+    G = mol_to_graph("CCO")
+
+    print(f"Nodes: {G.number_of_nodes()}")
+    print(f"Edges: {G.number_of_edges()}")
+    print(f"Node 0 features: {G.nodes[0]}")
+    ```
+
+#### Adjacency Matrix Representation
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+    import numpy as np
+
+    def get_adjacency_matrix(smiles, max_atoms=50):
+        """Generate a padded molecular adjacency matrix."""
+
+        mol = Chem.MolFromSmiles(smiles)
+
+        if mol is None:
+            raise ValueError("Invalid SMILES string")
+
+        num_atoms = mol.GetNumAtoms()
+
+        if num_atoms > max_atoms:
+            raise ValueError(
+                f"Molecule contains {num_atoms} atoms "
+                f"but max_atoms={max_atoms}"
+            )
+
+        # Initialize adjacency matrix
+        adj_matrix = np.zeros(
+            (max_atoms, max_atoms),
+            dtype=int
         )
 
+        # Fill connectivity
+        for bond in mol.GetBonds():
 
-# 12. PLOT TRAINING CURVES
+            i = bond.GetBeginAtomIdx()
+            j = bond.GetEndAtomIdx()
 
-plt.figure(figsize=(7, 4))
+            adj_matrix[i, j] = 1
+            adj_matrix[j, i] = 1  # Symmetric matrix
 
-plt.plot(
-    np.arange(1, num_epochs + 1),
-    train_losses,
-    label="Training Loss"
-)
+        return adj_matrix, num_atoms
 
-if len(val_losses) > 0:
-    val_epochs, val_values = zip(*val_losses)
+    # Example
+    adj, n_atoms = get_adjacency_matrix("CCO")
 
-    plt.plot(
-        val_epochs,
-        val_values,
-        marker="o",
-        label="Validation Loss"
-    )
+    print(f"Adjacency matrix shape: {adj.shape}")
+    print(f"Actual atoms: {n_atoms}")
 
-plt.xlabel("Epoch")
-plt.ylabel("Cross-Entropy Loss")
-plt.title("GCN Training Progress")
-plt.legend()
-plt.tight_layout()
-plt.show()
+    print("\nAdjacency matrix:")
+    print(adj[:n_atoms, :n_atoms])
+    ```
 
+#### Node and Edge Features
 
-# 13. TEST SET EVALUATION
+Node and edge features encode atom and bond properties as numerical vectors 
+for graph-based molecular machine learning models.
 
-A_test, X_test, labels_test = preprocess_data(
-    adjacency_test,
-    coulomb_test,
-    atom_test
-)
+??? note "Example"
 
-X_test = (X_test - mu_x) / std_x
+    ```python
+    from rdkit import Chem
+    import numpy as np
 
-# Keep only test labels that are known from training.
-# This is usually all labels for QM7.
-known_mask = np.isin(labels_test, classes)
+    def get_node_features(atom):
+        """Extract numerical features for one atom."""
 
-X_test = X_test[known_mask]
-labels_test = labels_test[known_mask]
+        hybridization_map = {
+            Chem.rdchem.HybridizationType.SP: 1,
+            Chem.rdchem.HybridizationType.SP2: 2,
+            Chem.rdchem.HybridizationType.SP3: 3,
+            Chem.rdchem.HybridizationType.SP3D: 4,
+            Chem.rdchem.HybridizationType.SP3D2: 5,
+        }
 
-y_test = np.array(
-    [class_to_idx[z] for z in labels_test],
-    dtype=np.int64
-)
-
-A_test_norm = normalize_adjacency(A_test)
-A_test_torch = scipy_sparse_to_torch_sparse(A_test_norm, device)
-
-X_test_torch = torch.tensor(
-    X_test,
-    dtype=torch.float32,
-    device=device
-)
-
-y_test_torch = torch.tensor(
-    y_test,
-    dtype=torch.long,
-    device=device
-)
-
-model.eval()
-
-with torch.no_grad():
-    logits_test = model(X_test_torch, A_test_torch)
-    pred_test = logits_test.argmax(dim=1).cpu().numpy()
-
-accuracy = accuracy_score(y_test, pred_test)
-
-print(f"\nTest accuracy: {accuracy:.4f}")
+        return np.array([
+            atom.GetAtomicNum(),                     # Atomic number
+            atom.GetDegree(),                        # Number of bonded neighbors
+            atom.GetFormalCharge(),                  # Formal charge
+            atom.GetNumRadicalElectrons(),           # Radical electrons
+            hybridization_map.get(
+                atom.GetHybridization(), 0
+            ),                                       # Hybridization state
+            int(atom.GetIsAromatic()),               # Aromaticity
+            atom.GetTotalNumHs(),                    # Attached hydrogens
+        ], dtype=float)
 
 
-# 14. CONFUSION MATRIX
+    def get_edge_features(bond):
+        """Extract numerical features for one bond."""
 
-cm = confusion_matrix(
-    y_test,
-    pred_test,
-    labels=np.arange(num_classes)
-)
+        bond_type_map = {
+            Chem.rdchem.BondType.SINGLE: 1,
+            Chem.rdchem.BondType.DOUBLE: 2,
+            Chem.rdchem.BondType.TRIPLE: 3,
+            Chem.rdchem.BondType.AROMATIC: 4,
+        }
 
-disp = ConfusionMatrixDisplay(
-    confusion_matrix=cm,
-    display_labels=class_names
-)
+        return np.array([
+            bond_type_map.get(
+                bond.GetBondType(), 0
+            ),                                       # Bond type
 
-fig, ax = plt.subplots(figsize=(6, 6))
-disp.plot(ax=ax, cmap="Blues", colorbar=False)
-plt.title("GCN QM7 Confusion Matrix")
-plt.tight_layout()
-plt.show()
+            int(bond.GetIsConjugated()),             # Conjugation
 
-
-# 15. PREDICT ATOM LABELS FOR NEW MOLECULES
-
-def predict_molecule_atoms(model, coulomb_matrix, adjacency_matrix, mu_x, std_x):
-    """
-    Predict atom labels for a single molecule.
-    """
-
-    num_nodes = np.where(adjacency_matrix.any(axis=0))[0]
-
-    if len(num_nodes) == 0:
-        return []
-
-    num_nodes = num_nodes[-1] + 1
-
-    A = adjacency_matrix[:num_nodes, :num_nodes]
-    C = coulomb_matrix[:num_nodes, :num_nodes]
-
-    X = np.diag(C).reshape(-1, 1)
-    X = (X - mu_x) / std_x
-
-    A_sparse = sp.csr_matrix(A)
-    A_norm = normalize_adjacency(A_sparse)
-
-    A_torch = scipy_sparse_to_torch_sparse(A_norm, device)
-
-    X_torch = torch.tensor(
-        X,
-        dtype=torch.float32,
-        device=device
-    )
-
-    model.eval()
-
-    with torch.no_grad():
-        logits = model(X_torch, A_torch)
-        pred = logits.argmax(dim=1).cpu().numpy()
-
-    atomic_numbers = np.array([idx_to_class[i] for i in pred])
-
-    return atomic_symbol(atomic_numbers)
+            int(bond.GetIsAromatic()),               # Aromaticity
+        ], dtype=float)
 
 
-num_observations_new = 4
+    # Example
+    mol = Chem.MolFromSmiles("CCO")
 
-plt.figure(figsize=(10, 4))
+    print("Node features:\n")
 
-for i in range(num_observations_new):
-    A_full = adjacency_test[:, :, i]
-    C_full = coulomb_test[:, :, i]
+    for atom in mol.GetAtoms():
+        print(
+            atom.GetSymbol(),
+            get_node_features(atom)
+        )
 
-    predictions = predict_molecule_atoms(
-        model,
-        C_full,
-        A_full,
-        mu_x,
-        std_x
-    )
+    print("\nEdge features:\n")
 
-    num_nodes = len(predictions)
-    A = A_full[:num_nodes, :num_nodes]
+    for bond in mol.GetBonds():
+        print(
+            f"{bond.GetBeginAtomIdx()} - "
+            f"{bond.GetEndAtomIdx()}:",
+            get_edge_features(bond)
+        )
+    ```
 
-    G = nx.from_numpy_array(A)
+??? note "Example"
 
-    plt.subplot(1, num_observations_new, i + 1)
+    ```python
+    # Protein graph example using residue C-alpha atoms
 
-    pos = nx.spring_layout(G, seed=42)
+    import numpy as np
+    import networkx as nx
+    import matplotlib.pyplot as plt
+
+
+    # 1. Example protein residues
+    # Each residue has:
+    # - residue name
+    # - residue index
+    # - C-alpha 3D coordinates
+
+    residues = [
+        {"name": "ALA", "index": 1, "ca_coord": np.array([0.0, 0.0, 0.0])},
+        {"name": "GLY", "index": 2, "ca_coord": np.array([3.8, 0.2, 0.0])},
+        {"name": "SER", "index": 3, "ca_coord": np.array([7.5, 0.1, 0.3])},
+        {"name": "VAL", "index": 4, "ca_coord": np.array([5.0, 3.5, 0.2])},
+        {"name": "LYS", "index": 5, "ca_coord": np.array([1.5, 3.2, 0.1])},
+    ]
+
+    # 2. Create graph
+
+    G = nx.Graph()
+
+    # Add residues as nodes
+    for residue in residues:
+        G.add_node(
+            residue["index"],
+            residue_name=residue["name"],
+            ca_coord=residue["ca_coord"]
+        )
+
+    # 3. Add edges based on distance cutoff
+
+    distance_cutoff = 4.5
+
+    for i in range(len(residues)):
+        for j in range(i + 1, len(residues)):
+
+            coord_i = residues[i]["ca_coord"]
+            coord_j = residues[j]["ca_coord"]
+
+            distance = np.linalg.norm(coord_i - coord_j)
+
+            if distance <= distance_cutoff:
+                G.add_edge(
+                    residues[i]["index"],
+                    residues[j]["index"],
+                    distance=distance
+                )
+
+    # 4. Print graph information
+
+    print("Number of nodes:", G.number_of_nodes())
+    print("Number of edges:", G.number_of_edges())
+
+    print("\nNodes:")
+    for node, features in G.nodes(data=True):
+        print(node, features)
+
+    print("\nEdges:")
+    for u, v, features in G.edges(data=True):
+        print(f"{u} -- {v}, distance = {features['distance']:.2f} Å")
+
+    # 5. Visualize graph
+
+    pos = {
+        residue["index"]: residue["ca_coord"][:2]
+        for residue in residues
+    }
+
+    labels = {
+        residue["index"]: residue["name"]
+        for residue in residues
+    }
 
     nx.draw(
         G,
         pos,
+        labels=labels,
         with_labels=True,
-        labels={j: predictions[j] for j in range(num_nodes)},
-        node_color="lightgreen",
-        node_size=600,
-        font_size=10
+        node_size=900
     )
 
-    plt.title(f"Prediction {i + 1}")
+    plt.title("Protein Graph Representation")
+    plt.savefig("graph-protein.png", dpi=300, bbox_inches="tight")
+    plt.show()
+    ```
 
-plt.tight_layout()
-plt.show()
+**Advantages of Graph Representations**:
+
+- Natural for molecules (atoms connected by bonds)
+- Permutation invariant (atom order doesn't matter)
+- Captures topology and local structure
+- Enables Graph Neural Networks 
+
+**Limitations**:
+
+- More complex to implement
+- Computationally expensive for large molecules
+- Requires specialized neural network architectures
+
+
+## 3. Traditional Machine Learning Methods
+
+Before deep learning, these methods were (and still are) workhorses of molecular ML.
+
+### 3.1 Feature Engineering Principles
+
+**Domain Knowledge is Key**:
+
+- Choose descriptors relevant to property being predicted
+- For solubility: polarity, surface area, H-bond capacity
+- For toxicity: reactive functional groups, lipophilicity
+
+**Feature Scaling**:
+
+??? note "Example"
+
+    ```python
+    from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+    from sklearn.model_selection import train_test_split
+
+    # Split first to avoid data leakage
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42
+    )
+
+    # Standardization: zero mean, unit variance
+    standard_scaler = StandardScaler()
+
+    X_train_standard = standard_scaler.fit_transform(X_train)
+    X_test_standard = standard_scaler.transform(X_test)
+
+    # Min-Max scaling: range [0, 1]
+    minmax_scaler = MinMaxScaler()
+
+    X_train_minmax = minmax_scaler.fit_transform(X_train)
+    X_test_minmax = minmax_scaler.transform(X_test)
+
+    # Robust scaling: uses median and interquartile range
+    robust_scaler = RobustScaler()
+
+    X_train_robust = robust_scaler.fit_transform(X_train)
+    X_test_robust = robust_scaler.transform(X_test)
+    ```
+
+**Feature Selection**:
+
+??? note "Example"
+
+    ```python
+    from sklearn.feature_selection import (
+        VarianceThreshold,
+        SelectKBest,
+        f_regression,
+        RFE,
+        SelectFromModel
+    )
+
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.model_selection import train_test_split
+
+    # Split first to avoid data leakage
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42
+    )
+
+    # Remove low-variance features
+    variance_selector = VarianceThreshold(threshold=0.01)
+
+    X_train_high_var = variance_selector.fit_transform(X_train)
+    X_test_high_var = variance_selector.transform(X_test)
+
+    # Select top 10 features using univariate regression scores
+    kbest_selector = SelectKBest(
+        score_func=f_regression,
+        k=10
+    )
+
+    X_train_selected = kbest_selector.fit_transform(X_train, y_train)
+    X_test_selected = kbest_selector.transform(X_test)
+
+    # Recursive Feature Elimination
+    rfe_model = RandomForestRegressor(
+        n_estimators=100,
+        random_state=42
+    )
+
+    rfe_selector = RFE(
+        estimator=rfe_model,
+        n_features_to_select=10
+    )
+
+    X_train_rfe = rfe_selector.fit_transform(X_train, y_train)
+    X_test_rfe = rfe_selector.transform(X_test)
+
+    # Feature importance from model
+    importance_model = RandomForestRegressor(
+        n_estimators=100,
+        random_state=42
+    )
+
+    importance_model.fit(X_train, y_train)
+
+    importance_selector = SelectFromModel(
+        importance_model,
+        prefit=True,
+        threshold="median"
+    )
+
+    X_train_important = importance_selector.transform(X_train)
+    X_test_important = importance_selector.transform(X_test)
+    ```
+
+### 3.2 Random Forests
+
+Ensemble of decision trees, each trained on random subset of data and features.
+
+#### How it Works
+
+1. **Bootstrap Sampling**: Create N random subsets of training data (with replacement)
+2. **Random Feature Selection**: At each split, consider random subset of features
+3. **Tree Building**: Build deep trees without pruning
+4. **Prediction**: Average predictions from all trees (regression) or vote (classification)
+
+??? note "Example"
+
+    ```python
+    from sklearn.datasets import make_regression
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.model_selection import train_test_split, cross_val_score
+    from sklearn.metrics import r2_score, mean_squared_error
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # 1. Create example regression dataset
+
+    X, y = make_regression(
+        n_samples=500,
+        n_features=12,
+        n_informative=6,
+        noise=15,
+        random_state=42
+    )
+
+    # 2. Train-test split
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42
+    )
+
+    # 3. Define random forest regressor
+
+    rf_reg = RandomForestRegressor(
+        n_estimators=100,
+        max_depth=None,
+        min_samples_split=2,
+        min_samples_leaf=1,
+        max_features="sqrt",
+        bootstrap=True,
+        random_state=42,
+        n_jobs=-1
+    )
+
+    # 4. Train model
+
+    rf_reg.fit(X_train, y_train)
+
+    # 5. Predict and evaluate
+
+    y_pred = rf_reg.predict(X_test)
+
+    r2 = r2_score(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+
+    print(f"Test R²: {r2:.3f}")
+    print(f"Test MSE: {mse:.3f}")
+
+    # 6. Cross-validation
+
+    cv_scores = cross_val_score(
+        rf_reg,
+        X,
+        y,
+        cv=5,
+        scoring="r2"
+    )
+
+    print(f"Cross-validation R²: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
+
+    # 7. Feature importance
+
+    importances = rf_reg.feature_importances_
+
+    indices = np.argsort(importances)[::-1]
+
+    print("\nFeature ranking:")
+
+    for i, idx in enumerate(indices[:10]):
+        print(f"{i + 1}. Feature {idx}: {importances[idx]:.4f}")
+
+    # 8. Visualize feature importance
+
+    plt.figure(figsize=(10, 6))
+
+    plt.bar(
+        range(len(importances)),
+        importances[indices]
+    )
+
+    plt.xticks(
+        range(len(importances)),
+        indices
+    )
+
+    plt.xlabel("Feature Index")
+    plt.ylabel("Importance")
+    plt.title("Random Forest Feature Importance")
+
+    plt.tight_layout()
+    plt.savefig("random-forest.png", dpi=300, bbox_inches="tight")
+    plt.show()
+    ```
+
+**Advantages**:
+
+- Handles non-linear relationships
+- Robust to outliers
+- Provides feature importance
+- Little hyperparameter tuning needed
+- Resistant to overfitting (with enough trees)
+
+**Limitations**:
+
+- Can be slow for very large datasets
+- Not great for extrapolation
+- Black-box model (hard to interpret individual predictions)
+
+**Hyperparameter Tuning**:
+
+??? note "Example"
+
+    ```python
+    from sklearn.model_selection import RandomizedSearchCV
+
+    param_dist = {
+        'n_estimators': [100, 200, 500, 1000],
+        'max_depth': [10, 20, 30, None],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['sqrt', 'log2', 0.5]
+    }
+
+    random_search = RandomizedSearchCV(
+        RandomForestRegressor(random_state=42),
+        param_distributions=param_dist,
+        n_iter=50,
+        cv=5,
+        scoring='r2',
+        random_state=42,
+        n_jobs=-1
+    )
+
+    random_search.fit(X_train, y_train)
+    print(f"Best parameters: {random_search.best_params_}")
+    print(f"Best score: {random_search.best_score_:.3f}")
+    ```
+
+### 3.3 Model Evaluation Metrics
+
+#### Regression Metrics
+
+??? note "Example"
+
+    ```python
+    from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+    # Mean Absolute Error
+    mae = mean_absolute_error(y_true, y_pred)
+    print(f"MAE: {mae:.3f}")
+
+    # Root Mean Squared Error
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    print(f"RMSE: {rmse:.3f}")
+
+    # R² Score
+    r2 = r2_score(y_true, y_pred)
+    print(f"R²: {r2:.3f}")
+    ```
+
+### 3.4 (Quantitative Structure–Activity Relationship) QSAR
+
+QSAR models relate molecular structure to biological or chemical activity using numerical descriptors. Classical 
+QSAR workflows often combine molecular features with regression or classification algorithms.
+
+Examples of QSAR applications:
+
+* predicting drug activity,
+* toxicity prediction,
+* solubility estimation,
+* binding affinity prediction,
+* environmental risk assessment.
+
+In a QSAR workflow:
+
+1. molecules are converted into descriptors or fingerprints,
+2. descriptors are used as ML input features,
+3. a regression or classification model predicts molecular properties.
+
+Yes. QSAR is commonly considered a **classical machine learning approach** in cheminformatics because it uses molecular descriptors or fingerprints to predict biological or chemical activity.
+
+#### QSAR Models
+
+QSAR models relate molecular structure to biological or chemical activity using numerical descriptors. Classical QSAR workflows often combine molecular features with regression or classification algorithms.
+
+??? note "Example"
+
+    ```python
+    # QSAR regression example
+    import numpy as np
+    import pandas as pd
+
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.metrics import mean_squared_error, r2_score
+
+    # 1. Example molecular descriptor dataset
+
+    data = pd.DataFrame({
+        "molecular_weight": [46.07, 60.05, 78.11, 180.16, 194.19, 151.16],
+        "logP": [-0.31, -0.17, 2.13, 1.19, -0.07, 1.35],
+        "h_bond_donors": [1, 1, 0, 1, 0, 1],
+        "h_bond_acceptors": [1, 2, 0, 4, 6, 2],
+        "activity": [1.2, 1.6, 0.4, 2.8, 3.1, 2.2]
+    })
+
+    X = data.drop(columns="activity")
+    y = data["activity"]
+
+    # 2. Split data
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.33,
+        random_state=42
+    )
+
+    # 3. Train QSAR model
+
+    model = RandomForestRegressor(
+        n_estimators=100,
+        random_state=42
+    )
+
+    model.fit(X_train, y_train)
+
+    # 4. Predict and evaluate
+
+    y_pred = model.predict(X_test)
+
+    print("Predicted activity:", y_pred)
+    print("True activity:", y_test.values)
+
+    print("MSE:", mean_squared_error(y_test, y_pred))
+    print("R²:", r2_score(y_test, y_pred))
+    ```
+
+## 4. Working with Chemical Databases
+
+### 4.1 Public Databases
+
+#### PubChem
+
+??? note "Example"
+
+    ```python
+    import pubchempy as pcp
+
+    # 1. Search compound by name
+
+    results = pcp.get_compounds(
+        "aspirin",
+        "name"
+    )
+
+    if len(results) == 0:
+        raise ValueError("No compound found")
+
+    compound = results[0]
+
+    # 2. Display basic information
+
+    print("Compound Information\n")
+    print(f"IUPAC Name:        {compound.iupac_name}")
+    print(f"SMILES:            {compound.isomeric_smiles}")
+    print(f"Molecular Formula: {compound.molecular_formula}")
+    print(f"Molecular Weight:  {compound.molecular_weight}")
+
+    # 3. Retrieve selected properties
+
+    properties = pcp.get_properties(
+        [
+            "MolecularWeight",
+            "XLogP",
+            "TPSA",
+            "Complexity"
+        ],
+        "aspirin",
+        "name"
+    )
+
+    # 4. Display properties
+
+    print("\nSelected Properties\n")
+
+    for key, value in properties[0].items():
+        print(f"{key}: {value}")
+    ```
+
+#### ChEMBL
+
+??? note "Example"
+
+    ```python
+    # ChEMBL example:
+    # Search for aspirin and retrieve related bioactivity data
+
+    import pandas as pd
+    from chembl_webresource_client.new_client import new_client
+
+    # 1. Search for a molecule by name
+
+    molecule = new_client.molecule
+
+    results = molecule.search("aspirin")
+
+    aspirin = results[0]
+
+    print("Molecule information")
+    print("ChEMBL ID:", aspirin["molecule_chembl_id"])
+    print("Preferred name:", aspirin["pref_name"])
+    print("Molecular formula:", aspirin["molecule_properties"]["full_molformula"])
+    print("Molecular weight:", aspirin["molecule_properties"]["full_mwt"])
+
+    # 2. Retrieve bioactivity data for aspirin
+
+    activity = new_client.activity
+
+    activities = activity.filter(
+        molecule_chembl_id=aspirin["molecule_chembl_id"]
+    ).only(
+        "target_chembl_id",
+        "target_pref_name",
+        "standard_type",
+        "standard_value",
+        "standard_units"
+    )
+
+    # Convert first 10 records to DataFrame
+    df = pd.DataFrame(list(activities[:10]))
+
+    print("\nBioactivity data")
+    print(df)
+    ```
+
+
+### 4.2 Data Preprocessing
+
+#### Molecular Standardization
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import SaltRemover
+
+    def standardize_molecule(smiles):
+        """Remove salts and return canonical SMILES."""
+
+        mol = Chem.MolFromSmiles(smiles)
+
+        if mol is None:
+            return None
+
+        # Remove common salts or counterions
+        remover = SaltRemover.SaltRemover()
+        mol = remover.StripMol(mol, dontRemoveEverything=True)
+
+        # Return canonical SMILES
+        canonical_smiles = Chem.MolToSmiles(mol)
+
+        return canonical_smiles
+
+
+    # Example molecules
+    smiles_list = [
+        "CC(=O)[O-].[Na+]",  # Sodium acetate
+        "CCO",               # Ethanol
+        "[NH3+]CC[O-]"       # Zwitterionic form
+    ]
+
+    standardized = [
+        standardize_molecule(smiles)
+        for smiles in smiles_list
+    ]
+
+    print(standardized)
+    ```
+
+#### Train/Test Splitting
+
+```python
+from sklearn.model_selection import train_test_split
+
+# Random split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Scaffold split for molecules
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from collections import defaultdict
+
+def scaffold_split(smiles_list, test_size=0.2):
+    """Split by molecular scaffolds"""
+    scaffolds = defaultdict(list)
+    
+    for idx, smiles in enumerate(smiles_list):
+        mol = Chem.MolFromSmiles(smiles)
+        scaffold = MurckoScaffold.MurckoScaffoldSmiles(mol=mol, includeChirality=False)
+        scaffolds[scaffold].append(idx)
+    
+    # Distribute scaffolds
+    scaffold_sets = sorted(list(scaffolds.values()), key=len, reverse=True)
+    
+    n_total = len(smiles_list)
+    n_test = int(n_total * test_size)
+    
+    train_idx, test_idx = [], []
+    train_count = 0
+    
+    for scaffold_set in scaffold_sets:
+        if train_count + len(scaffold_set) <= n_total - n_test:
+            train_idx.extend(scaffold_set)
+            train_count += len(scaffold_set)
+        else:
+            test_idx.extend(scaffold_set)
+    
+    return train_idx, test_idx
 ```
 
-1. Downloads `qm7.mat`.
-2. Loads Coulomb matrices and atomic numbers.
-3. Converts Coulomb matrices into adjacency matrices.
-4. Builds one block-diagonal graph for all molecules in each split.
-5. Uses diagonal Coulomb values as node features.
-6. Trains a simple GCN for atom-label classification.
-7. Evaluates the model with accuracy and a confusion matrix.
-8. Predicts atom labels for new test molecules.
 
-## Summary
 
-Today we covered the fundamentals of graph neural networks and their applications in computational chemistry and materials science:
+## 5. Practical Exercise: Solubility Prediction
 
-1. **Message Passing Neural Networks** provide a flexible framework for learning on graphs
-2. **Graph Attention Networks** learn adaptive edge weights through attention mechanisms
-3. **Equivariant Networks** (SchNet, DimeNet, PaiNN) respect 3D geometric symmetries
-4. **Protein-Ligand Modeling** enables AI-driven drug discovery
-5. **Crystal Structure Prediction** accelerates materials discovery
-6. **Practical Implementation** demonstrated how to build and train GATs on real molecular data
+### Complete Workflow
 
-## Additional Resources
+```python
+import pandas as pd
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import Descriptors, AllChem
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+import matplotlib.pyplot as plt
 
-**Papers:**
-- "Neural Message Passing for Quantum Chemistry" (Gilmer et al., 2017)
-- "Graph Attention Networks" (Veličković et al., 2018)
-- "SchNet: A continuous-filter convolutional neural network" (Schütt et al., 2017)
-- "Directional Message Passing for Molecular Graphs" (Klicpera et al., 2020)
-- "Equivariant message passing for the prediction of tensorial properties" (Schütt et al., 2021)
+# Step 1: Load Data
+url = "https://raw.githubusercontent.com/deepchem/deepchem/master/datasets/delaney-processed.csv"
+df = pd.read_csv(url)
+print(f"Dataset size: {len(df)}")
 
-**Tutorials:**
-- PyTorch Geometric documentation and tutorials
-- Open Catalyst Project tutorials
-- Deep Graph Library (DGL) examples
+# Step 2: Calculate Descriptors
+def calculate_descriptors(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    
+    return {
+        'MW': Descriptors.MolWt(mol),
+        'LogP': Descriptors.MolLogP(mol),
+        'NumHDonors': Descriptors.NumHDonors(mol),
+        'NumHAcceptors': Descriptors.NumHAcceptors(mol),
+        'TPSA': Descriptors.TPSA(mol),
+        'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
+        'NumAromaticRings': Descriptors.NumAromaticRings(mol),
+        'NumRings': Descriptors.RingCount(mol),
+        'MolMR': Descriptors.MolMR(mol),
+        'FractionCSP3': Descriptors.FractionCSP3(mol)
+    }
 
-**Datasets:**
-- QM9: Small organic molecules
-- PCQM4M: Large-scale quantum chemistry dataset
-- Materials Project: Inorganic crystals
-- PDBbind: Protein-ligand binding affinities
-- Open Catalyst: Catalytic materials
+desc_list = [calculate_descriptors(s) for s in df['smiles']]
+X_desc = pd.DataFrame([d for d in desc_list if d is not None])
+y = df['measured log solubility in mols per litre'].values[:len(X_desc)]
+
+# Step 3: Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(
+    X_desc, y, test_size=0.2, random_state=42
+)
+
+# Step 4: Scale Features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Step 5: Train Model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# Step 6: Evaluate
+y_pred = model.predict(X_test_scaled)
+
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+mae = mean_absolute_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"\nResults:")
+print(f"RMSE: {rmse:.3f}")
+print(f"MAE:  {mae:.3f}")
+print(f"R²:   {r2:.3f}")
+
+# Step 7: Visualize
+plt.figure(figsize=(8, 8))
+plt.scatter(y_test, y_pred, alpha=0.5)
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+plt.xlabel('True Solubility (log M)')
+plt.ylabel('Predicted Solubility (log M)')
+plt.title(f'Predictions (R² = {r2:.3f})')
+plt.axis('equal')
+plt.tight_layout()
+#plt.show()
+plt.savefig('solubilities.png', dpi=300, bbox_inches='tight')
+plt.close()
+
+# Step 8: Feature Importance
+importances = model.feature_importances_
+feature_importance_df = pd.DataFrame({
+    'feature': X_desc.columns,
+    'importance': importances
+}).sort_values('importance', ascending=False)
+
+print("\nTop 5 Most Important Features:")
+print(feature_importance_df.head())
+```
+
+**Expected Results**:
+- Test RMSE: ~0.7-0.9 log units
+- R²: ~0.75-0.85
+- Key features: LogP, molecular weight, polar surface area
+
+
+
+## 6. Example with SELFIES
+
+```python
+import numpy as np
+import selfies as sf
+from rdkit import Chem
+from rdkit.Chem import Descriptors, Crippen
+
+# Convert SELFIES to molecule
+selfies_str = sf.encoder("CC(=O)Oc1ccccc1C(=O)O")  # Aspirin in SELFIES
+print(f"SELFIES representation: {selfies_str}")
+
+smiles = sf.decoder(selfies_str)
+mol = Chem.MolFromSmiles(smiles)
+
+# Molecular weight
+mw = Descriptors.MolWt(mol)
+print(f"Molecular Weight: {mw:.2f} g/mol")
+
+# Lipophilicity (logP - octanol/water partition coefficient)
+logp = Crippen.MolLogP(mol)
+print(f"LogP: {logp:.2f}")
+# LogP > 5: Too lipophilic (Lipinski's Rule of Five)
+
+# Polar Surface Area
+tpsa = Descriptors.TPSA(mol)
+print(f"TPSA: {tpsa:.2f} Ų")
+# TPSA < 140: Likely to cross blood-brain barrier
+
+# Molar Refractivity
+mr = Crippen.MolMR(mol)
+print(f"Molar Refractivity: {mr:.2f}")
+
+####
+
+# Hydrogen bond donors and acceptors
+h_donors = Descriptors.NumHDonors(mol)
+h_acceptors = Descriptors.NumHAcceptors(mol)
+print(f"H-Bond Donors: {h_donors}")
+print(f"H-Bond Acceptors: {h_acceptors}")
+
+# Rotatable bonds (flexibility)
+rot_bonds = Descriptors.NumRotatableBonds(mol)
+print(f"Rotatable Bonds: {rot_bonds}")
+
+# Ring information
+num_rings = Descriptors.RingCount(mol)
+aromatic_rings = Descriptors.NumAromaticRings(mol)
+print(f"Total Rings: {num_rings}, Aromatic: {aromatic_rings}")
+
+# Fraction of sp3 carbons (saturation)
+frac_sp3 = Descriptors.FractionCSP3(mol)
+print(f"Fraction Csp3: {frac_sp3:.2f}")
+
+####
+
+from rdkit.Chem import GraphDescriptors
+
+# Balaban J index (molecular branching)
+balaban = GraphDescriptors.BalabanJ(mol)
+
+# Bertz complexity index
+bertz = GraphDescriptors.BertzCT(mol)
+
+# Chi indices (connectivity)
+chi0 = GraphDescriptors.Chi0(mol)
+chi1 = GraphDescriptors.Chi1(mol)
+
+####
+
+from rdkit.Chem import AllChem, Descriptors3D
+
+# Generate 3D coordinates
+mol_3d = Chem.AddHs(mol)
+AllChem.EmbedMolecule(mol_3d, randomSeed=42)
+AllChem.MMFFOptimizeMolecule(mol_3d)
+
+# 3D descriptors
+asphericity = Descriptors3D.Asphericity(mol_3d)
+eccentricity = Descriptors3D.Eccentricity(mol_3d)
+inertial_shape = Descriptors3D.InertialShapeFactor(mol_3d)
+radius_of_gyration = Descriptors3D.RadiusOfGyration(mol_3d)
+
+print(f"Radius of Gyration: {radius_of_gyration:.2f} Ų")
+
+####
+
+def lipinski_rule_of_five(mol):
+    """
+    Predicts if molecule is drug-like
+    Rules:
+    - MW <= 500
+    - LogP <= 5
+    - H-bond donors <= 5
+    - H-bond acceptors <= 10
+    """
+    mw = Descriptors.MolWt(mol)
+    logp = Crippen.MolLogP(mol)
+    hbd = Descriptors.NumHDonors(mol)
+    hba = Descriptors.NumHAcceptors(mol)
+    
+    violations = 0
+    if mw > 500: violations += 1
+    if logp > 5: violations += 1
+    if hbd > 5: violations += 1
+    if hba > 10: violations += 1
+    
+    return violations <= 1  # Allow 1 violation
+
+is_druglike = lipinski_rule_of_five(mol)
+print(f"Passes Lipinski's Rule: {is_druglike}")
+
+####
+
+from rdkit.Chem import QED
+
+qed_score = QED.qed(mol)
+print(f"QED Score: {qed_score:.3f}")
+# Range: [0, 1], higher is more drug-like
+# Based on 8 molecular properties
+
+####
+
+from rdkit.Chem import RDConfig
+import sys
+sys.path.append(f'{RDConfig.RDContribDir}/SA_Score')
+import sascorer
+
+sa_score = sascorer.calculateScore(mol)
+print(f"SA Score: {sa_score:.2f}")
+# Range: [1, 10]
+# 1: Easy to synthesize
+# 10: Difficult to synthesize
+
+####
+
+def calculate_molecular_descriptors(selfies_str):
+    """
+    Comprehensive descriptor calculation from SELFIES
+    """
+    # Convert SELFIES to SMILES then to molecule
+    smiles = sf.decoder(selfies_str)
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    
+    # Add hydrogens for accurate calculations
+    mol = Chem.AddHs(mol)
+    
+    descriptors = {
+        # Physical
+        'MW': Descriptors.MolWt(mol),
+        'LogP': Crippen.MolLogP(mol),
+        'TPSA': Descriptors.TPSA(mol),
+        'MolMR': Crippen.MolMR(mol),
+        
+        # Structural
+        'NumHDonors': Descriptors.NumHDonors(mol),
+        'NumHAcceptors': Descriptors.NumHAcceptors(mol),
+        'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
+        'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
+        'NumAromaticRings': Descriptors.NumAromaticRings(mol),
+        'NumSaturatedRings': Descriptors.NumSaturatedRings(mol),
+        'NumAliphaticRings': Descriptors.NumAliphaticRings(mol),
+        'RingCount': Descriptors.RingCount(mol),
+        
+        # Complexity
+        'BertzCT': GraphDescriptors.BertzCT(mol),
+        'NumBridgeheadAtoms': Descriptors.NumBridgeheadAtoms(mol),
+        'NumSpiroAtoms': Descriptors.NumSpiroAtoms(mol),
+        
+        # Electronic
+        'LabuteASA': Descriptors.LabuteASA(mol),
+        'PEOE_VSA1': Descriptors.PEOE_VSA1(mol),
+        
+        # Counts
+        'NumCarbon': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 6]),
+        'NumNitrogen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 7]),
+        'NumOxygen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 8]),
+        'NumHalogens': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() in [9, 17, 35, 53]]),
+        
+        # Saturation
+        'FractionCsp3': Descriptors.FractionCSP3(mol),
+        
+        # Drug-likeness
+        'QED': QED.qed(mol),
+    }
+    
+    return descriptors
+
+# Example usage - Convert SMILES to SELFIES first
+smiles_list = ["CCO", "CC(=O)Oc1ccccc1C(=O)O", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"]
+selfies_list = [sf.encoder(s) for s in smiles_list]
+
+print("\nSELFIES representations:")
+for smiles, selfies_str in zip(smiles_list, selfies_list):
+    print(f"SMILES:  {smiles}")
+    print(f"SELFIES: {selfies_str}")
+    print()
+
+import pandas as pd
+
+descriptor_list = [calculate_molecular_descriptors(s) for s in selfies_list]
+df_descriptors = pd.DataFrame(descriptor_list)
+df_descriptors['SELFIES'] = selfies_list
+df_descriptors['SMILES'] = smiles_list  # Optional: keep original SMILES for reference
+
+print(df_descriptors)
+
+####
+
+import networkx as nx
+
+def mol_to_graph(selfies_str):
+    """Convert SELFIES molecule to NetworkX graph"""
+    smiles = sf.decoder(selfies_str)
+    mol = Chem.MolFromSmiles(smiles)
+    
+    # Create graph
+    G = nx.Graph()
+    
+    # Add nodes (atoms)
+    for atom in mol.GetAtoms():
+        G.add_node(
+            atom.GetIdx(),
+            atomic_num=atom.GetAtomicNum(),
+            symbol=atom.GetSymbol(),
+            degree=atom.GetDegree(),
+            formal_charge=atom.GetFormalCharge(),
+            num_h=atom.GetTotalNumHs(),
+            hybridization=str(atom.GetHybridization()),
+            is_aromatic=atom.GetIsAromatic()
+        )
+    
+    # Add edges (bonds)
+    for bond in mol.GetBonds():
+        G.add_edge(
+            bond.GetBeginAtomIdx(),
+            bond.GetEndAtomIdx(),
+            bond_type=str(bond.GetBondType()),
+            is_conjugated=bond.GetIsConjugated(),
+            is_aromatic=bond.GetIsAromatic()
+        )
+    
+    return G
+
+# Example
+selfies_ethanol = sf.encoder("CCO")
+G = mol_to_graph(selfies_ethanol)
+print(f"\nGraph from SELFIES: {selfies_ethanol}")
+print(f"Nodes: {G.number_of_nodes()}")
+print(f"Edges: {G.number_of_edges()}")
+print(f"Node features: {G.nodes[0]}")
+
+
+####
+
+def get_adjacency_matrix(selfies_str, max_atoms=50):
+    """Get adjacency matrix with padding from SELFIES"""
+    smiles = sf.decoder(selfies_str)
+    mol = Chem.MolFromSmiles(smiles)
+    num_atoms = mol.GetNumAtoms()
+    
+    # Initialize matrix
+    adj_matrix = np.zeros((max_atoms, max_atoms))
+    
+    # Fill adjacency matrix
+    for bond in mol.GetBonds():
+        i = bond.GetBeginAtomIdx()
+        j = bond.GetEndAtomIdx()
+        adj_matrix[i, j] = 1
+        adj_matrix[j, i] = 1  # Symmetric
+    
+    return adj_matrix, num_atoms
+
+selfies_ethanol = sf.encoder("CCO")
+adj, n_atoms = get_adjacency_matrix(selfies_ethanol)
+print(f"\nAdjacency matrix from SELFIES: {selfies_ethanol}")
+print(f"Adjacency matrix shape: {adj.shape}")
+print(f"Actual atoms: {n_atoms}")
+```
+
+## 6. Practical Exercise: Complete ML Pipeline
+
+### Task
+Build a complete machine learning pipeline to predict molecular solubility. The dataset can be downloaded from:
+J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10.1021/ci034243x)
+
+### Dataset
+```python
+import pandas as pd
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+import numpy as np
+
+# Load data - adjust column name for target variable
+data = pd.read_csv('esol.csv')
+
+print(f"Dataset size: {len(data)}")
+print(data.head())
+print(f"Column names: {data.columns.tolist()}")
+```
+
+### Step 1: Feature Engineering
+```python
+def calculate_molecular_features(smiles):
+    """Calculate molecular descriptors from SMILES"""
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    
+    features = {
+        'MolWt': Descriptors.MolWt(mol),
+        'LogP': Descriptors.MolLogP(mol),
+        'NumHDonors': Descriptors.NumHDonors(mol),
+        'NumHAcceptors': Descriptors.NumHAcceptors(mol),
+        'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
+        'NumAromaticRings': Descriptors.NumAromaticRings(mol),
+        'TPSA': Descriptors.TPSA(mol),
+        'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
+        'NumRings': Descriptors.RingCount(mol),
+        'NumSaturatedRings': Descriptors.NumSaturatedRings(mol)
+    }
+    
+    return features
+
+# Calculate features for all molecules
+features_list = []
+valid_indices = []
+
+for idx, smiles in enumerate(data['SMILES']):
+    features = calculate_molecular_features(smiles)
+    if features is not None:
+        features_list.append(features)
+        valid_indices.append(idx)
+
+# Create feature DataFrame
+X = pd.DataFrame(features_list)
+# Use the correct column name for solubility
+y = data.loc[valid_indices, 'measured log(solubility:mol/L)'].values
+
+print(f"\nFeatures shape: {X.shape}")
+print(f"Targets shape: {y.shape}")
+print(f"Valid molecules: {len(valid_indices)} / {len(data)}")
+```
+
+### Step 2: Data Validation and Exploration
+```python
+# Check for missing values
+print("\nMissing values:")
+print(X.isnull().sum())
+
+# Check distributions
+print("\nFeature statistics:")
+print(X.describe())
+
+print("\nTarget statistics:")
+print(f"Mean: {y.mean():.3f}")
+print(f"Std: {y.std():.3f}")
+print(f"Min: {y.min():.3f}")
+print(f"Max: {y.max():.3f}")
+
+# Visualize correlations
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.figure(figsize=(10, 8))
+correlations = X.corrwith(pd.Series(y, index=X.index))
+correlations.sort_values().plot(kind='barh')
+plt.xlabel('Correlation with Solubility')
+plt.title('Feature Correlations')
+plt.tight_layout()
+#plt.show()
+plt.savefig('feature_importance.png', dpi=300, bbox_inches='tight')
+plt.close()
+```
+
+### Step 3: Train-Test Split
+```python
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+print(f"\nTraining set size: {len(X_train)}")
+print(f"Test set size: {len(X_test)}")
+```
+
+### Step 4: Preprocessing
+```python
+# Standardize features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+```
+
+### Step 5: Model Training with Cross-Validation
+```python
+# Try different models
+from sklearn.linear_model import Ridge, Lasso
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.svm import SVR
+
+models = {
+    'Ridge': Ridge(alpha=1.0),
+    'Lasso': Lasso(alpha=0.1),
+    'Random Forest': RandomForestRegressor(n_estimators=100, random_state=42),
+    'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
+    'SVR': SVR(kernel='rbf', C=1.0)
+}
+
+# Cross-validation
+print("\nCross-validation results:")
+cv_results = {}
+
+for name, model in models.items():
+    scores = cross_val_score(model, X_train_scaled, y_train, cv=5, 
+                            scoring='r2', n_jobs=-1)
+    cv_results[name] = scores
+    print(f"{name:20s}: R² = {scores.mean():.3f} ± {scores.std():.3f}")
+
+# Select best model
+best_model_name = max(cv_results, key=lambda k: cv_results[k].mean())
+best_model = models[best_model_name]
+print(f"\nBest model: {best_model_name}")
+```
+
+### Step 6: Hyperparameter Tuning
+```python
+from sklearn.model_selection import RandomizedSearchCV
+
+# Tune the best model (Random Forest in this example)
+if best_model_name == 'Random Forest':
+    param_distributions = {
+        'n_estimators': [100, 200, 500],
+        'max_depth': [10, 20, 30, None],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['sqrt', 'log2', 0.5, 1.0, None]  # Changed: removed 'auto', added valid options
+    }
+    
+    random_search = RandomizedSearchCV(
+        RandomForestRegressor(random_state=42),
+        param_distributions,
+        n_iter=20,
+        cv=5,
+        scoring='r2',
+        n_jobs=-1,
+        random_state=42,
+        verbose=1
+    )
+    
+    random_search.fit(X_train_scaled, y_train)
+    
+    print(f"\nBest parameters: {random_search.best_params_}")
+    print(f"Best CV R²: {random_search.best_score_:.3f}")
+    
+    best_model = random_search.best_estimator_
+```
+
+### Step 7: Final Evaluation
+```python
+# Train on full training set
+best_model.fit(X_train_scaled, y_train)
+
+# Predict on test set
+y_pred_train = best_model.predict(X_train_scaled)
+y_pred_test = best_model.predict(X_test_scaled)
+
+# Calculate metrics
+train_r2 = r2_score(y_train, y_pred_train)
+train_rmse = np.sqrt(mean_squared_error(y_train, y_pred_train))
+train_mae = mean_absolute_error(y_train, y_pred_train)
+
+test_r2 = r2_score(y_test, y_pred_test)
+test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test))
+test_mae = mean_absolute_error(y_test, y_pred_test)
+
+print("\nFinal Results:")
+print(f"Training   - R²: {train_r2:.3f}, RMSE: {train_rmse:.3f}, MAE: {train_mae:.3f}")
+print(f"Test       - R²: {test_r2:.3f}, RMSE: {test_rmse:.3f}, MAE: {test_mae:.3f}")
+
+# Check for overfitting
+if train_r2 - test_r2 > 0.1:
+    print("\nWarning: Possible overfitting detected!")
+else:
+    print("\nModel generalizes well!")
+```
+
+### Step 8: Visualization and Analysis
+```python
+# Prediction plots
+fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+
+# Training set
+axes[0].scatter(y_train, y_pred_train, alpha=0.5)
+axes[0].plot([y_train.min(), y_train.max()], 
+             [y_train.min(), y_train.max()], 'r--', lw=2)
+axes[0].set_xlabel('True Solubility')
+axes[0].set_ylabel('Predicted Solubility')
+axes[0].set_title(f'Training Set (R² = {train_r2:.3f})')
+axes[0].axis('equal')
+
+# Test set
+axes[1].scatter(y_test, y_pred_test, alpha=0.5)
+axes[1].plot([y_test.min(), y_test.max()], 
+             [y_test.min(), y_test.max()], 'r--', lw=2)
+axes[1].set_xlabel('True Solubility')
+axes[1].set_ylabel('Predicted Solubility')
+axes[1].set_title(f'Test Set (R² = {test_r2:.3f})')
+axes[1].axis('equal')
+
+plt.tight_layout()
+#plt.show()
+plt.savefig('predicted_solubility.png', dpi=300, bbox_inches='tight')
+plt.close()
+
+# Feature importance (for tree-based models)
+if hasattr(best_model, 'feature_importances_'):
+    importances = pd.DataFrame({
+        'feature': X.columns,
+        'importance': best_model.feature_importances_
+    }).sort_values('importance', ascending=False)
+    
+    print("\nTop 5 Most Important Features:")
+    print(importances.head())
+    
+    plt.figure(figsize=(10, 6))
+    importances.plot(x='feature', y='importance', kind='barh')
+    plt.xlabel('Importance')
+    plt.title('Feature Importance')
+    plt.tight_layout()
+    #plt.show()
+    plt.savefig('best_feature_importance.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+# Residual analysis
+residuals = y_test - y_pred_test
+
+plt.figure(figsize=(12, 4))
+
+plt.subplot(131)
+plt.scatter(y_pred_test, residuals, alpha=0.5)
+plt.axhline(y=0, color='r', linestyle='--')
+plt.xlabel('Predicted Values')
+plt.ylabel('Residuals')
+plt.title('Residual Plot')
+
+plt.subplot(132)
+plt.hist(residuals, bins=30, edgecolor='black')
+plt.xlabel('Residuals')
+plt.ylabel('Frequency')
+plt.title('Residual Distribution')
+
+plt.subplot(133)
+from scipy import stats
+stats.probplot(residuals, dist="norm", plot=plt)
+plt.title('Q-Q Plot')
+
+plt.tight_layout()
+#plt.show()
+plt.savefig('residuals.png', dpi=300, bbox_inches='tight')
+plt.close()
+```
+
+### Step 9: Model Persistence
+```python
+import joblib
+
+# Save model and scaler
+joblib.dump(best_model, 'solubility_model.pkl')
+joblib.dump(scaler, 'solubility_scaler.pkl')
+
+print("\nModel saved successfully!")
+
+# Load and use model
+loaded_model = joblib.load('solubility_model.pkl')
+loaded_scaler = joblib.load('solubility_scaler.pkl')
+
+# Make prediction for new molecule
+new_smiles = "CCO"  # Ethanol
+new_features = calculate_molecular_features(new_smiles)
+new_X = pd.DataFrame([new_features])
+new_X_scaled = loaded_scaler.transform(new_X)
+prediction = loaded_model.predict(new_X_scaled)
+
+print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
+```
+
+## 7. Practical example: QM9
+
+```python
+# Classical machine learning with QM9
+# Model: Random Forest Regressor
+# Target: HOMO energy
+
+import numpy as np
+import pandas as pd
+
+import deepchem as dc
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+# 1. Load QM9 dataset
+
+tasks, datasets, transformers = dc.molnet.load_qm9(
+    featurizer="ECFP",
+    splitter="random"
+)
+
+train_dataset, valid_dataset, test_dataset = datasets
+
+print("QM9 tasks:")
+print(tasks)
+
+# 2. Select target property
+
+target_name = "homo"
+target_index = tasks.index(target_name)
+
+# DeepChem datasets store:
+# X = molecular features
+# y = target values
+
+X_train = train_dataset.X
+y_train = train_dataset.y[:, target_index]
+
+X_valid = valid_dataset.X
+y_valid = valid_dataset.y[:, target_index]
+
+X_test = test_dataset.X
+y_test = test_dataset.y[:, target_index]
+
+print("\nTraining shape:", X_train.shape)
+print("Validation shape:", X_valid.shape)
+print("Test shape:", X_test.shape)
+
+# 3. Train classical ML model
+
+model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=None,
+    random_state=42,
+    n_jobs=-1
+)
+
+model.fit(X_train, y_train)
+
+# 4. Validate model
+
+y_valid_pred = model.predict(X_valid)
+
+valid_mae = mean_absolute_error(y_valid, y_valid_pred)
+valid_rmse = np.sqrt(mean_squared_error(y_valid, y_valid_pred))
+valid_r2 = r2_score(y_valid, y_valid_pred)
+
+print("\nValidation performance")
+print(f"MAE:  {valid_mae:.4f}")
+print(f"RMSE: {valid_rmse:.4f}")
+print(f"R²:   {valid_r2:.4f}")
+
+# 5. Final test evaluation
+
+y_test_pred = model.predict(X_test)
+
+test_mae = mean_absolute_error(y_test, y_test_pred)
+test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
+test_r2 = r2_score(y_test, y_test_pred)
+
+print("\nTest performance")
+print(f"MAE:  {test_mae:.4f}")
+print(f"RMSE: {test_rmse:.4f}")
+print(f"R²:   {test_r2:.4f}")
+
+# 6. Compare true vs predicted values
+
+results = pd.DataFrame({
+    "true_homo": y_test[:10],
+    "predicted_homo": y_test_pred[:10]
+})
+
+print("\nExample predictions:")
+print(results)
+```
+
+## 8. Key Takeaways
+
+### Molecular Representations
+- **SMILES**: Compact text representation, requires careful handling
+- **Fingerprints**: Fixed-length vectors, good for similarity and ML
+- **Descriptors**: Interpretable features, require domain knowledge
+- **Graphs**: Natural representation, enables GNNs (Day 3)
+
+### Traditional ML Methods
+- **Random Forests**: Robust baseline, handles non-linearity, provides feature importance
+- **SVMs**: Effective in high dimensions, requires scaling
+- **Gaussian Processes**: Provides uncertainty, excellent for active learning
+- **Gradient Boosting**: Often best performance, requires careful tuning
+
+### Best Practices
+1. Always validate molecular structures
+2. Use scaffold-based splits for realistic evaluation
+3. Scale features appropriately for each algorithm
+4. Compare multiple representations (descriptors vs fingerprints)
+5. Report multiple metrics (RMSE, MAE, R²)
+6. Analyze feature importance for insights
+7. Check for data leakage in preprocessing
+
+### Common Pitfalls
+- Using random splits instead of scaffold splits
+- Forgetting to scale features for SVMs
+- Not handling invalid SMILES
+- Overfitting due to small datasets
+- Ignoring uncertainty in predictions
+
+---
+
+## 9. Resources and Further Reading
+
+### Software Libraries
+- **RDKit**: Cheminformatics toolkit - https://www.rdkit.org/
+- **scikit-learn**: Machine learning library - https://scikit-learn.org/
+- **Pandas**: Data manipulation - https://pandas.pydata.org/
+- **Matplotlib**: Visualization
+
+### Databases
+- **PubChem**: https://pubchem.ncbi.nlm.nih.gov/
+- **ChEMBL**: https://www.ebi.ac.uk/chembl/
+- **ZINC**: https://zinc.docking.org/
+- **Materials Project**: https://materialsproject.org/
+- **QM9**: http://quantum-machine.org/datasets/
+
+### Papers
+- "Molecular descriptors for chemoinformatics" - Todeschini & Consonni
+- "Machine Learning in Materials Informatics" - Butler et al., 2018
+- "Guidelines for ML predictive models in biomedical research" - Luo et al., 2016
+- "Deep Learning for Molecular Design" - Elton et al., 2019
+
+### Tutorials
+- RDKit Cookbook - https://www.rdkit.org/docs/Cookbook.html
+- Scikit-learn User Guide - https://scikit-learn.org/stable/user_guide.html
+- DeepChem Tutorials - https://deepchem.io/
+
+
+## Homework Assignment
+
+1. **Data Exploration**
+   - Download QM9 dataset
+   - Calculate descriptors for 1000 random molecules
+   - Visualize descriptor distributions and correlations
+
+2. **Classification Model**
+   - Build a model to predict if a molecule has dipole moment > 2 Debye
+   - Use both descriptors and fingerprints
+   - Report precision, recall, and AUC
+
+3. **Model Comparison**
+   - Compare Random Forest, SVM, and Gradient Boosting
+   - Use 5-fold cross-validation
+   - Create visualizations comparing performance
+
+4. **Feature Analysis**
+   - Identify the top 5 most important features
+   - Explain why these features are relevant
+   - Visualize feature importance
+
+5. **Advanced Challenge**
+   - Implement scaffold-based splitting
+   - Compare performance with random split
+   - Discuss implications for model generalization
+
+6. **Prepare Questions**
+   - Review neural networks basics (Day 0)
+   - Think about limitations of traditional ML for molecules
+   - Prepare questions for Day 2 on deep learning
