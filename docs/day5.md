@@ -538,7 +538,7 @@ Breaking this down:
   - Dimension: [2 × d_out]
   
 - **$a^T [...]$**: Apply learned attention vector a
-  - Reduces to scalar attention logit e_{ij}
+  - Reduces to scalar attention logit $e_{ij}$
   - The attention vector a learns what feature combinations indicate importance
   - Dimension: [2 × d_out] → [1]
   
@@ -546,7 +546,7 @@ Breaking this down:
   - Allows negative attention scores (before softmax)
   - Prevents dead neurons from ReLU saturation
 
-**Intuition**: The attention logit e_{ij} measures how relevant neighbor j is to node i, based on their feature compatibility.
+**Intuition**: The attention logit $e_{ij}$ measures how relevant neighbor $j$ is to node $i$, based on their feature compatibility.
 
 **Step 2: Normalize to Attention Coefficients**
 
@@ -560,7 +560,7 @@ $$
 
 **Why softmax?**
 - Preserves differentiability (can backpropagate)
-- Creates sharp distinctions (high e_{ij} → high α_{ij})
+- Creates sharp distinctions (high $e_{ij}$ → high $α_{ij}$)
 - Normalized weights prevent exploding values in aggregation
 
 **Step 3: Aggregate with Attention Weights**
@@ -576,6 +576,7 @@ $$
 **Complete Forward Pass Example:**
 
 For an atom with 3 neighbors:
+
 1. Compute logits: $e_{i1} = 0.8, e_{i2} = 0.3, e_{i3} = -0.2$
 2. Apply softmax: $α_{i1} = 0.52, α_{i2} = 0.31, α_{i3} = 0.17$
 3. Aggregate: $h_{i'} = σ(0.52 × W h_1 + 0.31 × W h_2 + 0.17 × W h_3)$
@@ -598,6 +599,7 @@ h_{i'} = ||_{k=1}^K σ(Σ_{j∈N(i)} α_{ij}^k W^k h_j)
 $$
 
 Where:
+
 - K = number of attention heads
 - Each head $k$ has its own parameters: $W^k$ and $a^k$
 - || denotes concatenation of head outputs
@@ -606,6 +608,7 @@ Where:
 **Why Multiple Heads?**
 
 Different heads can learn complementary attention patterns:
+
 - **Head 1**: Might focus on electronegative atoms (for polarity)
 - **Head 2**: Might focus on aromatic neighbors (for conjugation)
 - **Head 3**: Might focus on steric bulk (for size effects)
@@ -635,8 +638,9 @@ dropout = 0.1-0.3  # On attention coefficients (attention dropout)
 ```
 
 **Computational Complexity:**
-- Attention computation: O(|E| × d_out) - linear in edges
-- Memory for attention: O(|E| × K) - stores attention per head
+
+- Attention computation: $O(|E| × d_out)$ - linear in edges
+- Memory for attention: $O(|E| × K)$ - stores attention per head
 - Highly parallelizable (all attention coefficients computed independently)
 
 #### Advantages of GATs
@@ -646,26 +650,31 @@ dropout = 0.1-0.3  # On attention coefficients (attention dropout)
 Unlike fixed aggregation:
 
 ##### Fixed (GCN-style)
+predetermined weights
 
 $$
-h_i' = Σ_{j∈N(i)} (1/√(d_i × d_j)) W h_j  # predetermined weights
+h_{i'} = Σ_{j∈N(i)} (1/√(d_i × d_j)) W h_j
 $$
 
 ##### Adaptive (GAT)
+learned weights
 
 $$
-h_i' = Σ_{j∈N(i)} α_{ij} W h_j  # learned weights
+h_{i'} = Σ_{j∈N(i)} α_{ij} W h_j  
 $$
 
 **Benefits:**
+
 - Automatically focuses on relevant neighbors
 - Can ignore uninformative connections
 - Adapts to different chemical contexts
 
 **Example**: In a drug molecule, GAT can learn to focus on:
+
 - Pharmacophore groups (active parts)
 - Hydrogen bond donors/acceptors
 - Hydrophobic regions
+
 While downweighting inert carbon chains.
 
 **2. Interpretability**
@@ -682,12 +691,14 @@ highlight_edges_by_weight(mol_graph, attention_weights, threshold=0.3)
 ```
 
 **What we can learn:**
+
 - Which atoms influence predictions most
 - How information flows through the molecule
 - Whether the model learned chemically meaningful patterns
 - Debugging: Are attention patterns reasonable?
 
 **Example insights:**
+
 - High attention on C=O bonds for carbonyl chemistry
 - Focus on aromatic rings for π-stacking predictions
 - Attention following conjugation pathways
@@ -695,6 +706,7 @@ highlight_edges_by_weight(mol_graph, attention_weights, threshold=0.3)
 **3. Parallelizability**
 
 All attention coefficients for all edges can be computed in parallel:
+
 ```python
 # Pseudo-code
 edge_features = concat(h[edges[:,0]], h[edges[:,1]])  # All edges at once
@@ -703,6 +715,7 @@ attention_weights = softmax_per_node(attention_logits)  # Parallel within neighb
 ```
 
 **Speed advantages:**
+
 - GPU-friendly (matrix operations)
 - Scales well to large molecules
 - No sequential dependencies (unlike RNNs)
@@ -710,11 +723,13 @@ attention_weights = softmax_per_node(attention_logits)  # Parallel within neighb
 **4. Inductive Learning**
 
 GATs can generalize to completely new graph structures:
+
 - Train on small molecules, test on large ones
 - Learn patterns that transfer across different molecular classes
 - No fixed graph structure required during training
 
 This is critical for:
+
 - Generalizing to novel drug candidates
 - Transfer learning across datasets
 - Handling molecules with varying sizes
@@ -728,16 +743,20 @@ Original GAT limitation: Attention is somewhat static
 ##### GAT: Transform then attend
 
 $$
-e_{ij} = a^T [W h_i || W h_j]  # a can only linearly combine features
+e_{ij} = a^T [W h_i || W h_j]  
 $$
+
+$a$ can only linearly combine features
 
 GATv2 improvement: Dynamic attention
 
 ##### GATv2: Attend then transform
 
 $$
-e_{ij} = a^T LeakyReLU(W [h_i || h_j])  # Non-linearity before attention
+e_{ij} = a^T LeakyReLU(W [h_i || h_j])  
 $$
+
+Non-linearity before attention
 
 **Why it's better:**
 - The non-linearity is applied AFTER concatenation
@@ -761,11 +780,13 @@ e_{ij} = a^T [W h_i || W h_j || E e_{ij}]
 $$
 
 Where:
+
 - $e_{ij}$ = edge feature vector (bond type, distance, ring membership)
 - E = edge embedding matrix
 - Now attention depends on both node features AND edge features
 
 **Applications:**
+
 - Distinguishing single vs double bonds
 - Incorporating 3D distances
 - Using bond order information
@@ -781,10 +802,7 @@ Where:
 **Graph Transformer Networks:**
 
 Extension to full graph attention (not just neighbors):
-
-$$
-α_{ij} for all pairs (i,j) in graph  # Not just edges
-$$
+$α_{ij}$, for all pairs $(i,j)$ in graph
 
 **Trade-offs:**
 - **Pro**: Can capture long-range interactions
@@ -868,6 +886,7 @@ Geometric deep learning architectures respect the symmetries and geometric prope
 **The 3D Problem:**
 
 Traditional GNNs treat molecular graphs as topological structures, ignoring spatial arrangements:
+
 - Two molecules with the same connectivity but different 3D shapes (stereoisomers) would be treated identically
 - Bond angles and dihedral angles contain crucial information
 - 3D distance-based interactions (van der Waals, electrostatics) are not captured
@@ -895,6 +914,7 @@ Molecular properties must respect fundamental physical symmetries:
    ```
    Property(molecule) = Property(molecule + translation vector)
    ```
+
    - Moving the entire molecule in space doesn't change its energy or properties
    - Only relative positions matter, not absolute coordinates
    - Mathematically: E(R + t) = E(R) for any translation t
@@ -903,6 +923,7 @@ Molecular properties must respect fundamental physical symmetries:
    ```
    Property(molecule) = Property(rotate(molecule, θ))
    ```
+
    - Rotating the molecule doesn't change scalar properties (energy, dipole magnitude)
    - Physical measurements don't depend on orientation in space
    - Mathematically: E(QR) = E(R) for any rotation matrix Q
@@ -911,21 +932,25 @@ Molecular properties must respect fundamental physical symmetries:
    ```
    Property(atoms[1,2,3,...]) = Property(atoms[permutation])
    ```
+
    - Labeling atoms 1,2,3 vs 3,1,2 shouldn't change properties
    - Physical reality has no preferred ordering
    - Node ordering is an artifact of representation
 
 4. **Reflection (for some properties)**:
+
    - Chiral molecules break reflection symmetry
    - Achiral molecules maintain E(R) = E(mirror(R))
 
 **Invariance vs Equivariance:**
 
 - **Invariant**: Output doesn't change under transformation
+
   - Example: Energy is rotation-invariant scalar
   - E(rotate(molecule)) = E(molecule)
 
 - **Equivariant**: Output transforms consistently with input
+
   - Example: Forces are rotation-equivariant vectors
   - F(rotate(molecule)) = rotate(F(molecule))
   - If you rotate the molecule, forces rotate the same way
@@ -933,12 +958,14 @@ Molecular properties must respect fundamental physical symmetries:
 **Why This Matters:**
 
 Networks that violate these symmetries will:
+
 - Learn to recognize rotated versions as different molecules (inefficient)
 - Require much more training data to learn all orientations
 - Fail to generalize to new orientations
 - Predict unphysical results (energy changing with rotation)
 
 Networks that respect symmetries:
+
 - Are more data-efficient (one orientation teaches all)
 - Generalize better to new configurations
 - Satisfy physical laws by construction
@@ -947,8 +974,6 @@ Networks that respect symmetries:
 #### SchNet (Continuous-filter Convolutional Neural Network)
 
 SchNet pioneered the use of continuous convolutions for molecular modeling, treating molecules as continuous 3D objects rather than discrete graphs.
-
-**Core Philosophy:**
 
 Instead of learning fixed filters for discrete bond types, SchNet learns continuous functions that depend smoothly on interatomic distances. This mirrors physics: interactions depend on distance in a continuous way (not discrete jumps).
 
@@ -1073,11 +1098,13 @@ Property = (1/N) Σ_i MLP(x_i^(T))
 **Key Design Choices:**
 
 1. **Only distances, not coordinates**:
+
    - Distances are rotation and translation invariant
    - ||r_i - r_j|| is the same regardless of overall position/orientation
    - This guarantees the network is invariant
 
 2. **Continuous filters**:
+
    - Smoothly adapts to any distance
    - Better than discrete binning (1.0-1.5 Å, 1.5-2.0 Å, ...)
    - Allows accurate interpolation
@@ -1086,11 +1113,13 @@ Property = (1/N) Σ_i MLP(x_i^(T))
    ```
    ShiftedSoftplus(x) = log(0.5 × exp(x) + 0.5)
    ```
+
    - Smooth everywhere (unlike ReLU)
    - Important for force prediction: forces = -∇E
    - Provides smooth gradients
 
 **Strengths:**
+
 - **Efficient**: Linear in number of atoms (with cutoff)
 - **Scalable**: Handles molecules from 10 to 1000+ atoms
 - **Accurate**: State-of-the-art on QM9 and other benchmarks
@@ -1098,6 +1127,7 @@ Property = (1/N) Σ_i MLP(x_i^(T))
 - **Physically motivated**: Design mirrors physics of interactions
 
 **Limitations:**
+
 - **Distance-only**: Doesn't explicitly capture angles
 - **Isotropic**: Treats all directions equally (no directionality)
 - **Cannot predict vector properties directly**: Forces require gradients
@@ -1120,11 +1150,13 @@ DimeNet extends SchNet by incorporating angular information, making it significa
 **Key Innovation: Beyond Distances**
 
 While distances capture bond lengths, many properties depend on:
+
 - **Bond angles**: H-O-H angle in water determines properties
 - **Dihedral angles**: Rotations around single bonds affect conformation
 - **Triplet interactions**: Three-body terms in force fields
 
 **Physics Analogy**: 
+
 - SchNet ≈ Lennard-Jones potential (pairwise, distance-only)
 - DimeNet ≈ Force fields with angle terms (CHARMM, AMBER)
 
@@ -1250,28 +1282,33 @@ Message: All k → all j → all i  (more parallel)
 ```
 
 **Optimization strategies:**
+
 1. **Shared bilinear layers**: Reduce parameters
 2. **Efficient triplet enumeration**: Better data structures
 3. **Grouped convolutions**: Reduce computational cost
 4. **Memory-efficient attention**: Lower memory footprint
 
 **Performance:**
+
 - DimeNet++: 2-5× faster than DimeNet
 - Same or better accuracy
 - Can handle larger molecules (100+ atoms)
 
 **Advantages:**
+
 - **Higher accuracy**: 20-40% better MAE on QM9 vs SchNet
 - **Captures geometry**: Angles and dihedrals encoded
 - **Physics-aware**: Mirrors force field design
 - **Still rotationally invariant**: Maintains symmetries
 
 **Disadvantages:**
+
 - **Computational cost**: O(N × k²) where k is coordination number
 - **Memory**: Stores triplets, not just pairs
 - **Complexity**: More hyperparameters to tune
 
 **Use Cases:**
+
 - High-accuracy property prediction
 - Conformational energy differences
 - Transition state geometries
@@ -1284,6 +1321,7 @@ PaiNN represents a paradigm shift: instead of just invariant features, it mainta
 **Motivation: Vector Properties**
 
 Many important properties are vectors (have direction):
+
 - **Forces**: F = -∇E (gradient of energy)
 - **Dipole moments**: μ = Σ_i q_i r_i
 - **Magnetic moments**: Direction matters

@@ -37,11 +37,11 @@ nav:
   - Day 4:
     - Neural Networks: day4.md  
   - Day 5:
-    - Graph Neural Networks: day5.md 
+    - Graph Neural Networks: dayx.md 
   - Day 6:
-    - Generative Models: day6.md 
+    - Generative Models: dayx.md 
   - Day 7:
-    - Advanced Models: day7.md 
+    - Advanced Models: dayx.md 
   - Summary: summary.md
 plugins:
   - search
