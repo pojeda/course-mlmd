@@ -353,6 +353,7 @@ while count fingerprints can provide more detailed information for machine learn
 **Parameters**:
 
 - **Radius**: Larger radius captures more context
+
   - Radius 1 (ECFP2): Immediate neighbors
   - Radius 2 (ECFP4): Common choice, balances local and broader context
   - Radius 3 (ECFP6): Larger substructures
@@ -1877,429 +1878,433 @@ QSAR models relate molecular structure to biological or chemical activity using 
 
 #### Train/Test Splitting
 
-```python
-from sklearn.model_selection import train_test_split
+??? note "Example"
 
-# Random split
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+    ```python
+    from sklearn.model_selection import train_test_split
 
-# Scaffold split for molecules
-from rdkit.Chem.Scaffolds import MurckoScaffold
-from collections import defaultdict
+    # Random split
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
-def scaffold_split(smiles_list, test_size=0.2):
-    """Split by molecular scaffolds"""
-    scaffolds = defaultdict(list)
-    
-    for idx, smiles in enumerate(smiles_list):
-        mol = Chem.MolFromSmiles(smiles)
-        scaffold = MurckoScaffold.MurckoScaffoldSmiles(mol=mol, includeChirality=False)
-        scaffolds[scaffold].append(idx)
-    
-    # Distribute scaffolds
-    scaffold_sets = sorted(list(scaffolds.values()), key=len, reverse=True)
-    
-    n_total = len(smiles_list)
-    n_test = int(n_total * test_size)
-    
-    train_idx, test_idx = [], []
-    train_count = 0
-    
-    for scaffold_set in scaffold_sets:
-        if train_count + len(scaffold_set) <= n_total - n_test:
-            train_idx.extend(scaffold_set)
-            train_count += len(scaffold_set)
-        else:
-            test_idx.extend(scaffold_set)
-    
-    return train_idx, test_idx
-```
+    # Scaffold split for molecules
+    from rdkit.Chem.Scaffolds import MurckoScaffold
+    from collections import defaultdict
 
-
+    def scaffold_split(smiles_list, test_size=0.2):
+        """Split by molecular scaffolds"""
+        scaffolds = defaultdict(list)
+        
+        for idx, smiles in enumerate(smiles_list):
+            mol = Chem.MolFromSmiles(smiles)
+            scaffold = MurckoScaffold.MurckoScaffoldSmiles(mol=mol, includeChirality=False)
+            scaffolds[scaffold].append(idx)
+        
+        # Distribute scaffolds
+        scaffold_sets = sorted(list(scaffolds.values()), key=len, reverse=True)
+        
+        n_total = len(smiles_list)
+        n_test = int(n_total * test_size)
+        
+        train_idx, test_idx = [], []
+        train_count = 0
+        
+        for scaffold_set in scaffold_sets:
+            if train_count + len(scaffold_set) <= n_total - n_test:
+                train_idx.extend(scaffold_set)
+                train_count += len(scaffold_set)
+            else:
+                test_idx.extend(scaffold_set)
+        
+        return train_idx, test_idx
+    ```
 
 ## 5. Practical Exercise: Solubility Prediction
 
 ### Complete Workflow
 
-```python
-import pandas as pd
-import numpy as np
-from rdkit import Chem
-from rdkit.Chem import Descriptors, AllChem
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-import matplotlib.pyplot as plt
+??? note "Example"
 
-# Step 1: Load Data
-url = "https://raw.githubusercontent.com/deepchem/deepchem/master/datasets/delaney-processed.csv"
-df = pd.read_csv(url)
-print(f"Dataset size: {len(df)}")
+    ```python
+    import pandas as pd
+    import numpy as np
+    from rdkit import Chem
+    from rdkit.Chem import Descriptors, AllChem
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+    import matplotlib.pyplot as plt
 
-# Step 2: Calculate Descriptors
-def calculate_descriptors(smiles):
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        return None
-    
-    return {
-        'MW': Descriptors.MolWt(mol),
-        'LogP': Descriptors.MolLogP(mol),
-        'NumHDonors': Descriptors.NumHDonors(mol),
-        'NumHAcceptors': Descriptors.NumHAcceptors(mol),
-        'TPSA': Descriptors.TPSA(mol),
-        'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
-        'NumAromaticRings': Descriptors.NumAromaticRings(mol),
-        'NumRings': Descriptors.RingCount(mol),
-        'MolMR': Descriptors.MolMR(mol),
-        'FractionCSP3': Descriptors.FractionCSP3(mol)
-    }
+    # Step 1: Load Data
+    url = "https://raw.githubusercontent.com/deepchem/deepchem/master/datasets/delaney-processed.csv"
+    df = pd.read_csv(url)
+    print(f"Dataset size: {len(df)}")
 
-desc_list = [calculate_descriptors(s) for s in df['smiles']]
-X_desc = pd.DataFrame([d for d in desc_list if d is not None])
-y = df['measured log solubility in mols per litre'].values[:len(X_desc)]
+    # Step 2: Calculate Descriptors
+    def calculate_descriptors(smiles):
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
+        
+        return {
+            'MW': Descriptors.MolWt(mol),
+            'LogP': Descriptors.MolLogP(mol),
+            'NumHDonors': Descriptors.NumHDonors(mol),
+            'NumHAcceptors': Descriptors.NumHAcceptors(mol),
+            'TPSA': Descriptors.TPSA(mol),
+            'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
+            'NumAromaticRings': Descriptors.NumAromaticRings(mol),
+            'NumRings': Descriptors.RingCount(mol),
+            'MolMR': Descriptors.MolMR(mol),
+            'FractionCSP3': Descriptors.FractionCSP3(mol)
+        }
 
-# Step 3: Train-Test Split
-X_train, X_test, y_train, y_test = train_test_split(
-    X_desc, y, test_size=0.2, random_state=42
-)
+    desc_list = [calculate_descriptors(s) for s in df['smiles']]
+    X_desc = pd.DataFrame([d for d in desc_list if d is not None])
+    y = df['measured log solubility in mols per litre'].values[:len(X_desc)]
 
-# Step 4: Scale Features
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
+    # Step 3: Train-Test Split
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_desc, y, test_size=0.2, random_state=42
+    )
 
-# Step 5: Train Model
-model = RandomForestRegressor(n_estimators=100, random_state=42)
-model.fit(X_train_scaled, y_train)
+    # Step 4: Scale Features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
 
-# Step 6: Evaluate
-y_pred = model.predict(X_test_scaled)
+    # Step 5: Train Model
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train_scaled, y_train)
 
-rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-mae = mean_absolute_error(y_test, y_pred)
-r2 = r2_score(y_test, y_pred)
+    # Step 6: Evaluate
+    y_pred = model.predict(X_test_scaled)
 
-print(f"\nResults:")
-print(f"RMSE: {rmse:.3f}")
-print(f"MAE:  {mae:.3f}")
-print(f"R²:   {r2:.3f}")
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
 
-# Step 7: Visualize
-plt.figure(figsize=(8, 8))
-plt.scatter(y_test, y_pred, alpha=0.5)
-plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
-plt.xlabel('True Solubility (log M)')
-plt.ylabel('Predicted Solubility (log M)')
-plt.title(f'Predictions (R² = {r2:.3f})')
-plt.axis('equal')
-plt.tight_layout()
-#plt.show()
-plt.savefig('solubilities.png', dpi=300, bbox_inches='tight')
-plt.close()
+    print(f"\nResults:")
+    print(f"RMSE: {rmse:.3f}")
+    print(f"MAE:  {mae:.3f}")
+    print(f"R²:   {r2:.3f}")
 
-# Step 8: Feature Importance
-importances = model.feature_importances_
-feature_importance_df = pd.DataFrame({
-    'feature': X_desc.columns,
-    'importance': importances
-}).sort_values('importance', ascending=False)
+    # Step 7: Visualize
+    plt.figure(figsize=(8, 8))
+    plt.scatter(y_test, y_pred, alpha=0.5)
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+    plt.xlabel('True Solubility (log M)')
+    plt.ylabel('Predicted Solubility (log M)')
+    plt.title(f'Predictions (R² = {r2:.3f})')
+    plt.axis('equal')
+    plt.tight_layout()
+    #plt.show()
+    plt.savefig('solubilities.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
-print("\nTop 5 Most Important Features:")
-print(feature_importance_df.head())
-```
+    # Step 8: Feature Importance
+    importances = model.feature_importances_
+    feature_importance_df = pd.DataFrame({
+        'feature': X_desc.columns,
+        'importance': importances
+    }).sort_values('importance', ascending=False)
+
+    print("\nTop 5 Most Important Features:")
+    print(feature_importance_df.head())
+    ```
 
 **Expected Results**:
+
 - Test RMSE: ~0.7-0.9 log units
 - R²: ~0.75-0.85
 - Key features: LogP, molecular weight, polar surface area
 
 
-
 ## 6. Example with SELFIES
 
-```python
-import numpy as np
-import selfies as sf
-from rdkit import Chem
-from rdkit.Chem import Descriptors, Crippen
+??? note "Example"
 
-# Convert SELFIES to molecule
-selfies_str = sf.encoder("CC(=O)Oc1ccccc1C(=O)O")  # Aspirin in SELFIES
-print(f"SELFIES representation: {selfies_str}")
+    ```python
+    import numpy as np
+    import selfies as sf
+    from rdkit import Chem
+    from rdkit.Chem import Descriptors, Crippen
 
-smiles = sf.decoder(selfies_str)
-mol = Chem.MolFromSmiles(smiles)
+    # Convert SELFIES to molecule
+    selfies_str = sf.encoder("CC(=O)Oc1ccccc1C(=O)O")  # Aspirin in SELFIES
+    print(f"SELFIES representation: {selfies_str}")
 
-# Molecular weight
-mw = Descriptors.MolWt(mol)
-print(f"Molecular Weight: {mw:.2f} g/mol")
+    smiles = sf.decoder(selfies_str)
+    mol = Chem.MolFromSmiles(smiles)
 
-# Lipophilicity (logP - octanol/water partition coefficient)
-logp = Crippen.MolLogP(mol)
-print(f"LogP: {logp:.2f}")
-# LogP > 5: Too lipophilic (Lipinski's Rule of Five)
-
-# Polar Surface Area
-tpsa = Descriptors.TPSA(mol)
-print(f"TPSA: {tpsa:.2f} Ų")
-# TPSA < 140: Likely to cross blood-brain barrier
-
-# Molar Refractivity
-mr = Crippen.MolMR(mol)
-print(f"Molar Refractivity: {mr:.2f}")
-
-####
-
-# Hydrogen bond donors and acceptors
-h_donors = Descriptors.NumHDonors(mol)
-h_acceptors = Descriptors.NumHAcceptors(mol)
-print(f"H-Bond Donors: {h_donors}")
-print(f"H-Bond Acceptors: {h_acceptors}")
-
-# Rotatable bonds (flexibility)
-rot_bonds = Descriptors.NumRotatableBonds(mol)
-print(f"Rotatable Bonds: {rot_bonds}")
-
-# Ring information
-num_rings = Descriptors.RingCount(mol)
-aromatic_rings = Descriptors.NumAromaticRings(mol)
-print(f"Total Rings: {num_rings}, Aromatic: {aromatic_rings}")
-
-# Fraction of sp3 carbons (saturation)
-frac_sp3 = Descriptors.FractionCSP3(mol)
-print(f"Fraction Csp3: {frac_sp3:.2f}")
-
-####
-
-from rdkit.Chem import GraphDescriptors
-
-# Balaban J index (molecular branching)
-balaban = GraphDescriptors.BalabanJ(mol)
-
-# Bertz complexity index
-bertz = GraphDescriptors.BertzCT(mol)
-
-# Chi indices (connectivity)
-chi0 = GraphDescriptors.Chi0(mol)
-chi1 = GraphDescriptors.Chi1(mol)
-
-####
-
-from rdkit.Chem import AllChem, Descriptors3D
-
-# Generate 3D coordinates
-mol_3d = Chem.AddHs(mol)
-AllChem.EmbedMolecule(mol_3d, randomSeed=42)
-AllChem.MMFFOptimizeMolecule(mol_3d)
-
-# 3D descriptors
-asphericity = Descriptors3D.Asphericity(mol_3d)
-eccentricity = Descriptors3D.Eccentricity(mol_3d)
-inertial_shape = Descriptors3D.InertialShapeFactor(mol_3d)
-radius_of_gyration = Descriptors3D.RadiusOfGyration(mol_3d)
-
-print(f"Radius of Gyration: {radius_of_gyration:.2f} Ų")
-
-####
-
-def lipinski_rule_of_five(mol):
-    """
-    Predicts if molecule is drug-like
-    Rules:
-    - MW <= 500
-    - LogP <= 5
-    - H-bond donors <= 5
-    - H-bond acceptors <= 10
-    """
+    # Molecular weight
     mw = Descriptors.MolWt(mol)
+    print(f"Molecular Weight: {mw:.2f} g/mol")
+
+    # Lipophilicity (logP - octanol/water partition coefficient)
     logp = Crippen.MolLogP(mol)
-    hbd = Descriptors.NumHDonors(mol)
-    hba = Descriptors.NumHAcceptors(mol)
-    
-    violations = 0
-    if mw > 500: violations += 1
-    if logp > 5: violations += 1
-    if hbd > 5: violations += 1
-    if hba > 10: violations += 1
-    
-    return violations <= 1  # Allow 1 violation
+    print(f"LogP: {logp:.2f}")
+    # LogP > 5: Too lipophilic (Lipinski's Rule of Five)
 
-is_druglike = lipinski_rule_of_five(mol)
-print(f"Passes Lipinski's Rule: {is_druglike}")
+    # Polar Surface Area
+    tpsa = Descriptors.TPSA(mol)
+    print(f"TPSA: {tpsa:.2f} Ų")
+    # TPSA < 140: Likely to cross blood-brain barrier
 
-####
+    # Molar Refractivity
+    mr = Crippen.MolMR(mol)
+    print(f"Molar Refractivity: {mr:.2f}")
 
-from rdkit.Chem import QED
+    ####
 
-qed_score = QED.qed(mol)
-print(f"QED Score: {qed_score:.3f}")
-# Range: [0, 1], higher is more drug-like
-# Based on 8 molecular properties
+    # Hydrogen bond donors and acceptors
+    h_donors = Descriptors.NumHDonors(mol)
+    h_acceptors = Descriptors.NumHAcceptors(mol)
+    print(f"H-Bond Donors: {h_donors}")
+    print(f"H-Bond Acceptors: {h_acceptors}")
 
-####
+    # Rotatable bonds (flexibility)
+    rot_bonds = Descriptors.NumRotatableBonds(mol)
+    print(f"Rotatable Bonds: {rot_bonds}")
 
-from rdkit.Chem import RDConfig
-import sys
-sys.path.append(f'{RDConfig.RDContribDir}/SA_Score')
-import sascorer
+    # Ring information
+    num_rings = Descriptors.RingCount(mol)
+    aromatic_rings = Descriptors.NumAromaticRings(mol)
+    print(f"Total Rings: {num_rings}, Aromatic: {aromatic_rings}")
 
-sa_score = sascorer.calculateScore(mol)
-print(f"SA Score: {sa_score:.2f}")
-# Range: [1, 10]
-# 1: Easy to synthesize
-# 10: Difficult to synthesize
+    # Fraction of sp3 carbons (saturation)
+    frac_sp3 = Descriptors.FractionCSP3(mol)
+    print(f"Fraction Csp3: {frac_sp3:.2f}")
 
-####
+    ####
 
-def calculate_molecular_descriptors(selfies_str):
-    """
-    Comprehensive descriptor calculation from SELFIES
-    """
-    # Convert SELFIES to SMILES then to molecule
-    smiles = sf.decoder(selfies_str)
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        return None
-    
-    # Add hydrogens for accurate calculations
-    mol = Chem.AddHs(mol)
-    
-    descriptors = {
-        # Physical
-        'MW': Descriptors.MolWt(mol),
-        'LogP': Crippen.MolLogP(mol),
-        'TPSA': Descriptors.TPSA(mol),
-        'MolMR': Crippen.MolMR(mol),
+    from rdkit.Chem import GraphDescriptors
+
+    # Balaban J index (molecular branching)
+    balaban = GraphDescriptors.BalabanJ(mol)
+
+    # Bertz complexity index
+    bertz = GraphDescriptors.BertzCT(mol)
+
+    # Chi indices (connectivity)
+    chi0 = GraphDescriptors.Chi0(mol)
+    chi1 = GraphDescriptors.Chi1(mol)
+
+    ####
+
+    from rdkit.Chem import AllChem, Descriptors3D
+
+    # Generate 3D coordinates
+    mol_3d = Chem.AddHs(mol)
+    AllChem.EmbedMolecule(mol_3d, randomSeed=42)
+    AllChem.MMFFOptimizeMolecule(mol_3d)
+
+    # 3D descriptors
+    asphericity = Descriptors3D.Asphericity(mol_3d)
+    eccentricity = Descriptors3D.Eccentricity(mol_3d)
+    inertial_shape = Descriptors3D.InertialShapeFactor(mol_3d)
+    radius_of_gyration = Descriptors3D.RadiusOfGyration(mol_3d)
+
+    print(f"Radius of Gyration: {radius_of_gyration:.2f} Ų")
+
+    ####
+
+    def lipinski_rule_of_five(mol):
+        """
+        Predicts if molecule is drug-like
+        Rules:
+        - MW <= 500
+        - LogP <= 5
+        - H-bond donors <= 5
+        - H-bond acceptors <= 10
+        """
+        mw = Descriptors.MolWt(mol)
+        logp = Crippen.MolLogP(mol)
+        hbd = Descriptors.NumHDonors(mol)
+        hba = Descriptors.NumHAcceptors(mol)
         
-        # Structural
-        'NumHDonors': Descriptors.NumHDonors(mol),
-        'NumHAcceptors': Descriptors.NumHAcceptors(mol),
-        'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
-        'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
-        'NumAromaticRings': Descriptors.NumAromaticRings(mol),
-        'NumSaturatedRings': Descriptors.NumSaturatedRings(mol),
-        'NumAliphaticRings': Descriptors.NumAliphaticRings(mol),
-        'RingCount': Descriptors.RingCount(mol),
+        violations = 0
+        if mw > 500: violations += 1
+        if logp > 5: violations += 1
+        if hbd > 5: violations += 1
+        if hba > 10: violations += 1
         
-        # Complexity
-        'BertzCT': GraphDescriptors.BertzCT(mol),
-        'NumBridgeheadAtoms': Descriptors.NumBridgeheadAtoms(mol),
-        'NumSpiroAtoms': Descriptors.NumSpiroAtoms(mol),
+        return violations <= 1  # Allow 1 violation
+
+    is_druglike = lipinski_rule_of_five(mol)
+    print(f"Passes Lipinski's Rule: {is_druglike}")
+
+    ####
+
+    from rdkit.Chem import QED
+
+    qed_score = QED.qed(mol)
+    print(f"QED Score: {qed_score:.3f}")
+    # Range: [0, 1], higher is more drug-like
+    # Based on 8 molecular properties
+
+    ####
+
+    from rdkit.Chem import RDConfig
+    import sys
+    sys.path.append(f'{RDConfig.RDContribDir}/SA_Score')
+    import sascorer
+
+    sa_score = sascorer.calculateScore(mol)
+    print(f"SA Score: {sa_score:.2f}")
+    # Range: [1, 10]
+    # 1: Easy to synthesize
+    # 10: Difficult to synthesize
+
+    ####
+
+    def calculate_molecular_descriptors(selfies_str):
+        """
+        Comprehensive descriptor calculation from SELFIES
+        """
+        # Convert SELFIES to SMILES then to molecule
+        smiles = sf.decoder(selfies_str)
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
         
-        # Electronic
-        'LabuteASA': Descriptors.LabuteASA(mol),
-        'PEOE_VSA1': Descriptors.PEOE_VSA1(mol),
+        # Add hydrogens for accurate calculations
+        mol = Chem.AddHs(mol)
         
-        # Counts
-        'NumCarbon': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 6]),
-        'NumNitrogen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 7]),
-        'NumOxygen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 8]),
-        'NumHalogens': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() in [9, 17, 35, 53]]),
+        descriptors = {
+            # Physical
+            'MW': Descriptors.MolWt(mol),
+            'LogP': Crippen.MolLogP(mol),
+            'TPSA': Descriptors.TPSA(mol),
+            'MolMR': Crippen.MolMR(mol),
+            
+            # Structural
+            'NumHDonors': Descriptors.NumHDonors(mol),
+            'NumHAcceptors': Descriptors.NumHAcceptors(mol),
+            'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
+            'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
+            'NumAromaticRings': Descriptors.NumAromaticRings(mol),
+            'NumSaturatedRings': Descriptors.NumSaturatedRings(mol),
+            'NumAliphaticRings': Descriptors.NumAliphaticRings(mol),
+            'RingCount': Descriptors.RingCount(mol),
+            
+            # Complexity
+            'BertzCT': GraphDescriptors.BertzCT(mol),
+            'NumBridgeheadAtoms': Descriptors.NumBridgeheadAtoms(mol),
+            'NumSpiroAtoms': Descriptors.NumSpiroAtoms(mol),
+            
+            # Electronic
+            'LabuteASA': Descriptors.LabuteASA(mol),
+            'PEOE_VSA1': Descriptors.PEOE_VSA1(mol),
+            
+            # Counts
+            'NumCarbon': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 6]),
+            'NumNitrogen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 7]),
+            'NumOxygen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 8]),
+            'NumHalogens': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() in [9, 17, 35, 53]]),
+            
+            # Saturation
+            'FractionCsp3': Descriptors.FractionCSP3(mol),
+            
+            # Drug-likeness
+            'QED': QED.qed(mol),
+        }
         
-        # Saturation
-        'FractionCsp3': Descriptors.FractionCSP3(mol),
+        return descriptors
+
+    # Example usage - Convert SMILES to SELFIES first
+    smiles_list = ["CCO", "CC(=O)Oc1ccccc1C(=O)O", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"]
+    selfies_list = [sf.encoder(s) for s in smiles_list]
+
+    print("\nSELFIES representations:")
+    for smiles, selfies_str in zip(smiles_list, selfies_list):
+        print(f"SMILES:  {smiles}")
+        print(f"SELFIES: {selfies_str}")
+        print()
+
+    import pandas as pd
+
+    descriptor_list = [calculate_molecular_descriptors(s) for s in selfies_list]
+    df_descriptors = pd.DataFrame(descriptor_list)
+    df_descriptors['SELFIES'] = selfies_list
+    df_descriptors['SMILES'] = smiles_list  # Optional: keep original SMILES for reference
+
+    print(df_descriptors)
+
+    ####
+
+    import networkx as nx
+
+    def mol_to_graph(selfies_str):
+        """Convert SELFIES molecule to NetworkX graph"""
+        smiles = sf.decoder(selfies_str)
+        mol = Chem.MolFromSmiles(smiles)
         
-        # Drug-likeness
-        'QED': QED.qed(mol),
-    }
-    
-    return descriptors
+        # Create graph
+        G = nx.Graph()
+        
+        # Add nodes (atoms)
+        for atom in mol.GetAtoms():
+            G.add_node(
+                atom.GetIdx(),
+                atomic_num=atom.GetAtomicNum(),
+                symbol=atom.GetSymbol(),
+                degree=atom.GetDegree(),
+                formal_charge=atom.GetFormalCharge(),
+                num_h=atom.GetTotalNumHs(),
+                hybridization=str(atom.GetHybridization()),
+                is_aromatic=atom.GetIsAromatic()
+            )
+        
+        # Add edges (bonds)
+        for bond in mol.GetBonds():
+            G.add_edge(
+                bond.GetBeginAtomIdx(),
+                bond.GetEndAtomIdx(),
+                bond_type=str(bond.GetBondType()),
+                is_conjugated=bond.GetIsConjugated(),
+                is_aromatic=bond.GetIsAromatic()
+            )
+        
+        return G
 
-# Example usage - Convert SMILES to SELFIES first
-smiles_list = ["CCO", "CC(=O)Oc1ccccc1C(=O)O", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"]
-selfies_list = [sf.encoder(s) for s in smiles_list]
-
-print("\nSELFIES representations:")
-for smiles, selfies_str in zip(smiles_list, selfies_list):
-    print(f"SMILES:  {smiles}")
-    print(f"SELFIES: {selfies_str}")
-    print()
-
-import pandas as pd
-
-descriptor_list = [calculate_molecular_descriptors(s) for s in selfies_list]
-df_descriptors = pd.DataFrame(descriptor_list)
-df_descriptors['SELFIES'] = selfies_list
-df_descriptors['SMILES'] = smiles_list  # Optional: keep original SMILES for reference
-
-print(df_descriptors)
-
-####
-
-import networkx as nx
-
-def mol_to_graph(selfies_str):
-    """Convert SELFIES molecule to NetworkX graph"""
-    smiles = sf.decoder(selfies_str)
-    mol = Chem.MolFromSmiles(smiles)
-    
-    # Create graph
-    G = nx.Graph()
-    
-    # Add nodes (atoms)
-    for atom in mol.GetAtoms():
-        G.add_node(
-            atom.GetIdx(),
-            atomic_num=atom.GetAtomicNum(),
-            symbol=atom.GetSymbol(),
-            degree=atom.GetDegree(),
-            formal_charge=atom.GetFormalCharge(),
-            num_h=atom.GetTotalNumHs(),
-            hybridization=str(atom.GetHybridization()),
-            is_aromatic=atom.GetIsAromatic()
-        )
-    
-    # Add edges (bonds)
-    for bond in mol.GetBonds():
-        G.add_edge(
-            bond.GetBeginAtomIdx(),
-            bond.GetEndAtomIdx(),
-            bond_type=str(bond.GetBondType()),
-            is_conjugated=bond.GetIsConjugated(),
-            is_aromatic=bond.GetIsAromatic()
-        )
-    
-    return G
-
-# Example
-selfies_ethanol = sf.encoder("CCO")
-G = mol_to_graph(selfies_ethanol)
-print(f"\nGraph from SELFIES: {selfies_ethanol}")
-print(f"Nodes: {G.number_of_nodes()}")
-print(f"Edges: {G.number_of_edges()}")
-print(f"Node features: {G.nodes[0]}")
+    # Example
+    selfies_ethanol = sf.encoder("CCO")
+    G = mol_to_graph(selfies_ethanol)
+    print(f"\nGraph from SELFIES: {selfies_ethanol}")
+    print(f"Nodes: {G.number_of_nodes()}")
+    print(f"Edges: {G.number_of_edges()}")
+    print(f"Node features: {G.nodes[0]}")
 
 
-####
+    ####
 
-def get_adjacency_matrix(selfies_str, max_atoms=50):
-    """Get adjacency matrix with padding from SELFIES"""
-    smiles = sf.decoder(selfies_str)
-    mol = Chem.MolFromSmiles(smiles)
-    num_atoms = mol.GetNumAtoms()
-    
-    # Initialize matrix
-    adj_matrix = np.zeros((max_atoms, max_atoms))
-    
-    # Fill adjacency matrix
-    for bond in mol.GetBonds():
-        i = bond.GetBeginAtomIdx()
-        j = bond.GetEndAtomIdx()
-        adj_matrix[i, j] = 1
-        adj_matrix[j, i] = 1  # Symmetric
-    
-    return adj_matrix, num_atoms
+    def get_adjacency_matrix(selfies_str, max_atoms=50):
+        """Get adjacency matrix with padding from SELFIES"""
+        smiles = sf.decoder(selfies_str)
+        mol = Chem.MolFromSmiles(smiles)
+        num_atoms = mol.GetNumAtoms()
+        
+        # Initialize matrix
+        adj_matrix = np.zeros((max_atoms, max_atoms))
+        
+        # Fill adjacency matrix
+        for bond in mol.GetBonds():
+            i = bond.GetBeginAtomIdx()
+            j = bond.GetEndAtomIdx()
+            adj_matrix[i, j] = 1
+            adj_matrix[j, i] = 1  # Symmetric
+        
+        return adj_matrix, num_atoms
 
-selfies_ethanol = sf.encoder("CCO")
-adj, n_atoms = get_adjacency_matrix(selfies_ethanol)
-print(f"\nAdjacency matrix from SELFIES: {selfies_ethanol}")
-print(f"Adjacency matrix shape: {adj.shape}")
-print(f"Actual atoms: {n_atoms}")
-```
+    selfies_ethanol = sf.encoder("CCO")
+    adj, n_atoms = get_adjacency_matrix(selfies_ethanol)
+    print(f"\nAdjacency matrix from SELFIES: {selfies_ethanol}")
+    print(f"Adjacency matrix shape: {adj.shape}")
+    print(f"Actual atoms: {n_atoms}")
+    ```
 
 ## 6. Practical Exercise: Complete ML Pipeline
 
@@ -2308,422 +2313,457 @@ Build a complete machine learning pipeline to predict molecular solubility. The 
 J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10.1021/ci034243x)
 
 ### Dataset
-```python
-import pandas as pd
-from rdkit import Chem
-from rdkit.Chem import Descriptors
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-import numpy as np
 
-# Load data - adjust column name for target variable
-data = pd.read_csv('esol.csv')
+??? note "Example"
 
-print(f"Dataset size: {len(data)}")
-print(data.head())
-print(f"Column names: {data.columns.tolist()}")
-```
+    ```python
+    import pandas as pd
+    from rdkit import Chem
+    from rdkit.Chem import Descriptors
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.model_selection import train_test_split, cross_val_score
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+    import numpy as np
+
+    # Load data - adjust column name for target variable
+    data = pd.read_csv('esol.csv')
+
+    print(f"Dataset size: {len(data)}")
+    print(data.head())
+    print(f"Column names: {data.columns.tolist()}")
+    ```
 
 ### Step 1: Feature Engineering
-```python
-def calculate_molecular_features(smiles):
-    """Calculate molecular descriptors from SMILES"""
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        return None
-    
-    features = {
-        'MolWt': Descriptors.MolWt(mol),
-        'LogP': Descriptors.MolLogP(mol),
-        'NumHDonors': Descriptors.NumHDonors(mol),
-        'NumHAcceptors': Descriptors.NumHAcceptors(mol),
-        'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
-        'NumAromaticRings': Descriptors.NumAromaticRings(mol),
-        'TPSA': Descriptors.TPSA(mol),
-        'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
-        'NumRings': Descriptors.RingCount(mol),
-        'NumSaturatedRings': Descriptors.NumSaturatedRings(mol)
-    }
-    
-    return features
 
-# Calculate features for all molecules
-features_list = []
-valid_indices = []
+??? note "Example"
 
-for idx, smiles in enumerate(data['SMILES']):
-    features = calculate_molecular_features(smiles)
-    if features is not None:
-        features_list.append(features)
-        valid_indices.append(idx)
+    ```python
+    def calculate_molecular_features(smiles):
+        """Calculate molecular descriptors from SMILES"""
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
+        
+        features = {
+            'MolWt': Descriptors.MolWt(mol),
+            'LogP': Descriptors.MolLogP(mol),
+            'NumHDonors': Descriptors.NumHDonors(mol),
+            'NumHAcceptors': Descriptors.NumHAcceptors(mol),
+            'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
+            'NumAromaticRings': Descriptors.NumAromaticRings(mol),
+            'TPSA': Descriptors.TPSA(mol),
+            'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
+            'NumRings': Descriptors.RingCount(mol),
+            'NumSaturatedRings': Descriptors.NumSaturatedRings(mol)
+        }
+        
+        return features
 
-# Create feature DataFrame
-X = pd.DataFrame(features_list)
-# Use the correct column name for solubility
-y = data.loc[valid_indices, 'measured log(solubility:mol/L)'].values
+    # Calculate features for all molecules
+    features_list = []
+    valid_indices = []
 
-print(f"\nFeatures shape: {X.shape}")
-print(f"Targets shape: {y.shape}")
-print(f"Valid molecules: {len(valid_indices)} / {len(data)}")
-```
+    for idx, smiles in enumerate(data['SMILES']):
+        features = calculate_molecular_features(smiles)
+        if features is not None:
+            features_list.append(features)
+            valid_indices.append(idx)
+
+    # Create feature DataFrame
+    X = pd.DataFrame(features_list)
+    # Use the correct column name for solubility
+    y = data.loc[valid_indices, 'measured log(solubility:mol/L)'].values
+
+    print(f"\nFeatures shape: {X.shape}")
+    print(f"Targets shape: {y.shape}")
+    print(f"Valid molecules: {len(valid_indices)} / {len(data)}")
+    ```
 
 ### Step 2: Data Validation and Exploration
-```python
-# Check for missing values
-print("\nMissing values:")
-print(X.isnull().sum())
 
-# Check distributions
-print("\nFeature statistics:")
-print(X.describe())
+??? note "Example"
 
-print("\nTarget statistics:")
-print(f"Mean: {y.mean():.3f}")
-print(f"Std: {y.std():.3f}")
-print(f"Min: {y.min():.3f}")
-print(f"Max: {y.max():.3f}")
+    ```python
+    # Check for missing values
+    print("\nMissing values:")
+    print(X.isnull().sum())
 
-# Visualize correlations
-import matplotlib.pyplot as plt
-import seaborn as sns
+    # Check distributions
+    print("\nFeature statistics:")
+    print(X.describe())
 
-plt.figure(figsize=(10, 8))
-correlations = X.corrwith(pd.Series(y, index=X.index))
-correlations.sort_values().plot(kind='barh')
-plt.xlabel('Correlation with Solubility')
-plt.title('Feature Correlations')
-plt.tight_layout()
-#plt.show()
-plt.savefig('feature_importance.png', dpi=300, bbox_inches='tight')
-plt.close()
-```
+    print("\nTarget statistics:")
+    print(f"Mean: {y.mean():.3f}")
+    print(f"Std: {y.std():.3f}")
+    print(f"Min: {y.min():.3f}")
+    print(f"Max: {y.max():.3f}")
 
-### Step 3: Train-Test Split
-```python
-# Split data
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+    # Visualize correlations
+    import matplotlib.pyplot as plt
+    import seaborn as sns
 
-print(f"\nTraining set size: {len(X_train)}")
-print(f"Test set size: {len(X_test)}")
-```
-
-### Step 4: Preprocessing
-```python
-# Standardize features
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
-```
-
-### Step 5: Model Training with Cross-Validation
-```python
-# Try different models
-from sklearn.linear_model import Ridge, Lasso
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.svm import SVR
-
-models = {
-    'Ridge': Ridge(alpha=1.0),
-    'Lasso': Lasso(alpha=0.1),
-    'Random Forest': RandomForestRegressor(n_estimators=100, random_state=42),
-    'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
-    'SVR': SVR(kernel='rbf', C=1.0)
-}
-
-# Cross-validation
-print("\nCross-validation results:")
-cv_results = {}
-
-for name, model in models.items():
-    scores = cross_val_score(model, X_train_scaled, y_train, cv=5, 
-                            scoring='r2', n_jobs=-1)
-    cv_results[name] = scores
-    print(f"{name:20s}: R² = {scores.mean():.3f} ± {scores.std():.3f}")
-
-# Select best model
-best_model_name = max(cv_results, key=lambda k: cv_results[k].mean())
-best_model = models[best_model_name]
-print(f"\nBest model: {best_model_name}")
-```
-
-### Step 6: Hyperparameter Tuning
-```python
-from sklearn.model_selection import RandomizedSearchCV
-
-# Tune the best model (Random Forest in this example)
-if best_model_name == 'Random Forest':
-    param_distributions = {
-        'n_estimators': [100, 200, 500],
-        'max_depth': [10, 20, 30, None],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'max_features': ['sqrt', 'log2', 0.5, 1.0, None]  # Changed: removed 'auto', added valid options
-    }
-    
-    random_search = RandomizedSearchCV(
-        RandomForestRegressor(random_state=42),
-        param_distributions,
-        n_iter=20,
-        cv=5,
-        scoring='r2',
-        n_jobs=-1,
-        random_state=42,
-        verbose=1
-    )
-    
-    random_search.fit(X_train_scaled, y_train)
-    
-    print(f"\nBest parameters: {random_search.best_params_}")
-    print(f"Best CV R²: {random_search.best_score_:.3f}")
-    
-    best_model = random_search.best_estimator_
-```
-
-### Step 7: Final Evaluation
-```python
-# Train on full training set
-best_model.fit(X_train_scaled, y_train)
-
-# Predict on test set
-y_pred_train = best_model.predict(X_train_scaled)
-y_pred_test = best_model.predict(X_test_scaled)
-
-# Calculate metrics
-train_r2 = r2_score(y_train, y_pred_train)
-train_rmse = np.sqrt(mean_squared_error(y_train, y_pred_train))
-train_mae = mean_absolute_error(y_train, y_pred_train)
-
-test_r2 = r2_score(y_test, y_pred_test)
-test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test))
-test_mae = mean_absolute_error(y_test, y_pred_test)
-
-print("\nFinal Results:")
-print(f"Training   - R²: {train_r2:.3f}, RMSE: {train_rmse:.3f}, MAE: {train_mae:.3f}")
-print(f"Test       - R²: {test_r2:.3f}, RMSE: {test_rmse:.3f}, MAE: {test_mae:.3f}")
-
-# Check for overfitting
-if train_r2 - test_r2 > 0.1:
-    print("\nWarning: Possible overfitting detected!")
-else:
-    print("\nModel generalizes well!")
-```
-
-### Step 8: Visualization and Analysis
-```python
-# Prediction plots
-fig, axes = plt.subplots(1, 2, figsize=(15, 6))
-
-# Training set
-axes[0].scatter(y_train, y_pred_train, alpha=0.5)
-axes[0].plot([y_train.min(), y_train.max()], 
-             [y_train.min(), y_train.max()], 'r--', lw=2)
-axes[0].set_xlabel('True Solubility')
-axes[0].set_ylabel('Predicted Solubility')
-axes[0].set_title(f'Training Set (R² = {train_r2:.3f})')
-axes[0].axis('equal')
-
-# Test set
-axes[1].scatter(y_test, y_pred_test, alpha=0.5)
-axes[1].plot([y_test.min(), y_test.max()], 
-             [y_test.min(), y_test.max()], 'r--', lw=2)
-axes[1].set_xlabel('True Solubility')
-axes[1].set_ylabel('Predicted Solubility')
-axes[1].set_title(f'Test Set (R² = {test_r2:.3f})')
-axes[1].axis('equal')
-
-plt.tight_layout()
-#plt.show()
-plt.savefig('predicted_solubility.png', dpi=300, bbox_inches='tight')
-plt.close()
-
-# Feature importance (for tree-based models)
-if hasattr(best_model, 'feature_importances_'):
-    importances = pd.DataFrame({
-        'feature': X.columns,
-        'importance': best_model.feature_importances_
-    }).sort_values('importance', ascending=False)
-    
-    print("\nTop 5 Most Important Features:")
-    print(importances.head())
-    
-    plt.figure(figsize=(10, 6))
-    importances.plot(x='feature', y='importance', kind='barh')
-    plt.xlabel('Importance')
-    plt.title('Feature Importance')
+    plt.figure(figsize=(10, 8))
+    correlations = X.corrwith(pd.Series(y, index=X.index))
+    correlations.sort_values().plot(kind='barh')
+    plt.xlabel('Correlation with Solubility')
+    plt.title('Feature Correlations')
     plt.tight_layout()
     #plt.show()
-    plt.savefig('best_feature_importance.png', dpi=300, bbox_inches='tight')
+    plt.savefig('feature_importance.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    ```
+
+### Step 3: Train-Test Split
+
+??? note "Example"
+
+    ```python
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    print(f"\nTraining set size: {len(X_train)}")
+    print(f"Test set size: {len(X_test)}")
+    ```
+
+### Step 4: Preprocessing
+
+??? note "Example"
+
+    ```python
+    # Standardize features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    ```
+
+### Step 5: Model Training with Cross-Validation
+
+??? note "Example"
+
+    ```python
+    # Try different models
+    from sklearn.linear_model import Ridge, Lasso
+    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+    from sklearn.svm import SVR
+
+    models = {
+        'Ridge': Ridge(alpha=1.0),
+        'Lasso': Lasso(alpha=0.1),
+        'Random Forest': RandomForestRegressor(n_estimators=100, random_state=42),
+        'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
+        'SVR': SVR(kernel='rbf', C=1.0)
+    }
+
+    # Cross-validation
+    print("\nCross-validation results:")
+    cv_results = {}
+
+    for name, model in models.items():
+        scores = cross_val_score(model, X_train_scaled, y_train, cv=5, 
+                                scoring='r2', n_jobs=-1)
+        cv_results[name] = scores
+        print(f"{name:20s}: R² = {scores.mean():.3f} ± {scores.std():.3f}")
+
+    # Select best model
+    best_model_name = max(cv_results, key=lambda k: cv_results[k].mean())
+    best_model = models[best_model_name]
+    print(f"\nBest model: {best_model_name}")
+    ```
+
+### Step 6: Hyperparameter Tuning
+
+??? note "Example"
+
+    ```python
+    from sklearn.model_selection import RandomizedSearchCV
+
+    # Tune the best model (Random Forest in this example)
+    if best_model_name == 'Random Forest':
+        param_distributions = {
+            'n_estimators': [100, 200, 500],
+            'max_depth': [10, 20, 30, None],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 4],
+            'max_features': ['sqrt', 'log2', 0.5, 1.0, None]  # Changed: removed 'auto', added valid options
+        }
+        
+        random_search = RandomizedSearchCV(
+            RandomForestRegressor(random_state=42),
+            param_distributions,
+            n_iter=20,
+            cv=5,
+            scoring='r2',
+            n_jobs=-1,
+            random_state=42,
+            verbose=1
+        )
+        
+        random_search.fit(X_train_scaled, y_train)
+        
+        print(f"\nBest parameters: {random_search.best_params_}")
+        print(f"Best CV R²: {random_search.best_score_:.3f}")
+        
+        best_model = random_search.best_estimator_
+    ```
+
+### Step 7: Final Evaluation
+
+??? note "Example"
+
+    ```python
+    # Train on full training set
+    best_model.fit(X_train_scaled, y_train)
+
+    # Predict on test set
+    y_pred_train = best_model.predict(X_train_scaled)
+    y_pred_test = best_model.predict(X_test_scaled)
+
+    # Calculate metrics
+    train_r2 = r2_score(y_train, y_pred_train)
+    train_rmse = np.sqrt(mean_squared_error(y_train, y_pred_train))
+    train_mae = mean_absolute_error(y_train, y_pred_train)
+
+    test_r2 = r2_score(y_test, y_pred_test)
+    test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test))
+    test_mae = mean_absolute_error(y_test, y_pred_test)
+
+    print("\nFinal Results:")
+    print(f"Training   - R²: {train_r2:.3f}, RMSE: {train_rmse:.3f}, MAE: {train_mae:.3f}")
+    print(f"Test       - R²: {test_r2:.3f}, RMSE: {test_rmse:.3f}, MAE: {test_mae:.3f}")
+
+    # Check for overfitting
+    if train_r2 - test_r2 > 0.1:
+        print("\nWarning: Possible overfitting detected!")
+    else:
+        print("\nModel generalizes well!")
+    ```
+
+### Step 8: Visualization and Analysis
+
+??? note "Example"
+
+    ```python
+    # Prediction plots
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+
+    # Training set
+    axes[0].scatter(y_train, y_pred_train, alpha=0.5)
+    axes[0].plot([y_train.min(), y_train.max()], 
+                [y_train.min(), y_train.max()], 'r--', lw=2)
+    axes[0].set_xlabel('True Solubility')
+    axes[0].set_ylabel('Predicted Solubility')
+    axes[0].set_title(f'Training Set (R² = {train_r2:.3f})')
+    axes[0].axis('equal')
+
+    # Test set
+    axes[1].scatter(y_test, y_pred_test, alpha=0.5)
+    axes[1].plot([y_test.min(), y_test.max()], 
+                [y_test.min(), y_test.max()], 'r--', lw=2)
+    axes[1].set_xlabel('True Solubility')
+    axes[1].set_ylabel('Predicted Solubility')
+    axes[1].set_title(f'Test Set (R² = {test_r2:.3f})')
+    axes[1].axis('equal')
+
+    plt.tight_layout()
+    #plt.show()
+    plt.savefig('predicted_solubility.png', dpi=300, bbox_inches='tight')
     plt.close()
 
-# Residual analysis
-residuals = y_test - y_pred_test
+    # Feature importance (for tree-based models)
+    if hasattr(best_model, 'feature_importances_'):
+        importances = pd.DataFrame({
+            'feature': X.columns,
+            'importance': best_model.feature_importances_
+        }).sort_values('importance', ascending=False)
+        
+        print("\nTop 5 Most Important Features:")
+        print(importances.head())
+        
+        plt.figure(figsize=(10, 6))
+        importances.plot(x='feature', y='importance', kind='barh')
+        plt.xlabel('Importance')
+        plt.title('Feature Importance')
+        plt.tight_layout()
+        #plt.show()
+        plt.savefig('best_feature_importance.png', dpi=300, bbox_inches='tight')
+        plt.close()
 
-plt.figure(figsize=(12, 4))
+    # Residual analysis
+    residuals = y_test - y_pred_test
 
-plt.subplot(131)
-plt.scatter(y_pred_test, residuals, alpha=0.5)
-plt.axhline(y=0, color='r', linestyle='--')
-plt.xlabel('Predicted Values')
-plt.ylabel('Residuals')
-plt.title('Residual Plot')
+    plt.figure(figsize=(12, 4))
 
-plt.subplot(132)
-plt.hist(residuals, bins=30, edgecolor='black')
-plt.xlabel('Residuals')
-plt.ylabel('Frequency')
-plt.title('Residual Distribution')
+    plt.subplot(131)
+    plt.scatter(y_pred_test, residuals, alpha=0.5)
+    plt.axhline(y=0, color='r', linestyle='--')
+    plt.xlabel('Predicted Values')
+    plt.ylabel('Residuals')
+    plt.title('Residual Plot')
 
-plt.subplot(133)
-from scipy import stats
-stats.probplot(residuals, dist="norm", plot=plt)
-plt.title('Q-Q Plot')
+    plt.subplot(132)
+    plt.hist(residuals, bins=30, edgecolor='black')
+    plt.xlabel('Residuals')
+    plt.ylabel('Frequency')
+    plt.title('Residual Distribution')
 
-plt.tight_layout()
-#plt.show()
-plt.savefig('residuals.png', dpi=300, bbox_inches='tight')
-plt.close()
-```
+    plt.subplot(133)
+    from scipy import stats
+    stats.probplot(residuals, dist="norm", plot=plt)
+    plt.title('Q-Q Plot')
+
+    plt.tight_layout()
+    #plt.show()
+    plt.savefig('residuals.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    ```
 
 ### Step 9: Model Persistence
-```python
-import joblib
 
-# Save model and scaler
-joblib.dump(best_model, 'solubility_model.pkl')
-joblib.dump(scaler, 'solubility_scaler.pkl')
+??? note "Example"
 
-print("\nModel saved successfully!")
+    ```python
+    import joblib
 
-# Load and use model
-loaded_model = joblib.load('solubility_model.pkl')
-loaded_scaler = joblib.load('solubility_scaler.pkl')
+    # Save model and scaler
+    joblib.dump(best_model, 'solubility_model.pkl')
+    joblib.dump(scaler, 'solubility_scaler.pkl')
 
-# Make prediction for new molecule
-new_smiles = "CCO"  # Ethanol
-new_features = calculate_molecular_features(new_smiles)
-new_X = pd.DataFrame([new_features])
-new_X_scaled = loaded_scaler.transform(new_X)
-prediction = loaded_model.predict(new_X_scaled)
+    print("\nModel saved successfully!")
 
-print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
-```
+    # Load and use model
+    loaded_model = joblib.load('solubility_model.pkl')
+    loaded_scaler = joblib.load('solubility_scaler.pkl')
+
+    # Make prediction for new molecule
+    new_smiles = "CCO"  # Ethanol
+    new_features = calculate_molecular_features(new_smiles)
+    new_X = pd.DataFrame([new_features])
+    new_X_scaled = loaded_scaler.transform(new_X)
+    prediction = loaded_model.predict(new_X_scaled)
+
+    print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
+    ```
 
 ## 7. Practical example: QM9
 
-```python
-# Classical machine learning with QM9
-# Model: Random Forest Regressor
-# Target: HOMO energy
+??? note "Example"
 
-import numpy as np
-import pandas as pd
+    ```python
+    # Classical machine learning with QM9
+    # Model: Random Forest Regressor
+    # Target: HOMO energy
 
-import deepchem as dc
+    import numpy as np
+    import pandas as pd
 
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+    import deepchem as dc
 
-# 1. Load QM9 dataset
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-tasks, datasets, transformers = dc.molnet.load_qm9(
-    featurizer="ECFP",
-    splitter="random"
-)
+    # 1. Load QM9 dataset
 
-train_dataset, valid_dataset, test_dataset = datasets
+    tasks, datasets, transformers = dc.molnet.load_qm9(
+        featurizer="ECFP",
+        splitter="random"
+    )
 
-print("QM9 tasks:")
-print(tasks)
+    train_dataset, valid_dataset, test_dataset = datasets
 
-# 2. Select target property
+    print("QM9 tasks:")
+    print(tasks)
 
-target_name = "homo"
-target_index = tasks.index(target_name)
+    # 2. Select target property
 
-# DeepChem datasets store:
-# X = molecular features
-# y = target values
+    target_name = "homo"
+    target_index = tasks.index(target_name)
 
-X_train = train_dataset.X
-y_train = train_dataset.y[:, target_index]
+    # DeepChem datasets store:
+    # X = molecular features
+    # y = target values
 
-X_valid = valid_dataset.X
-y_valid = valid_dataset.y[:, target_index]
+    X_train = train_dataset.X
+    y_train = train_dataset.y[:, target_index]
 
-X_test = test_dataset.X
-y_test = test_dataset.y[:, target_index]
+    X_valid = valid_dataset.X
+    y_valid = valid_dataset.y[:, target_index]
 
-print("\nTraining shape:", X_train.shape)
-print("Validation shape:", X_valid.shape)
-print("Test shape:", X_test.shape)
+    X_test = test_dataset.X
+    y_test = test_dataset.y[:, target_index]
 
-# 3. Train classical ML model
+    print("\nTraining shape:", X_train.shape)
+    print("Validation shape:", X_valid.shape)
+    print("Test shape:", X_test.shape)
 
-model = RandomForestRegressor(
-    n_estimators=100,
-    max_depth=None,
-    random_state=42,
-    n_jobs=-1
-)
+    # 3. Train classical ML model
 
-model.fit(X_train, y_train)
+    model = RandomForestRegressor(
+        n_estimators=100,
+        max_depth=None,
+        random_state=42,
+        n_jobs=-1
+    )
 
-# 4. Validate model
+    model.fit(X_train, y_train)
 
-y_valid_pred = model.predict(X_valid)
+    # 4. Validate model
 
-valid_mae = mean_absolute_error(y_valid, y_valid_pred)
-valid_rmse = np.sqrt(mean_squared_error(y_valid, y_valid_pred))
-valid_r2 = r2_score(y_valid, y_valid_pred)
+    y_valid_pred = model.predict(X_valid)
 
-print("\nValidation performance")
-print(f"MAE:  {valid_mae:.4f}")
-print(f"RMSE: {valid_rmse:.4f}")
-print(f"R²:   {valid_r2:.4f}")
+    valid_mae = mean_absolute_error(y_valid, y_valid_pred)
+    valid_rmse = np.sqrt(mean_squared_error(y_valid, y_valid_pred))
+    valid_r2 = r2_score(y_valid, y_valid_pred)
 
-# 5. Final test evaluation
+    print("\nValidation performance")
+    print(f"MAE:  {valid_mae:.4f}")
+    print(f"RMSE: {valid_rmse:.4f}")
+    print(f"R²:   {valid_r2:.4f}")
 
-y_test_pred = model.predict(X_test)
+    # 5. Final test evaluation
 
-test_mae = mean_absolute_error(y_test, y_test_pred)
-test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
-test_r2 = r2_score(y_test, y_test_pred)
+    y_test_pred = model.predict(X_test)
 
-print("\nTest performance")
-print(f"MAE:  {test_mae:.4f}")
-print(f"RMSE: {test_rmse:.4f}")
-print(f"R²:   {test_r2:.4f}")
+    test_mae = mean_absolute_error(y_test, y_test_pred)
+    test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
+    test_r2 = r2_score(y_test, y_test_pred)
 
-# 6. Compare true vs predicted values
+    print("\nTest performance")
+    print(f"MAE:  {test_mae:.4f}")
+    print(f"RMSE: {test_rmse:.4f}")
+    print(f"R²:   {test_r2:.4f}")
 
-results = pd.DataFrame({
-    "true_homo": y_test[:10],
-    "predicted_homo": y_test_pred[:10]
-})
+    # 6. Compare true vs predicted values
 
-print("\nExample predictions:")
-print(results)
-```
+    results = pd.DataFrame({
+        "true_homo": y_test[:10],
+        "predicted_homo": y_test_pred[:10]
+    })
+
+    print("\nExample predictions:")
+    print(results)
+    ```
 
 ## 8. Key Takeaways
 
 ### Molecular Representations
+
 - **SMILES**: Compact text representation, requires careful handling
 - **Fingerprints**: Fixed-length vectors, good for similarity and ML
 - **Descriptors**: Interpretable features, require domain knowledge
 - **Graphs**: Natural representation, enables GNNs (Day 3)
 
 ### Traditional ML Methods
+
 - **Random Forests**: Robust baseline, handles non-linearity, provides feature importance
 - **SVMs**: Effective in high dimensions, requires scaling
 - **Gaussian Processes**: Provides uncertainty, excellent for active learning
 - **Gradient Boosting**: Often best performance, requires careful tuning
 
 ### Best Practices
+
 1. Always validate molecular structures
 2. Use scaffold-based splits for realistic evaluation
 3. Scale features appropriately for each algorithm
@@ -2733,23 +2773,25 @@ print(results)
 7. Check for data leakage in preprocessing
 
 ### Common Pitfalls
+
 - Using random splits instead of scaffold splits
 - Forgetting to scale features for SVMs
 - Not handling invalid SMILES
 - Overfitting due to small datasets
 - Ignoring uncertainty in predictions
 
----
 
 ## 9. Resources and Further Reading
 
 ### Software Libraries
+
 - **RDKit**: Cheminformatics toolkit - https://www.rdkit.org/
 - **scikit-learn**: Machine learning library - https://scikit-learn.org/
 - **Pandas**: Data manipulation - https://pandas.pydata.org/
 - **Matplotlib**: Visualization
 
 ### Databases
+
 - **PubChem**: https://pubchem.ncbi.nlm.nih.gov/
 - **ChEMBL**: https://www.ebi.ac.uk/chembl/
 - **ZINC**: https://zinc.docking.org/
@@ -2757,45 +2799,16 @@ print(results)
 - **QM9**: http://quantum-machine.org/datasets/
 
 ### Papers
+
 - "Molecular descriptors for chemoinformatics" - Todeschini & Consonni
 - "Machine Learning in Materials Informatics" - Butler et al., 2018
 - "Guidelines for ML predictive models in biomedical research" - Luo et al., 2016
 - "Deep Learning for Molecular Design" - Elton et al., 2019
 
 ### Tutorials
+
 - RDKit Cookbook - https://www.rdkit.org/docs/Cookbook.html
 - Scikit-learn User Guide - https://scikit-learn.org/stable/user_guide.html
 - DeepChem Tutorials - https://deepchem.io/
 
 
-## Homework Assignment
-
-1. **Data Exploration**
-   - Download QM9 dataset
-   - Calculate descriptors for 1000 random molecules
-   - Visualize descriptor distributions and correlations
-
-2. **Classification Model**
-   - Build a model to predict if a molecule has dipole moment > 2 Debye
-   - Use both descriptors and fingerprints
-   - Report precision, recall, and AUC
-
-3. **Model Comparison**
-   - Compare Random Forest, SVM, and Gradient Boosting
-   - Use 5-fold cross-validation
-   - Create visualizations comparing performance
-
-4. **Feature Analysis**
-   - Identify the top 5 most important features
-   - Explain why these features are relevant
-   - Visualize feature importance
-
-5. **Advanced Challenge**
-   - Implement scaffold-based splitting
-   - Compare performance with random split
-   - Discuss implications for model generalization
-
-6. **Prepare Questions**
-   - Review neural networks basics (Day 0)
-   - Think about limitations of traditional ML for molecules
-   - Prepare questions for Day 2 on deep learning
