@@ -29,19 +29,19 @@ extra_css:
 nav:
   - Home: index.md
   - Day 1: 
-    - Mathematics for Machine Learning: daym.md
+    - Mathematics for Machine Learning: day1.md
   - Day 2:
-    - Machine Learning Concepts: day0.md
+    - Machine Learning Concepts: day2.md
   - Day 3: 
-    - ML for Molecular Systems: day1.md
+    - ML for Molecular Systems: day3.md
   - Day 4:
-    - Neural Networks: day2.md  
+    - Neural Networks: day4.md  
   - Day 5:
-    - Graph Neural Networks: day3.md 
+    - Graph Neural Networks: day5.md 
   - Day 6:
-    - Generative Models: day4.md 
+    - Generative Models: day6.md 
   - Day 7:
-    - Advanced Models: day5.md 
+    - Advanced Models: day7.md 
   - Summary: summary.md
 plugins:
   - search
