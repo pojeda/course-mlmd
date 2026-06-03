@@ -194,30 +194,32 @@ where:
 
 **Forward Propagation Example:**
 
-```python
-# Simple 3-layer network
-import numpy as np
+??? note "Example"
 
-def forward_propagation(X, parameters):
-    """
-    X: input features (n_features, m_samples)
-    parameters: dictionary containing W1, b1, W2, b2, W3, b3
-    """
-    # Layer 1: Input → Hidden (128 neurons)
-    Z1 = np.dot(parameters['W1'], X) + parameters['b1']
-    A1 = relu(Z1)
-    
-    # Layer 2: Hidden → Hidden (64 neurons)
-    Z2 = np.dot(parameters['W2'], A1) + parameters['b2']
-    A2 = relu(Z2)
-    
-    # Layer 3: Hidden → Output (1 neuron for regression)
-    Z3 = np.dot(parameters['W3'], A2) + parameters['b3']
-    A3 = Z3  # Linear activation for regression
-    
-    cache = {'Z1': Z1, 'A1': A1, 'Z2': Z2, 'A2': A2, 'Z3': Z3, 'A3': A3}
-    return A3, cache
-```
+    ```python
+    # Simple 3-layer network
+    import numpy as np
+
+    def forward_propagation(X, parameters):
+        """
+        X: input features (n_features, m_samples)
+        parameters: dictionary containing W1, b1, W2, b2, W3, b3
+        """
+        # Layer 1: Input → Hidden (128 neurons)
+        Z1 = np.dot(parameters['W1'], X) + parameters['b1']
+        A1 = relu(Z1)
+        
+        # Layer 2: Hidden → Hidden (64 neurons)
+        Z2 = np.dot(parameters['W2'], A1) + parameters['b2']
+        A2 = relu(Z2)
+        
+        # Layer 3: Hidden → Output (1 neuron for regression)
+        Z3 = np.dot(parameters['W3'], A2) + parameters['b3']
+        A3 = Z3  # Linear activation for regression
+        
+        cache = {'Z1': Z1, 'A1': A1, 'Z2': Z2, 'A2': A2, 'Z3': Z3, 'A3': A3}
+        return A3, cache
+    ```
 
 ### 1.3 Activation Functions
 
@@ -657,59 +659,61 @@ where:
 The following implementation computes gradients for a neural network with two hidden ReLU layers 
 and a linear output layer.
 
-```python 
-def backward_propagation(X, Y, cache, parameters):
-    """
-    Backpropagation for a 3-layer neural network.
+??? note "Example"
 
-    Architecture:
-        Input -> ReLU -> ReLU -> Linear Output
+    ```python 
+    def backward_propagation(X, Y, cache, parameters):
+        """
+        Backpropagation for a 3-layer neural network.
 
-    Args:
-        X: input features
-        Y: true target values
-        cache: stored activations and pre-activations
-        parameters: dictionary containing weights and biases
+        Architecture:
+            Input -> ReLU -> ReLU -> Linear Output
 
-    Returns:
-        gradients: dictionary of parameter gradients
-    """
+        Args:
+            X: input features
+            Y: true target values
+            cache: stored activations and pre-activations
+            parameters: dictionary containing weights and biases
 
-    m = X.shape[1]
+        Returns:
+            gradients: dictionary of parameter gradients
+        """
 
-    # Retrieve cached values
-    A1, A2, A3 = cache['A1'], cache['A2'], cache['A3']
-    Z1, Z2 = cache['Z1'], cache['Z2']
+        m = X.shape[1]
 
-    # Output layer gradient
-    # Linear output with MSE loss
-    dZ3 = A3 - Y
+        # Retrieve cached values
+        A1, A2, A3 = cache['A1'], cache['A2'], cache['A3']
+        Z1, Z2 = cache['Z1'], cache['Z2']
 
-    dW3 = (1 / m) * np.dot(dZ3, A2.T)
-    db3 = (1 / m) * np.sum(dZ3, axis=1, keepdims=True)
+        # Output layer gradient
+        # Linear output with MSE loss
+        dZ3 = A3 - Y
 
-    # Hidden layer 2
-    dA2 = np.dot(parameters['W3'].T, dZ3)
-    dZ2 = dA2 * relu_derivative(Z2)
+        dW3 = (1 / m) * np.dot(dZ3, A2.T)
+        db3 = (1 / m) * np.sum(dZ3, axis=1, keepdims=True)
 
-    dW2 = (1 / m) * np.dot(dZ2, A1.T)
-    db2 = (1 / m) * np.sum(dZ2, axis=1, keepdims=True)
+        # Hidden layer 2
+        dA2 = np.dot(parameters['W3'].T, dZ3)
+        dZ2 = dA2 * relu_derivative(Z2)
 
-    # Hidden layer 1
-    dA1 = np.dot(parameters['W2'].T, dZ2)
-    dZ1 = dA1 * relu_derivative(Z1)
+        dW2 = (1 / m) * np.dot(dZ2, A1.T)
+        db2 = (1 / m) * np.sum(dZ2, axis=1, keepdims=True)
 
-    dW1 = (1 / m) * np.dot(dZ1, X.T)
-    db1 = (1 / m) * np.sum(dZ1, axis=1, keepdims=True)
+        # Hidden layer 1
+        dA1 = np.dot(parameters['W2'].T, dZ2)
+        dZ1 = dA1 * relu_derivative(Z1)
 
-    gradients = {
-        'dW1': dW1, 'db1': db1,
-        'dW2': dW2, 'db2': db2,
-        'dW3': dW3, 'db3': db3
-    }
+        dW1 = (1 / m) * np.dot(dZ1, X.T)
+        db1 = (1 / m) * np.sum(dZ1, axis=1, keepdims=True)
 
-    return gradients
-```
+        gradients = {
+            'dW1': dW1, 'db1': db1,
+            'dW2': dW2, 'db2': db2,
+            'dW3': dW3, 'db3': db3
+        }
+
+        return gradients
+    ```
 
 ### 1.5 Optimization Algorithms
 
@@ -827,50 +831,52 @@ Typical batch sizes range from (32) to (256).
 * Faster than full batch gradient descent
 * Provides a good balance between convergence quality and computational cost
 
-```python
-def mini_batch_gradient_descent(
-    X,
-    Y,
-    parameters,
-    batch_size=32,
-    learning_rate=0.01
-):
-    """
-    Mini-batch gradient descent implementation.
-    """
+??? note "Example"
 
-    m = X.shape[1]
-    num_batches = m // batch_size
+    ```python
+    def mini_batch_gradient_descent(
+        X,
+        Y,
+        parameters,
+        batch_size=32,
+        learning_rate=0.01
+    ):
+        """
+        Mini-batch gradient descent implementation.
+        """
 
-    for i in range(num_batches):
+        m = X.shape[1]
+        num_batches = m // batch_size
 
-        # Create mini-batch
-        start = i * batch_size
-        end = start + batch_size
+        for i in range(num_batches):
 
-        X_batch = X[:, start:end]
-        Y_batch = Y[:, start:end]
+            # Create mini-batch
+            start = i * batch_size
+            end = start + batch_size
 
-        # Forward propagation
-        predictions, cache = forward_propagation(X_batch, parameters)
+            X_batch = X[:, start:end]
+            Y_batch = Y[:, start:end]
 
-        # Backpropagation
-        gradients = backward_propagation(
-            X_batch,
-            Y_batch,
-            cache,
-            parameters
-        )
+            # Forward propagation
+            predictions, cache = forward_propagation(X_batch, parameters)
 
-        # Parameter update
-        parameters = gradient_descent(
-            parameters,
-            gradients,
-            learning_rate
-        )
+            # Backpropagation
+            gradients = backward_propagation(
+                X_batch,
+                Y_batch,
+                cache,
+                parameters
+            )
 
-    return parameters
-```
+            # Parameter update
+            parameters = gradient_descent(
+                parameters,
+                gradients,
+                learning_rate
+            )
+
+        return parameters
+    ```
 
 
 #### Momentum
@@ -909,33 +915,35 @@ where:
 * Reduced oscillations
 * Improved optimization in narrow valleys of the loss surface
 
-```python
-def momentum_optimizer(
-    parameters,
-    gradients,
-    velocity,
-    beta=0.9,
-    learning_rate=0.01
-):
-    """
-    Parameter update with momentum.
-    """
+??? note "Example"
 
-    for key in parameters.keys():
+    ```python
+    def momentum_optimizer(
+        parameters,
+        gradients,
+        velocity,
+        beta=0.9,
+        learning_rate=0.01
+    ):
+        """
+        Parameter update with momentum.
+        """
 
-        # Update velocity
-        velocity['v' + key] = (
-            beta * velocity['v' + key]
-            + (1 - beta) * gradients['d' + key]
-        )
+        for key in parameters.keys():
 
-        # Update parameters
-        parameters[key] -= (
-            learning_rate * velocity['v' + key]
-        )
+            # Update velocity
+            velocity['v' + key] = (
+                beta * velocity['v' + key]
+                + (1 - beta) * gradients['d' + key]
+            )
 
-    return parameters, velocity
-```
+            # Update parameters
+            parameters[key] -= (
+                learning_rate * velocity['v' + key]
+            )
+
+        return parameters, velocity
+    ```
 
 
 #### RMSprop (Root Mean Square Propagation)
@@ -979,36 +987,38 @@ where:
 * Works well for non-stationary objectives
 * Particularly useful for recurrent neural networks
 
-```python
-def rmsprop_optimizer(
-    parameters,
-    gradients,
-    cache,
-    beta=0.9,
-    learning_rate=0.001,
-    epsilon=1e-8
-):
-    """
-    RMSprop optimization.
-    """
+??? note "Example"
 
-    for key in parameters.keys():
+    ```python
+    def rmsprop_optimizer(
+        parameters,
+        gradients,
+        cache,
+        beta=0.9,
+        learning_rate=0.001,
+        epsilon=1e-8
+    ):
+        """
+        RMSprop optimization.
+        """
 
-        # Update squared gradient cache
-        cache['s' + key] = (
-            beta * cache['s' + key]
-            + (1 - beta) * gradients['d' + key] ** 2
-        )
+        for key in parameters.keys():
 
-        # Update parameters
-        parameters[key] -= (
-            learning_rate
-            * gradients['d' + key]
-            / (np.sqrt(cache['s' + key]) + epsilon)
-        )
+            # Update squared gradient cache
+            cache['s' + key] = (
+                beta * cache['s' + key]
+                + (1 - beta) * gradients['d' + key] ** 2
+            )
 
-    return parameters, cache
-```
+            # Update parameters
+            parameters[key] -= (
+                learning_rate
+                * gradients['d' + key]
+                / (np.sqrt(cache['s' + key]) + epsilon)
+            )
+
+        return parameters, cache
+    ```
 
 
 #### Adam (Adaptive Moment Estimation)
@@ -1086,57 +1096,57 @@ $$
 * Works well with sparse gradients
 * Excellent default optimizer for many deep learning applications
 
-```python
-def adam_optimizer(
-    parameters,
-    gradients,
-    adam_cache,
-    t,
-    beta1=0.9,
-    beta2=0.999,
-    learning_rate=0.001,
-    epsilon=1e-8
-):
-    """
-    Adam optimization with bias correction.
-    """
+??? note "Example"
 
-    for key in parameters.keys():
+    ```python
+    def adam_optimizer(
+        parameters,
+        gradients,
+        adam_cache,
+        t,
+        beta1=0.9,
+        beta2=0.999,
+        learning_rate=0.001,
+        epsilon=1e-8
+    ):
+        """
+        Adam optimization with bias correction.
+        """
 
-        # First moment
-        adam_cache['m' + key] = (
-            beta1 * adam_cache['m' + key]
-            + (1 - beta1) * gradients['d' + key]
-        )
+        for key in parameters.keys():
 
-        # Second moment
-        adam_cache['v' + key] = (
-            beta2 * adam_cache['v' + key]
-            + (1 - beta2) * gradients['d' + key] ** 2
-        )
+            # First moment
+            adam_cache['m' + key] = (
+                beta1 * adam_cache['m' + key]
+                + (1 - beta1) * gradients['d' + key]
+            )
 
-        # Bias correction
-        m_corrected = (
-            adam_cache['m' + key]
-            / (1 - beta1 ** t)
-        )
+            # Second moment
+            adam_cache['v' + key] = (
+                beta2 * adam_cache['v' + key]
+                + (1 - beta2) * gradients['d' + key] ** 2
+            )
 
-        v_corrected = (
-            adam_cache['v' + key]
-            / (1 - beta2 ** t)
-        )
+            # Bias correction
+            m_corrected = (
+                adam_cache['m' + key]
+                / (1 - beta1 ** t)
+            )
 
-        # Parameter update
-        parameters[key] -= (
-            learning_rate
-            * m_corrected
-            / (np.sqrt(v_corrected) + epsilon)
-        )
+            v_corrected = (
+                adam_cache['v' + key]
+                / (1 - beta2 ** t)
+            )
 
-    return parameters, adam_cache
-```
+            # Parameter update
+            parameters[key] -= (
+                learning_rate
+                * m_corrected
+                / (np.sqrt(v_corrected) + epsilon)
+            )
 
-
+        return parameters, adam_cache
+    ```
 
 #### AdamW (Adam with Weight Decay)
 
@@ -1269,7 +1279,6 @@ def cosine_annealing(
         * (1 + np.cos(np.pi * epoch / total_epochs))
     )
 ```
-
 
 
 ## 2. Feedforward Neural Networks
@@ -1511,369 +1520,370 @@ This often:
 
 **Complete Training Pipeline:**
 
-```python
-import copy
-import numpy as np
-import matplotlib.pyplot as plt
+??? note "Example"
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+    ```python
+    import copy
+    import numpy as np
+    import matplotlib.pyplot as plt
 
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    from torch.utils.data import Dataset, DataLoader
 
-from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+
+    from rdkit import Chem
+    from rdkit.Chem import AllChem, Descriptors
 
 
-class MolecularFNN(nn.Module):
-    """Feedforward neural network for molecular property prediction."""
+    class MolecularFNN(nn.Module):
+        """Feedforward neural network for molecular property prediction."""
 
-    def __init__(self, input_dim=2048, hidden_dims=(512, 256, 128),
-                 output_dim=1, dropout_rate=0.3):
-        super().__init__()
+        def __init__(self, input_dim=2048, hidden_dims=(512, 256, 128),
+                    output_dim=1, dropout_rate=0.3):
+            super().__init__()
 
-        layers = []
-        prev_dim = input_dim
+            layers = []
+            prev_dim = input_dim
 
-        for hidden_dim in hidden_dims:
-            layers.append(nn.Linear(prev_dim, hidden_dim))
-            layers.append(nn.BatchNorm1d(hidden_dim))
-            layers.append(nn.ReLU())
-            layers.append(nn.Dropout(dropout_rate))
-            prev_dim = hidden_dim
+            for hidden_dim in hidden_dims:
+                layers.append(nn.Linear(prev_dim, hidden_dim))
+                layers.append(nn.BatchNorm1d(hidden_dim))
+                layers.append(nn.ReLU())
+                layers.append(nn.Dropout(dropout_rate))
+                prev_dim = hidden_dim
 
-        layers.append(nn.Linear(prev_dim, output_dim))
-        self.network = nn.Sequential(*layers)
+            layers.append(nn.Linear(prev_dim, output_dim))
+            self.network = nn.Sequential(*layers)
 
-        self._initialize_weights()
+            self._initialize_weights()
 
-    def _initialize_weights(self):
-        for module in self.modules():
-            if isinstance(module, nn.Linear):
-                nn.init.kaiming_normal_(
-                    module.weight,
-                    mode="fan_in",
-                    nonlinearity="relu"
+        def _initialize_weights(self):
+            for module in self.modules():
+                if isinstance(module, nn.Linear):
+                    nn.init.kaiming_normal_(
+                        module.weight,
+                        mode="fan_in",
+                        nonlinearity="relu"
+                    )
+                    if module.bias is not None:
+                        nn.init.zeros_(module.bias)
+
+        def forward(self, x):
+            return self.network(x)
+
+
+    class MolecularDataset(Dataset):
+        """Dataset that converts SMILES strings into Morgan fingerprints."""
+
+        def __init__(self, smiles_list, labels, radius=2, n_bits=2048):
+            fingerprints = []
+            valid_labels = []
+
+            for smiles, label in zip(smiles_list, labels):
+                mol = Chem.MolFromSmiles(str(smiles))
+
+                if mol is None:
+                    continue
+
+                fp = AllChem.GetMorganFingerprintAsBitVect(
+                    mol,
+                    radius,
+                    nBits=n_bits
                 )
-                if module.bias is not None:
-                    nn.init.zeros_(module.bias)
 
-    def forward(self, x):
-        return self.network(x)
+                fingerprints.append(np.asarray(fp, dtype=np.float32))
+                valid_labels.append(label)
 
+            if len(fingerprints) == 0:
+                raise ValueError("No valid molecules were found in the dataset.")
 
-class MolecularDataset(Dataset):
-    """Dataset that converts SMILES strings into Morgan fingerprints."""
-
-    def __init__(self, smiles_list, labels, radius=2, n_bits=2048):
-        fingerprints = []
-        valid_labels = []
-
-        for smiles, label in zip(smiles_list, labels):
-            mol = Chem.MolFromSmiles(str(smiles))
-
-            if mol is None:
-                continue
-
-            fp = AllChem.GetMorganFingerprintAsBitVect(
-                mol,
-                radius,
-                nBits=n_bits
+            self.fingerprints = torch.tensor(
+                np.asarray(fingerprints),
+                dtype=torch.float32
             )
 
-            fingerprints.append(np.asarray(fp, dtype=np.float32))
-            valid_labels.append(label)
+            self.labels = torch.tensor(
+                np.asarray(valid_labels),
+                dtype=torch.float32
+            ).view(-1, 1)
 
-        if len(fingerprints) == 0:
-            raise ValueError("No valid molecules were found in the dataset.")
+        def __len__(self):
+            return len(self.fingerprints)
 
-        self.fingerprints = torch.tensor(
-            np.asarray(fingerprints),
-            dtype=torch.float32
-        )
-
-        self.labels = torch.tensor(
-            np.asarray(valid_labels),
-            dtype=torch.float32
-        ).view(-1, 1)
-
-    def __len__(self):
-        return len(self.fingerprints)
-
-    def __getitem__(self, idx):
-        return self.fingerprints[idx], self.labels[idx]
+        def __getitem__(self, idx):
+            return self.fingerprints[idx], self.labels[idx]
 
 
-def train_epoch(model, train_loader, criterion, optimizer, device):
-    model.train()
-    total_loss = 0.0
+    def train_epoch(model, train_loader, criterion, optimizer, device):
+        model.train()
+        total_loss = 0.0
 
-    for batch_x, batch_y in train_loader:
-        batch_x = batch_x.to(device)
-        batch_y = batch_y.to(device)
-
-        optimizer.zero_grad()
-        predictions = model(batch_x)
-        loss = criterion(predictions, batch_y)
-
-        loss.backward()
-        optimizer.step()
-
-        total_loss += loss.item() * batch_x.size(0)
-
-    return total_loss / len(train_loader.dataset)
-
-
-def validate(model, val_loader, criterion, device):
-    model.eval()
-
-    total_loss = 0.0
-    all_predictions = []
-    all_labels = []
-
-    with torch.no_grad():
-        for batch_x, batch_y in val_loader:
+        for batch_x, batch_y in train_loader:
             batch_x = batch_x.to(device)
             batch_y = batch_y.to(device)
 
+            optimizer.zero_grad()
             predictions = model(batch_x)
             loss = criterion(predictions, batch_y)
 
+            loss.backward()
+            optimizer.step()
+
             total_loss += loss.item() * batch_x.size(0)
 
-            all_predictions.append(predictions.cpu().numpy())
-            all_labels.append(batch_y.cpu().numpy())
-
-    avg_loss = total_loss / len(val_loader.dataset)
-
-    all_predictions = np.concatenate(all_predictions).ravel()
-    all_labels = np.concatenate(all_labels).ravel()
-
-    rmse = np.sqrt(mean_squared_error(all_labels, all_predictions))
-    mae = mean_absolute_error(all_labels, all_predictions)
-    r2 = r2_score(all_labels, all_predictions)
-
-    return avg_loss, rmse, mae, r2
+        return total_loss / len(train_loader.dataset)
 
 
-def train_molecular_model(smiles_train, y_train, smiles_val, y_val, config=None):
-    if config is None:
-        config = {
-            "input_dim": 2048,
-            "hidden_dims": (512, 256, 128),
-            "output_dim": 1,
-            "dropout_rate": 0.3,
-            "learning_rate": 1e-3,
-            "batch_size": 64,
-            "epochs": 100,
-            "patience": 15,
-            "device": "cuda" if torch.cuda.is_available() else "cpu",
+    def validate(model, val_loader, criterion, device):
+        model.eval()
+
+        total_loss = 0.0
+        all_predictions = []
+        all_labels = []
+
+        with torch.no_grad():
+            for batch_x, batch_y in val_loader:
+                batch_x = batch_x.to(device)
+                batch_y = batch_y.to(device)
+
+                predictions = model(batch_x)
+                loss = criterion(predictions, batch_y)
+
+                total_loss += loss.item() * batch_x.size(0)
+
+                all_predictions.append(predictions.cpu().numpy())
+                all_labels.append(batch_y.cpu().numpy())
+
+        avg_loss = total_loss / len(val_loader.dataset)
+
+        all_predictions = np.concatenate(all_predictions).ravel()
+        all_labels = np.concatenate(all_labels).ravel()
+
+        rmse = np.sqrt(mean_squared_error(all_labels, all_predictions))
+        mae = mean_absolute_error(all_labels, all_predictions)
+        r2 = r2_score(all_labels, all_predictions)
+
+        return avg_loss, rmse, mae, r2
+
+
+    def train_molecular_model(smiles_train, y_train, smiles_val, y_val, config=None):
+        if config is None:
+            config = {
+                "input_dim": 2048,
+                "hidden_dims": (512, 256, 128),
+                "output_dim": 1,
+                "dropout_rate": 0.3,
+                "learning_rate": 1e-3,
+                "batch_size": 64,
+                "epochs": 100,
+                "patience": 15,
+                "device": "cuda" if torch.cuda.is_available() else "cpu",
+            }
+
+        device = torch.device(config["device"])
+        print(f"Using device: {device}")
+
+        train_dataset = MolecularDataset(
+            smiles_train,
+            y_train,
+            n_bits=config["input_dim"]
+        )
+
+        val_dataset = MolecularDataset(
+            smiles_val,
+            y_val,
+            n_bits=config["input_dim"]
+        )
+
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=config["batch_size"],
+            shuffle=True
+        )
+
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=config["batch_size"],
+            shuffle=False
+        )
+
+        model = MolecularFNN(
+            input_dim=config["input_dim"],
+            hidden_dims=config["hidden_dims"],
+            output_dim=config["output_dim"],
+            dropout_rate=config["dropout_rate"]
+        ).to(device)
+
+        criterion = nn.MSELoss()
+        optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
+
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            factor=0.5,
+            patience=5
+        )
+
+        history = {
+            "train_loss": [],
+            "val_loss": [],
+            "val_rmse": [],
+            "val_mae": [],
+            "val_r2": [],
         }
 
-    device = torch.device(config["device"])
-    print(f"Using device: {device}")
+        best_val_loss = float("inf")
+        best_model_state = copy.deepcopy(model.state_dict())
+        patience_counter = 0
 
-    train_dataset = MolecularDataset(
-        smiles_train,
-        y_train,
-        n_bits=config["input_dim"]
-    )
+        print("\nStarting training...")
 
-    val_dataset = MolecularDataset(
-        smiles_val,
-        y_val,
-        n_bits=config["input_dim"]
-    )
-
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=config["batch_size"],
-        shuffle=True
-    )
-
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=config["batch_size"],
-        shuffle=False
-    )
-
-    model = MolecularFNN(
-        input_dim=config["input_dim"],
-        hidden_dims=config["hidden_dims"],
-        output_dim=config["output_dim"],
-        dropout_rate=config["dropout_rate"]
-    ).to(device)
-
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
-
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer,
-        mode="min",
-        factor=0.5,
-        patience=5
-    )
-
-    history = {
-        "train_loss": [],
-        "val_loss": [],
-        "val_rmse": [],
-        "val_mae": [],
-        "val_r2": [],
-    }
-
-    best_val_loss = float("inf")
-    best_model_state = copy.deepcopy(model.state_dict())
-    patience_counter = 0
-
-    print("\nStarting training...")
-
-    for epoch in range(config["epochs"]):
-        train_loss = train_epoch(
-            model,
-            train_loader,
-            criterion,
-            optimizer,
-            device
-        )
-
-        val_loss, val_rmse, val_mae, val_r2 = validate(
-            model,
-            val_loader,
-            criterion,
-            device
-        )
-
-        scheduler.step(val_loss)
-
-        history["train_loss"].append(train_loss)
-        history["val_loss"].append(val_loss)
-        history["val_rmse"].append(val_rmse)
-        history["val_mae"].append(val_mae)
-        history["val_r2"].append(val_r2)
-
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            best_model_state = copy.deepcopy(model.state_dict())
-            patience_counter = 0
-        else:
-            patience_counter += 1
-
-        if (epoch + 1) % 10 == 0:
-            current_lr = optimizer.param_groups[0]["lr"]
-            print(f"Epoch {epoch + 1}/{config['epochs']}")
-            print(f"  Train Loss: {train_loss:.4f}")
-            print(
-                f"  Val Loss: {val_loss:.4f}, "
-                f"RMSE: {val_rmse:.4f}, "
-                f"MAE: {val_mae:.4f}, "
-                f"R²: {val_r2:.4f}, "
-                f"LR: {current_lr:.2e}"
+        for epoch in range(config["epochs"]):
+            train_loss = train_epoch(
+                model,
+                train_loader,
+                criterion,
+                optimizer,
+                device
             )
 
-        if patience_counter >= config["patience"]:
-            print(f"\nEarly stopping at epoch {epoch + 1}")
-            break
+            val_loss, val_rmse, val_mae, val_r2 = validate(
+                model,
+                val_loader,
+                criterion,
+                device
+            )
 
-    model.load_state_dict(best_model_state)
+            scheduler.step(val_loss)
 
-    print("\nTraining complete!")
-    print(f"Best validation loss: {best_val_loss:.4f}")
+            history["train_loss"].append(train_loss)
+            history["val_loss"].append(val_loss)
+            history["val_rmse"].append(val_rmse)
+            history["val_mae"].append(val_mae)
+            history["val_r2"].append(val_r2)
 
-    return model, history
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_model_state = copy.deepcopy(model.state_dict())
+                patience_counter = 0
+            else:
+                patience_counter += 1
 
+            if (epoch + 1) % 10 == 0:
+                current_lr = optimizer.param_groups[0]["lr"]
+                print(f"Epoch {epoch + 1}/{config['epochs']}")
+                print(f"  Train Loss: {train_loss:.4f}")
+                print(
+                    f"  Val Loss: {val_loss:.4f}, "
+                    f"RMSE: {val_rmse:.4f}, "
+                    f"MAE: {val_mae:.4f}, "
+                    f"R²: {val_r2:.4f}, "
+                    f"LR: {current_lr:.2e}"
+                )
 
-def generate_synthetic_data(n_samples=1000, random_state=42):
-    """
-    Generate synthetic molecular data with a learnable target.
+            if patience_counter >= config["patience"]:
+                print(f"\nEarly stopping at epoch {epoch + 1}")
+                break
 
-    The target is molecular weight plus Gaussian noise.
-    """
+        model.load_state_dict(best_model_state)
 
-    rng = np.random.default_rng(random_state)
+        print("\nTraining complete!")
+        print(f"Best validation loss: {best_val_loss:.4f}")
 
-    base_smiles = np.array([
-        "CCO",
-        "CC(C)O",
-        "CCCO",
-        "CC(C)CO",
-        "CCCCO",
-        "c1ccccc1",
-        "CC(=O)O",
-        "CCN",
-        "CCCl",
-        "CCBr",
-    ])
-
-    smiles_list = rng.choice(base_smiles, size=n_samples)
-
-    labels = []
-
-    for smiles in smiles_list:
-        mol = Chem.MolFromSmiles(smiles)
-        mw = Descriptors.MolWt(mol)
-        noisy_target = mw + rng.normal(0, 2.0)
-        labels.append(noisy_target)
-
-    return smiles_list, np.asarray(labels, dtype=np.float32)
-
-
-smiles, labels = generate_synthetic_data(1000)
-
-smiles_train, smiles_temp, y_train, y_temp = train_test_split(
-    smiles,
-    labels,
-    test_size=0.3,
-    random_state=42
-)
-
-smiles_val, smiles_test, y_val, y_test = train_test_split(
-    smiles_temp,
-    y_temp,
-    test_size=0.5,
-    random_state=42
-)
-
-model, history = train_molecular_model(
-    smiles_train,
-    y_train,
-    smiles_val,
-    y_val
-)
+        return model, history
 
 
-plt.figure(figsize=(12, 4))
+    def generate_synthetic_data(n_samples=1000, random_state=42):
+        """
+        Generate synthetic molecular data with a learnable target.
 
-plt.subplot(1, 3, 1)
-plt.plot(history["train_loss"], label="Train Loss")
-plt.plot(history["val_loss"], label="Validation Loss")
-plt.xlabel("Epoch")
-plt.ylabel("MSE Loss")
-plt.legend()
-plt.title("Training and Validation Loss")
+        The target is molecular weight plus Gaussian noise.
+        """
 
-plt.subplot(1, 3, 2)
-plt.plot(history["val_rmse"], label="RMSE")
-plt.plot(history["val_mae"], label="MAE")
-plt.xlabel("Epoch")
-plt.ylabel("Error")
-plt.legend()
-plt.title("Validation Errors")
+        rng = np.random.default_rng(random_state)
 
-plt.subplot(1, 3, 3)
-plt.plot(history["val_r2"])
-plt.xlabel("Epoch")
-plt.ylabel("R² Score")
-plt.title("Validation R²")
+        base_smiles = np.array([
+            "CCO",
+            "CC(C)O",
+            "CCCO",
+            "CC(C)CO",
+            "CCCCO",
+            "c1ccccc1",
+            "CC(=O)O",
+            "CCN",
+            "CCCl",
+            "CCBr",
+        ])
 
-plt.tight_layout()
-plt.savefig("training_history.png", dpi=150, bbox_inches="tight")
-plt.show()
-```
+        smiles_list = rng.choice(base_smiles, size=n_samples)
 
+        labels = []
+
+        for smiles in smiles_list:
+            mol = Chem.MolFromSmiles(smiles)
+            mw = Descriptors.MolWt(mol)
+            noisy_target = mw + rng.normal(0, 2.0)
+            labels.append(noisy_target)
+
+        return smiles_list, np.asarray(labels, dtype=np.float32)
+
+
+    smiles, labels = generate_synthetic_data(1000)
+
+    smiles_train, smiles_temp, y_train, y_temp = train_test_split(
+        smiles,
+        labels,
+        test_size=0.3,
+        random_state=42
+    )
+
+    smiles_val, smiles_test, y_val, y_test = train_test_split(
+        smiles_temp,
+        y_temp,
+        test_size=0.5,
+        random_state=42
+    )
+
+    model, history = train_molecular_model(
+        smiles_train,
+        y_train,
+        smiles_val,
+        y_val
+    )
+
+
+    plt.figure(figsize=(12, 4))
+
+    plt.subplot(1, 3, 1)
+    plt.plot(history["train_loss"], label="Train Loss")
+    plt.plot(history["val_loss"], label="Validation Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("MSE Loss")
+    plt.legend()
+    plt.title("Training and Validation Loss")
+
+    plt.subplot(1, 3, 2)
+    plt.plot(history["val_rmse"], label="RMSE")
+    plt.plot(history["val_mae"], label="MAE")
+    plt.xlabel("Epoch")
+    plt.ylabel("Error")
+    plt.legend()
+    plt.title("Validation Errors")
+
+    plt.subplot(1, 3, 3)
+    plt.plot(history["val_r2"])
+    plt.xlabel("Epoch")
+    plt.ylabel("R² Score")
+    plt.title("Validation R²")
+
+    plt.tight_layout()
+    plt.savefig("training_history.png", dpi=150, bbox_inches="tight")
+    plt.show()
+    ```
 
 
 ### 2.3 Practical Recommendations and Training Guidelines
@@ -2511,124 +2521,128 @@ The shared network learns general molecular representations, while each task-spe
 those representations for one endpoint.
 
 
-#### Corrected PyTorch Implementation
+#### PyTorch Implementation
 
-```python
-import torch
-import torch.nn as nn
+??? note "Example"
+
+    ```python
+    import torch
+    import torch.nn as nn
 
 
-class MultiTaskMolecularModel(nn.Module):
-    """
-    Multi-task neural network for molecular property prediction.
+    class MultiTaskMolecularModel(nn.Module):
+        """
+        Multi-task neural network for molecular property prediction.
 
-    The model contains:
-    1. Shared hidden layers
-    2. One task-specific output head per task
-    """
+        The model contains:
+        1. Shared hidden layers
+        2. One task-specific output head per task
+        """
 
-    def __init__(
-        self,
-        input_dim=2048,
-        shared_dims=(512, 256),
-        task_configs=None,
-        dropout_rate=0.3
-    ):
-        super().__init__()
+        def __init__(
+            self,
+            input_dim=2048,
+            shared_dims=(512, 256),
+            task_configs=None,
+            dropout_rate=0.3
+        ):
+            super().__init__()
 
-        if task_configs is None:
-            task_configs = [
-                {
-                    "name": "solubility",
-                    "output_dim": 1,
-                    "task_type": "regression"
-                },
-                {
-                    "name": "toxicity",
-                    "output_dim": 1,
-                    "task_type": "binary_classification"
-                }
-            ]
+            if task_configs is None:
+                task_configs = [
+                    {
+                        "name": "solubility",
+                        "output_dim": 1,
+                        "task_type": "regression"
+                    },
+                    {
+                        "name": "toxicity",
+                        "output_dim": 1,
+                        "task_type": "binary_classification"
+                    }
+                ]
 
-        self.task_configs = task_configs
-        self.task_names = [task["name"] for task in task_configs]
+            self.task_configs = task_configs
+            self.task_names = [task["name"] for task in task_configs]
 
-        shared_layers = []
-        prev_dim = input_dim
+            shared_layers = []
+            prev_dim = input_dim
 
-        for hidden_dim in shared_dims:
-            shared_layers.extend([
-                nn.Linear(prev_dim, hidden_dim),
-                nn.BatchNorm1d(hidden_dim),
-                nn.ReLU(),
-                nn.Dropout(dropout_rate)
-            ])
-            prev_dim = hidden_dim
+            for hidden_dim in shared_dims:
+                shared_layers.extend([
+                    nn.Linear(prev_dim, hidden_dim),
+                    nn.BatchNorm1d(hidden_dim),
+                    nn.ReLU(),
+                    nn.Dropout(dropout_rate)
+                ])
+                prev_dim = hidden_dim
 
-        self.shared_network = nn.Sequential(*shared_layers)
+            self.shared_network = nn.Sequential(*shared_layers)
 
-        self.task_heads = nn.ModuleDict()
+            self.task_heads = nn.ModuleDict()
 
-        for task in task_configs:
-            task_name = task["name"]
-            output_dim = task["output_dim"]
+            for task in task_configs:
+                task_name = task["name"]
+                output_dim = task["output_dim"]
 
-            self.task_heads[task_name] = nn.Sequential(
-                nn.Linear(prev_dim, 128),
-                nn.ReLU(),
-                nn.Dropout(dropout_rate),
-                nn.Linear(128, output_dim)
-            )
+                self.task_heads[task_name] = nn.Sequential(
+                    nn.Linear(prev_dim, 128),
+                    nn.ReLU(),
+                    nn.Dropout(dropout_rate),
+                    nn.Linear(128, output_dim)
+                )
 
-    def forward(self, x):
-        shared_features = self.shared_network(x)
+        def forward(self, x):
+            shared_features = self.shared_network(x)
 
-        outputs = {}
+            outputs = {}
 
-        for task_name in self.task_names:
-            outputs[task_name] = self.task_heads[task_name](shared_features)
+            for task_name in self.task_names:
+                outputs[task_name] = self.task_heads[task_name](shared_features)
 
-        return outputs
+            return outputs
 
-    def get_shared_features(self, x):
-        return self.shared_network(x)
-```
+        def get_shared_features(self, x):
+            return self.shared_network(x)
+    ```
 
 Example configuration:
 
-```python
-task_configs = [
-    {
-        "name": "solubility",
-        "output_dim": 1,
-        "task_type": "regression"
-    },
-    {
-        "name": "bbb_permeability",
-        "output_dim": 1,
-        "task_type": "regression"
-    },
-    {
-        "name": "toxicity",
-        "output_dim": 1,
-        "task_type": "binary_classification"
-    },
-    {
-        "name": "cyp450_inhibition",
-        "output_dim": 5,
-        "task_type": "multiclass_classification"
-    }
-]
+??? note "Example"
 
-model = MultiTaskMolecularModel(
-    input_dim=2048,
-    shared_dims=(512, 256),
-    task_configs=task_configs,
-    dropout_rate=0.3
-)
+    ```python
+    task_configs = [
+        {
+            "name": "solubility",
+            "output_dim": 1,
+            "task_type": "regression"
+        },
+        {
+            "name": "bbb_permeability",
+            "output_dim": 1,
+            "task_type": "regression"
+        },
+        {
+            "name": "toxicity",
+            "output_dim": 1,
+            "task_type": "binary_classification"
+        },
+        {
+            "name": "cyp450_inhibition",
+            "output_dim": 5,
+            "task_type": "multiclass_classification"
+        }
+    ]
 
-print(model)
-```
+    model = MultiTaskMolecularModel(
+        input_dim=2048,
+        shared_dims=(512, 256),
+        task_configs=task_configs,
+        dropout_rate=0.3
+    )
+
+    print(model)
+    ```
 
 Important correction: for binary classification, the model should output **raw logits**, not sigmoid 
 probabilities. Use `BCEWithLogitsLoss`, which internally applies the sigmoid operation in a numerically stable way.
@@ -2659,172 +2673,145 @@ Different tasks require different loss functions:
 | Binary classification     |           `(batch_size, 1)` | `BCEWithLogitsLoss` |
 | Multiclass classification | `(batch_size, num_classes)` | `CrossEntropyLoss`  |
 
-Corrected loss function:
+Loss function:
 
-```python
-def compute_multitask_loss(outputs, labels, task_configs, task_weights=None):
-    """
-    Compute a weighted multi-task loss.
+??? note "Example"
 
-    labels should be a dictionary:
-        {
-            "solubility": tensor of shape (batch_size, 1),
-            "toxicity": tensor of shape (batch_size, 1),
-            "cyp450_inhibition": tensor of shape (batch_size,)
-        }
+    ```python
+    def compute_multitask_loss(outputs, labels, task_configs, task_weights=None):
+        """
+        Compute a weighted multi-task loss.
 
-    Missing labels can be represented by None.
-    """
+        labels should be a dictionary:
+            {
+                "solubility": tensor of shape (batch_size, 1),
+                "toxicity": tensor of shape (batch_size, 1),
+                "cyp450_inhibition": tensor of shape (batch_size,)
+            }
 
-    if task_weights is None:
+        Missing labels can be represented by None.
+        """
+
+        if task_weights is None:
+            task_weights = {
+                task["name"]: 1.0 for task in task_configs
+            }
+
+        total_loss = 0.0
+        task_losses = {}
+
+        for task in task_configs:
+            task_name = task["name"]
+            task_type = task["task_type"]
+
+            if task_name not in labels or labels[task_name] is None:
+                continue
+
+            pred = outputs[task_name]
+            true = labels[task_name]
+
+            if task_type == "regression":
+                true = true.float().view_as(pred)
+                loss = nn.MSELoss()(pred, true)
+
+            elif task_type == "binary_classification":
+                true = true.float().view_as(pred)
+                loss = nn.BCEWithLogitsLoss()(pred, true)
+
+            elif task_type == "multiclass_classification":
+                true = true.long().view(-1)
+                loss = nn.CrossEntropyLoss()(pred, true)
+
+            else:
+                raise ValueError(f"Unknown task type: {task_type}")
+
+            task_losses[task_name] = loss.item()
+            total_loss = total_loss + task_weights[task_name] * loss
+
+        return total_loss, task_losses
+    ```
+
+
+
+### 3.4 Multi-Task Training Loop
+
+??? note "Example"
+
+    ```python
+    import copy
+    import torch.optim as optim
+
+
+    def move_labels_to_device(batch_labels, device):
+        moved_labels = {}
+
+        for key, value in batch_labels.items():
+            if value is None:
+                moved_labels[key] = None
+            else:
+                moved_labels[key] = value.to(device)
+
+        return moved_labels
+
+
+    def train_multitask_model(
+        model,
+        train_loader,
+        val_loader,
+        task_configs,
+        num_epochs=100,
+        device=None,
+        learning_rate=1e-3,
+        patience=15
+    ):
+        """
+        Train a multi-task molecular prediction model.
+        """
+
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        device = torch.device(device)
+        model = model.to(device)
+
+        optimizer = optim.AdamW(
+            model.parameters(),
+            lr=learning_rate,
+            weight_decay=1e-5
+        )
+
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            patience=5,
+            factor=0.5
+        )
+
         task_weights = {
             task["name"]: 1.0 for task in task_configs
         }
 
-    total_loss = 0.0
-    task_losses = {}
-
-    for task in task_configs:
-        task_name = task["name"]
-        task_type = task["task_type"]
-
-        if task_name not in labels or labels[task_name] is None:
-            continue
-
-        pred = outputs[task_name]
-        true = labels[task_name]
-
-        if task_type == "regression":
-            true = true.float().view_as(pred)
-            loss = nn.MSELoss()(pred, true)
-
-        elif task_type == "binary_classification":
-            true = true.float().view_as(pred)
-            loss = nn.BCEWithLogitsLoss()(pred, true)
-
-        elif task_type == "multiclass_classification":
-            true = true.long().view(-1)
-            loss = nn.CrossEntropyLoss()(pred, true)
-
-        else:
-            raise ValueError(f"Unknown task type: {task_type}")
-
-        task_losses[task_name] = loss.item()
-        total_loss = total_loss + task_weights[task_name] * loss
-
-    return total_loss, task_losses
-```
-
-
-
-### 3.4 Corrected Multi-Task Training Loop
-
-```python
-import copy
-import torch.optim as optim
-
-
-def move_labels_to_device(batch_labels, device):
-    moved_labels = {}
-
-    for key, value in batch_labels.items():
-        if value is None:
-            moved_labels[key] = None
-        else:
-            moved_labels[key] = value.to(device)
-
-    return moved_labels
-
-
-def train_multitask_model(
-    model,
-    train_loader,
-    val_loader,
-    task_configs,
-    num_epochs=100,
-    device=None,
-    learning_rate=1e-3,
-    patience=15
-):
-    """
-    Train a multi-task molecular prediction model.
-    """
-
-    if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    device = torch.device(device)
-    model = model.to(device)
-
-    optimizer = optim.AdamW(
-        model.parameters(),
-        lr=learning_rate,
-        weight_decay=1e-5
-    )
-
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer,
-        mode="min",
-        patience=5,
-        factor=0.5
-    )
-
-    task_weights = {
-        task["name"]: 1.0 for task in task_configs
-    }
-
-    history = {
-        "train_loss": [],
-        "val_loss": [],
-        "task_losses": {
-            task["name"]: [] for task in task_configs
-        }
-    }
-
-    best_val_loss = float("inf")
-    best_model_state = copy.deepcopy(model.state_dict())
-    patience_counter = 0
-
-    for epoch in range(num_epochs):
-        model.train()
-        train_loss = 0.0
-
-        for batch_x, batch_labels in train_loader:
-            batch_x = batch_x.to(device)
-            batch_labels = move_labels_to_device(batch_labels, device)
-
-            optimizer.zero_grad()
-
-            outputs = model(batch_x)
-
-            loss, task_losses = compute_multitask_loss(
-                outputs,
-                batch_labels,
-                task_configs,
-                task_weights
-            )
-
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
-
-            train_loss += loss.item() * batch_x.size(0)
-
-        train_loss /= len(train_loader.dataset)
-
-        model.eval()
-        val_loss = 0.0
-        val_task_loss_sums = {
-            task["name"]: 0.0 for task in task_configs
-        }
-        val_task_counts = {
-            task["name"]: 0 for task in task_configs
+        history = {
+            "train_loss": [],
+            "val_loss": [],
+            "task_losses": {
+                task["name"]: [] for task in task_configs
+            }
         }
 
-        with torch.no_grad():
-            for batch_x, batch_labels in val_loader:
+        best_val_loss = float("inf")
+        best_model_state = copy.deepcopy(model.state_dict())
+        patience_counter = 0
+
+        for epoch in range(num_epochs):
+            model.train()
+            train_loss = 0.0
+
+            for batch_x, batch_labels in train_loader:
                 batch_x = batch_x.to(device)
                 batch_labels = move_labels_to_device(batch_labels, device)
+
+                optimizer.zero_grad()
 
                 outputs = model(batch_x)
 
@@ -2835,59 +2822,90 @@ def train_multitask_model(
                     task_weights
                 )
 
-                val_loss += loss.item() * batch_x.size(0)
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                optimizer.step()
 
-                for task_name, task_loss in task_losses.items():
-                    val_task_loss_sums[task_name] += task_loss
-                    val_task_counts[task_name] += 1
+                train_loss += loss.item() * batch_x.size(0)
 
-        val_loss /= len(val_loader.dataset)
+            train_loss /= len(train_loader.dataset)
 
-        scheduler.step(val_loss)
+            model.eval()
+            val_loss = 0.0
+            val_task_loss_sums = {
+                task["name"]: 0.0 for task in task_configs
+            }
+            val_task_counts = {
+                task["name"]: 0 for task in task_configs
+            }
 
-        history["train_loss"].append(train_loss)
-        history["val_loss"].append(val_loss)
+            with torch.no_grad():
+                for batch_x, batch_labels in val_loader:
+                    batch_x = batch_x.to(device)
+                    batch_labels = move_labels_to_device(batch_labels, device)
 
-        for task in task_configs:
-            task_name = task["name"]
+                    outputs = model(batch_x)
 
-            if val_task_counts[task_name] > 0:
-                avg_task_loss = (
-                    val_task_loss_sums[task_name]
-                    / val_task_counts[task_name]
-                )
-            else:
-                avg_task_loss = None
+                    loss, task_losses = compute_multitask_loss(
+                        outputs,
+                        batch_labels,
+                        task_configs,
+                        task_weights
+                    )
 
-            history["task_losses"][task_name].append(avg_task_loss)
+                    val_loss += loss.item() * batch_x.size(0)
 
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            best_model_state = copy.deepcopy(model.state_dict())
-            patience_counter = 0
-        else:
-            patience_counter += 1
+                    for task_name, task_loss in task_losses.items():
+                        val_task_loss_sums[task_name] += task_loss
+                        val_task_counts[task_name] += 1
 
-        if (epoch + 1) % 10 == 0:
-            print(f"Epoch {epoch + 1}/{num_epochs}")
-            print(f"  Train Loss: {train_loss:.4f}")
-            print(f"  Val Loss:   {val_loss:.4f}")
+            val_loss /= len(val_loader.dataset)
+
+            scheduler.step(val_loss)
+
+            history["train_loss"].append(train_loss)
+            history["val_loss"].append(val_loss)
 
             for task in task_configs:
                 task_name = task["name"]
-                task_loss = history["task_losses"][task_name][-1]
 
-                if task_loss is not None:
-                    print(f"  {task_name}: {task_loss:.4f}")
+                if val_task_counts[task_name] > 0:
+                    avg_task_loss = (
+                        val_task_loss_sums[task_name]
+                        / val_task_counts[task_name]
+                    )
+                else:
+                    avg_task_loss = None
 
-        if patience_counter >= patience:
-            print(f"Early stopping at epoch {epoch + 1}")
-            break
+                history["task_losses"][task_name].append(avg_task_loss)
 
-    model.load_state_dict(best_model_state)
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_model_state = copy.deepcopy(model.state_dict())
+                patience_counter = 0
+            else:
+                patience_counter += 1
 
-    return model, history
-```
+            if (epoch + 1) % 10 == 0:
+                print(f"Epoch {epoch + 1}/{num_epochs}")
+                print(f"  Train Loss: {train_loss:.4f}")
+                print(f"  Val Loss:   {val_loss:.4f}")
+
+                for task in task_configs:
+                    task_name = task["name"]
+                    task_loss = history["task_losses"][task_name][-1]
+
+                    if task_loss is not None:
+                        print(f"  {task_name}: {task_loss:.4f}")
+
+            if patience_counter >= patience:
+                print(f"Early stopping at epoch {epoch + 1}")
+                break
+
+        model.load_state_dict(best_model_state)
+
+        return model, history
+    ```
 
 
 
@@ -2963,106 +2981,108 @@ This method is useful when tasks have very different noise levels or loss scales
 
 Each task should be evaluated with metrics appropriate for its prediction type.
 
-Corrected evaluation function:
+Evaluation function:
 
-```python
-import numpy as np
-from sklearn.metrics import (
-    mean_squared_error,
-    mean_absolute_error,
-    r2_score,
-    roc_auc_score,
-    accuracy_score,
-    f1_score
-)
+??? note "Example"
+
+    ```python
+    import numpy as np
+    from sklearn.metrics import (
+        mean_squared_error,
+        mean_absolute_error,
+        r2_score,
+        roc_auc_score,
+        accuracy_score,
+        f1_score
+    )
 
 
-def evaluate_multitask_model(model, test_loader, task_configs, device=None):
-    """
-    Evaluate a multi-task model using task-specific metrics.
-    """
+    def evaluate_multitask_model(model, test_loader, task_configs, device=None):
+        """
+        Evaluate a multi-task model using task-specific metrics.
+        """
 
-    if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    device = torch.device(device)
-    model = model.to(device)
-    model.eval()
+        device = torch.device(device)
+        model = model.to(device)
+        model.eval()
 
-    predictions = {
-        task["name"]: [] for task in task_configs
-    }
+        predictions = {
+            task["name"]: [] for task in task_configs
+        }
 
-    true_labels = {
-        task["name"]: [] for task in task_configs
-    }
+        true_labels = {
+            task["name"]: [] for task in task_configs
+        }
 
-    with torch.no_grad():
-        for batch_x, batch_labels in test_loader:
-            batch_x = batch_x.to(device)
-            outputs = model(batch_x)
+        with torch.no_grad():
+            for batch_x, batch_labels in test_loader:
+                batch_x = batch_x.to(device)
+                outputs = model(batch_x)
 
-            for task in task_configs:
-                task_name = task["name"]
+                for task in task_configs:
+                    task_name = task["name"]
 
-                if task_name not in batch_labels:
-                    continue
+                    if task_name not in batch_labels:
+                        continue
 
-                if batch_labels[task_name] is None:
-                    continue
+                    if batch_labels[task_name] is None:
+                        continue
 
-                pred = outputs[task_name].cpu().numpy()
-                true = batch_labels[task_name].cpu().numpy()
+                    pred = outputs[task_name].cpu().numpy()
+                    true = batch_labels[task_name].cpu().numpy()
 
-                predictions[task_name].append(pred)
-                true_labels[task_name].append(true)
+                    predictions[task_name].append(pred)
+                    true_labels[task_name].append(true)
 
-    results = {}
+        results = {}
 
-    for task in task_configs:
-        task_name = task["name"]
-        task_type = task["task_type"]
+        for task in task_configs:
+            task_name = task["name"]
+            task_type = task["task_type"]
 
-        if len(predictions[task_name]) == 0:
-            results[task_name] = None
-            continue
+            if len(predictions[task_name]) == 0:
+                results[task_name] = None
+                continue
 
-        pred = np.concatenate(predictions[task_name])
-        true = np.concatenate(true_labels[task_name])
+            pred = np.concatenate(predictions[task_name])
+            true = np.concatenate(true_labels[task_name])
 
-        if task_type == "regression":
-            pred = pred.ravel()
-            true = true.ravel()
+            if task_type == "regression":
+                pred = pred.ravel()
+                true = true.ravel()
 
-            results[task_name] = {
-                "RMSE": np.sqrt(mean_squared_error(true, pred)),
-                "MAE": mean_absolute_error(true, pred),
-                "R2": r2_score(true, pred)
-            }
+                results[task_name] = {
+                    "RMSE": np.sqrt(mean_squared_error(true, pred)),
+                    "MAE": mean_absolute_error(true, pred),
+                    "R2": r2_score(true, pred)
+                }
 
-        elif task_type == "binary_classification":
-            logits = pred.ravel()
-            probabilities = 1.0 / (1.0 + np.exp(-logits))
-            pred_binary = (probabilities >= 0.5).astype(int)
-            true = true.ravel().astype(int)
+            elif task_type == "binary_classification":
+                logits = pred.ravel()
+                probabilities = 1.0 / (1.0 + np.exp(-logits))
+                pred_binary = (probabilities >= 0.5).astype(int)
+                true = true.ravel().astype(int)
 
-            results[task_name] = {
-                "ROC_AUC": roc_auc_score(true, probabilities),
-                "Accuracy": accuracy_score(true, pred_binary),
-                "F1": f1_score(true, pred_binary)
-            }
+                results[task_name] = {
+                    "ROC_AUC": roc_auc_score(true, probabilities),
+                    "Accuracy": accuracy_score(true, pred_binary),
+                    "F1": f1_score(true, pred_binary)
+                }
 
-        elif task_type == "multiclass_classification":
-            pred_class = np.argmax(pred, axis=1)
-            true = true.ravel().astype(int)
+            elif task_type == "multiclass_classification":
+                pred_class = np.argmax(pred, axis=1)
+                true = true.ravel().astype(int)
 
-            results[task_name] = {
-                "Accuracy": accuracy_score(true, pred_class),
-                "F1_macro": f1_score(true, pred_class, average="macro")
-            }
+                results[task_name] = {
+                    "Accuracy": accuracy_score(true, pred_class),
+                    "F1_macro": f1_score(true, pred_class, average="macro")
+                }
 
-    return results
-```
+        return results
+    ```
 
 Important correction: for binary classification, `BCEWithLogitsLoss` expects logits, so 
 evaluation should convert logits to probabilities using sigmoid.
@@ -3155,107 +3175,109 @@ where $f$ is typically a ReLU activation.
 
 #### Complete Implementation
 
-```python
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
+??? note "Example"
 
-#### 1D CNN FOR SMILES STRINGS
+    ```python
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from torch.utils.data import Dataset, DataLoader
 
-class SMILES_CNN(nn.Module):
-    """
-    1D CNN for molecular property prediction from SMILES strings
-    """
+    #### 1D CNN FOR SMILES STRINGS
 
-    def __init__(
-        self,
-        vocab_size,
-        embedding_dim=128,
-        num_filters=128,
-        filter_sizes=[3, 5, 7],
-        hidden_dim=256,
-        output_dim=1,
-        dropout_rate=0.3
-    ):
-        super().__init__()
-
-        # Token embedding layer
-        self.embedding = nn.Embedding(
-            num_embeddings=vocab_size,
-            embedding_dim=embedding_dim,
-            padding_idx=0
-        )
-
-        # Multiple convolution branches
-        self.convs = nn.ModuleList([
-            nn.Conv1d(
-                in_channels=embedding_dim,
-                out_channels=num_filters,
-                kernel_size=kernel_size
-            )
-            for kernel_size in filter_sizes
-        ])
-
-        # Feature dimension after concatenation
-        total_filters = num_filters * len(filter_sizes)
-
-        self.batch_norm = nn.BatchNorm1d(total_filters)
-
-        self.fc1 = nn.Linear(total_filters, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, output_dim)
-
-        self.dropout = nn.Dropout(dropout_rate)
-
-    def forward(self, x):
+    class SMILES_CNN(nn.Module):
         """
-        x shape:
-        (batch_size, sequence_length)
+        1D CNN for molecular property prediction from SMILES strings
         """
 
-        # Embedding
-        # (batch_size, seq_len) ->
-        # (batch_size, seq_len, embedding_dim)
+        def __init__(
+            self,
+            vocab_size,
+            embedding_dim=128,
+            num_filters=128,
+            filter_sizes=[3, 5, 7],
+            hidden_dim=256,
+            output_dim=1,
+            dropout_rate=0.3
+        ):
+            super().__init__()
 
-        x = self.embedding(x)
-
-        # Conv1D expects:
-        # (batch_size, channels, sequence_length)
-
-        x = x.transpose(1, 2)
-
-        conv_outputs = []
-
-        for conv in self.convs:
-
-            # Convolution + ReLU
-
-            conv_out = F.relu(conv(x))
-
-            # Global max pooling
-            # Retains strongest activation from each filter
-
-            pooled = F.max_pool1d(
-                conv_out,
-                kernel_size=conv_out.shape[2]
+            # Token embedding layer
+            self.embedding = nn.Embedding(
+                num_embeddings=vocab_size,
+                embedding_dim=embedding_dim,
+                padding_idx=0
             )
 
-            pooled = pooled.squeeze(2)
+            # Multiple convolution branches
+            self.convs = nn.ModuleList([
+                nn.Conv1d(
+                    in_channels=embedding_dim,
+                    out_channels=num_filters,
+                    kernel_size=kernel_size
+                )
+                for kernel_size in filter_sizes
+            ])
 
-            conv_outputs.append(pooled)
+            # Feature dimension after concatenation
+            total_filters = num_filters * len(filter_sizes)
 
-        # Concatenate filter outputs
-        x = torch.cat(conv_outputs, dim=1)
+            self.batch_norm = nn.BatchNorm1d(total_filters)
 
-        x = self.batch_norm(x)
-        x = self.dropout(x)
-        x = F.relu(self.fc1(x))
-        x = self.dropout(x)
+            self.fc1 = nn.Linear(total_filters, hidden_dim)
+            self.fc2 = nn.Linear(hidden_dim, output_dim)
 
-        output = self.fc2(x)
+            self.dropout = nn.Dropout(dropout_rate)
 
-        return output
-```
+        def forward(self, x):
+            """
+            x shape:
+            (batch_size, sequence_length)
+            """
+
+            # Embedding
+            # (batch_size, seq_len) ->
+            # (batch_size, seq_len, embedding_dim)
+
+            x = self.embedding(x)
+
+            # Conv1D expects:
+            # (batch_size, channels, sequence_length)
+
+            x = x.transpose(1, 2)
+
+            conv_outputs = []
+
+            for conv in self.convs:
+
+                # Convolution + ReLU
+
+                conv_out = F.relu(conv(x))
+
+                # Global max pooling
+                # Retains strongest activation from each filter
+
+                pooled = F.max_pool1d(
+                    conv_out,
+                    kernel_size=conv_out.shape[2]
+                )
+
+                pooled = pooled.squeeze(2)
+
+                conv_outputs.append(pooled)
+
+            # Concatenate filter outputs
+            x = torch.cat(conv_outputs, dim=1)
+
+            x = self.batch_norm(x)
+            x = self.dropout(x)
+            x = F.relu(self.fc1(x))
+            x = self.dropout(x)
+
+            output = self.fc2(x)
+
+            return output
+    ```
 
 #### SMILES Tokenization
 
@@ -3282,209 +3304,215 @@ Correct tokenization is important because some atoms consist of multiple charact
 
 #### Tokenizer Implementation
 
-```python
-class SMILESTokenizer:
-    """
-    SMILES tokenizer with support for common multi-character tokens
-    """
+??? note "Example"
 
-    def __init__(self):
+    ```python
+    class SMILESTokenizer:
+        """
+        SMILES tokenizer with support for common multi-character tokens
+        """
 
-        self.special_tokens = [
-            "<PAD>",
-            "<UNK>",
-            "<START>",
-            "<END>"
-        ]
+        def __init__(self):
 
-        self.tokens = [
-            "C", "N", "O", "S", "P", "F",
-            "Cl", "Br", "I",
-            "c", "n", "o", "s",
-            "=", "#",
-            "(", ")",
-            "[", "]",
-            "+", "-",
-            "@", "@@",
-            "/", "\\",
-            "1", "2", "3", "4", "5",
-            "6", "7", "8", "9",
-            "H"
-        ]
+            self.special_tokens = [
+                "<PAD>",
+                "<UNK>",
+                "<START>",
+                "<END>"
+            ]
 
-        self.vocab = self.special_tokens + self.tokens
+            self.tokens = [
+                "C", "N", "O", "S", "P", "F",
+                "Cl", "Br", "I",
+                "c", "n", "o", "s",
+                "=", "#",
+                "(", ")",
+                "[", "]",
+                "+", "-",
+                "@", "@@",
+                "/", "\\",
+                "1", "2", "3", "4", "5",
+                "6", "7", "8", "9",
+                "H"
+            ]
 
-        self.token_to_idx = {
-            token: idx for idx, token in enumerate(self.vocab)
-        }
+            self.vocab = self.special_tokens + self.tokens
 
-        self.idx_to_token = {
-            idx: token for token, idx in self.token_to_idx.items()
-        }
+            self.token_to_idx = {
+                token: idx for idx, token in enumerate(self.vocab)
+            }
 
-        self.pad_idx = self.token_to_idx["<PAD>"]
-        self.unk_idx = self.token_to_idx["<UNK>"]
+            self.idx_to_token = {
+                idx: token for token, idx in self.token_to_idx.items()
+            }
 
-    def tokenize(self, smiles):
+            self.pad_idx = self.token_to_idx["<PAD>"]
+            self.unk_idx = self.token_to_idx["<UNK>"]
 
-        tokens = []
+        def tokenize(self, smiles):
 
-        i = 0
+            tokens = []
 
-        while i < len(smiles):
+            i = 0
 
-            # Multi-character tokens
-            if i < len(smiles) - 1:
+            while i < len(smiles):
 
-                two_char = smiles[i:i+2]
+                # Multi-character tokens
+                if i < len(smiles) - 1:
 
-                if two_char in self.tokens:
-                    tokens.append(two_char)
-                    i += 2
-                    continue
+                    two_char = smiles[i:i+2]
 
-            token = smiles[i]
+                    if two_char in self.tokens:
+                        tokens.append(two_char)
+                        i += 2
+                        continue
 
-            if token in self.tokens:
-                tokens.append(token)
+                token = smiles[i]
+
+                if token in self.tokens:
+                    tokens.append(token)
+                else:
+                    tokens.append("<UNK>")
+
+                i += 1
+
+            return tokens
+
+        def encode(self, smiles, max_length=100):
+
+            tokens = self.tokenize(smiles)
+
+            indices = [
+                self.token_to_idx.get(token, self.unk_idx)
+                for token in tokens
+            ]
+
+            # Pad or truncate
+            if len(indices) < max_length:
+                indices += [self.pad_idx] * (max_length - len(indices))
             else:
-                tokens.append("<UNK>")
+                indices = indices[:max_length]
 
-            i += 1
-
-        return tokens
-
-    def encode(self, smiles, max_length=100):
-
-        tokens = self.tokenize(smiles)
-
-        indices = [
-            self.token_to_idx.get(token, self.unk_idx)
-            for token in tokens
-        ]
-
-        # Pad or truncate
-        if len(indices) < max_length:
-            indices += [self.pad_idx] * (max_length - len(indices))
-        else:
-            indices = indices[:max_length]
-
-        return indices
-```
+            return indices
+    ```
 
 
 #### Dataset Implementation
 
-```python
-class SMILESDataset(Dataset):
+??? note "Example"
 
-    def __init__(
-        self,
-        smiles_list,
-        labels,
-        tokenizer,
-        max_length=100
-    ):
+    ```python
+    class SMILESDataset(Dataset):
 
-        self.inputs = []
-        self.labels = []
+        def __init__(
+            self,
+            smiles_list,
+            labels,
+            tokenizer,
+            max_length=100
+        ):
 
-        for smiles, label in zip(smiles_list, labels):
+            self.inputs = []
+            self.labels = []
 
-            encoded = tokenizer.encode(
-                smiles,
-                max_length=max_length
-            )
+            for smiles, label in zip(smiles_list, labels):
 
-            self.inputs.append(
-                torch.LongTensor(encoded)
-            )
+                encoded = tokenizer.encode(
+                    smiles,
+                    max_length=max_length
+                )
 
-            self.labels.append(label)
+                self.inputs.append(
+                    torch.LongTensor(encoded)
+                )
 
-        self.labels = torch.FloatTensor(
-            self.labels
-        ).view(-1, 1)
+                self.labels.append(label)
 
-    def __len__(self):
-        return len(self.inputs)
+            self.labels = torch.FloatTensor(
+                self.labels
+            ).view(-1, 1)
 
-    def __getitem__(self, idx):
-        return self.inputs[idx], self.labels[idx]
-```
+        def __len__(self):
+            return len(self.inputs)
+
+        def __getitem__(self, idx):
+            return self.inputs[idx], self.labels[idx]
+    ```
 
 #### Example Usage
 
-```python
-# Create tokenizer
-tokenizer = SMILESTokenizer()
+??? note "Example"
 
-print("Vocabulary size:", len(tokenizer.vocab))
+    ```python
+    # Create tokenizer
+    tokenizer = SMILESTokenizer()
 
-# Example molecular data
-smiles_train = [
-    "CCO",
-    "CC(=O)O",
-    "c1ccccc1",
-    "CCN(CC)CC"
-]
+    print("Vocabulary size:", len(tokenizer.vocab))
 
-labels_train = [
-    1.2,
-    0.8,
-    2.5,
-    1.9
-]
+    # Example molecular data
+    smiles_train = [
+        "CCO",
+        "CC(=O)O",
+        "c1ccccc1",
+        "CCN(CC)CC"
+    ]
 
-# Create dataset
-train_dataset = SMILESDataset(
-    smiles_train,
-    labels_train,
-    tokenizer,
-    max_length=100
-)
+    labels_train = [
+        1.2,
+        0.8,
+        2.5,
+        1.9
+    ]
 
-train_loader = DataLoader(
-    train_dataset,
-    batch_size=2,
-    shuffle=True
-)
+    # Create dataset
+    train_dataset = SMILESDataset(
+        smiles_train,
+        labels_train,
+        tokenizer,
+        max_length=100
+    )
 
-# Create model
-model = SMILES_CNN(
-    vocab_size=len(tokenizer.vocab),
-    embedding_dim=128,
-    num_filters=64,
-    filter_sizes=[3, 5, 7],
-    hidden_dim=256,
-    output_dim=1
-)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=2,
+        shuffle=True
+    )
 
-optimizer = torch.optim.Adam(
-    model.parameters(),
-    lr=1e-3
-)
+    # Create model
+    model = SMILES_CNN(
+        vocab_size=len(tokenizer.vocab),
+        embedding_dim=128,
+        num_filters=64,
+        filter_sizes=[3, 5, 7],
+        hidden_dim=256,
+        output_dim=1
+    )
 
-criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=1e-3
+    )
 
-# Training loop
-for epoch in range(10):
+    criterion = nn.MSELoss()
 
-    model.train()
+    # Training loop
+    for epoch in range(10):
 
-    total_loss = 0
+        model.train()
 
-    for batch_smiles, batch_labels in train_loader:
+        total_loss = 0
 
-        optimizer.zero_grad()
-        predictions = model(batch_smiles)
-        loss = criterion(predictions, batch_labels)
-        loss.backward()
-        optimizer.step()
-        total_loss += loss.item()
+        for batch_smiles, batch_labels in train_loader:
 
-    print(f"Epoch {epoch+1}: Loss = {total_loss:.4f}")
-```
+            optimizer.zero_grad()
+            predictions = model(batch_smiles)
+            loss = criterion(predictions, batch_labels)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+
+        print(f"Epoch {epoch+1}: Loss = {total_loss:.4f}")
+    ```
 
 #### Why Max Pooling Works Well
 
@@ -3534,50 +3562,52 @@ where:
 
 #### Molecular Image CNN
 
-```python
-import torchvision.models as models
+??? note "Example"
 
-class Molecular2DCNN(nn.Module):
+    ```python
+    import torchvision.models as models
 
-    def __init__(self, output_dim=1):
+    class Molecular2DCNN(nn.Module):
 
-        super().__init__()
+        def __init__(self, output_dim=1):
 
-        self.features = nn.Sequential(
+            super().__init__()
 
-            nn.Conv2d(3, 32, kernel_size=3, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
+            self.features = nn.Sequential(
 
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
+                nn.Conv2d(3, 32, kernel_size=3, padding=1),
+                nn.BatchNorm2d(32),
+                nn.ReLU(),
+                nn.MaxPool2d(2),
 
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(),
-            nn.MaxPool2d(2)
-        )
+                nn.Conv2d(32, 64, kernel_size=3, padding=1),
+                nn.BatchNorm2d(64),
+                nn.ReLU(),
+                nn.MaxPool2d(2),
 
-        self.classifier = nn.Sequential(
+                nn.Conv2d(64, 128, kernel_size=3, padding=1),
+                nn.BatchNorm2d(128),
+                nn.ReLU(),
+                nn.MaxPool2d(2)
+            )
 
-            nn.Linear(128 * 28 * 28, 512),
-            nn.ReLU(),
-            nn.Dropout(0.5),
+            self.classifier = nn.Sequential(
 
-            nn.Linear(512, output_dim)
-        )
+                nn.Linear(128 * 28 * 28, 512),
+                nn.ReLU(),
+                nn.Dropout(0.5),
 
-    def forward(self, x):
+                nn.Linear(512, output_dim)
+            )
 
-        x = self.features(x)
-        x = torch.flatten(x, start_dim=1)
-        x = self.classifier(x)
+        def forward(self, x):
 
-        return x
-```
+            x = self.features(x)
+            x = torch.flatten(x, start_dim=1)
+            x = self.classifier(x)
+
+            return x
+    ```
 
 
 #### Transfer Learning with ResNet
@@ -3669,38 +3699,40 @@ Different CNN approaches are useful for different molecular learning problems.
 
 Combining multiple molecular representations can improve robustness.
 
-```python
-class HybridMolecularModel(nn.Module):
+??? note "Example"
 
-    def __init__(self, vocab_size):
+    ```python
+    class HybridMolecularModel(nn.Module):
 
-        super().__init__()
+        def __init__(self, vocab_size):
 
-        self.smiles_branch = SMILES_CNN(
-            vocab_size=vocab_size
-        )
+            super().__init__()
 
-        self.image_branch = Molecular2DCNN()
+            self.smiles_branch = SMILES_CNN(
+                vocab_size=vocab_size
+            )
 
-        self.fusion = nn.Sequential(
-            nn.Linear(2, 32),
-            nn.ReLU(),
-            nn.Linear(32, 1)
-        )
+            self.image_branch = Molecular2DCNN()
 
-    def forward(self, smiles, images):
+            self.fusion = nn.Sequential(
+                nn.Linear(2, 32),
+                nn.ReLU(),
+                nn.Linear(32, 1)
+            )
 
-        smiles_features = self.smiles_branch(smiles)
+        def forward(self, smiles, images):
 
-        image_features = self.image_branch(images)
+            smiles_features = self.smiles_branch(smiles)
 
-        combined = torch.cat(
-            [smiles_features, image_features],
-            dim=1
-        )
+            image_features = self.image_branch(images)
 
-        return self.fusion(combined)
-```
+            combined = torch.cat(
+                [smiles_features, image_features],
+                dim=1
+            )
+
+            return self.fusion(combined)
+    ```
 
 Hybrid models often outperform single-representation models because they combine:
 
@@ -3760,107 +3792,111 @@ Molecular property prediction
 
 #### LSTM Model
 
-```python
-import torch
-import torch.nn as nn
+??? note "Example"
+
+    ```python
+    import torch
+    import torch.nn as nn
 
 
-class SMILES_LSTM(nn.Module):
-    """
-    LSTM model for molecular property prediction from SMILES strings.
-    """
+    class SMILES_LSTM(nn.Module):
+        """
+        LSTM model for molecular property prediction from SMILES strings.
+        """
 
-    def __init__(
-        self,
-        vocab_size,
+        def __init__(
+            self,
+            vocab_size,
+            embedding_dim=128,
+            hidden_dim=256,
+            num_layers=2,
+            output_dim=1,
+            dropout_rate=0.3,
+            bidirectional=True,
+            padding_idx=0
+        ):
+            super().__init__()
+
+            self.bidirectional = bidirectional
+            self.num_directions = 2 if bidirectional else 1
+
+            self.embedding = nn.Embedding(
+                num_embeddings=vocab_size,
+                embedding_dim=embedding_dim,
+                padding_idx=padding_idx
+            )
+
+            self.lstm = nn.LSTM(
+                input_size=embedding_dim,
+                hidden_size=hidden_dim,
+                num_layers=num_layers,
+                batch_first=True,
+                dropout=dropout_rate if num_layers > 1 else 0.0,
+                bidirectional=bidirectional
+            )
+
+            lstm_output_dim = hidden_dim * self.num_directions
+
+            self.regressor = nn.Sequential(
+                nn.Linear(lstm_output_dim, 128),
+                nn.ReLU(),
+                nn.Dropout(dropout_rate),
+                nn.Linear(128, output_dim)
+            )
+
+        def forward(self, x):
+            """
+            Args:
+                x: Tensor of token indices with shape
+                (batch_size, sequence_length)
+
+            Returns:
+                Prediction tensor with shape
+                (batch_size, output_dim)
+            """
+
+            embedded = self.embedding(x)
+
+            lstm_output, (hidden, cell) = self.lstm(embedded)
+
+            if self.bidirectional:
+                forward_hidden = hidden[-2]
+                backward_hidden = hidden[-1]
+                final_hidden = torch.cat(
+                    [forward_hidden, backward_hidden],
+                    dim=1
+                )
+            else:
+                final_hidden = hidden[-1]
+
+            output = self.regressor(final_hidden)
+
+            return output
+    ```
+
+Example:
+
+??? note "Example"
+
+    ```python
+    model = SMILES_LSTM(
+        vocab_size=50,
         embedding_dim=128,
         hidden_dim=256,
         num_layers=2,
         output_dim=1,
         dropout_rate=0.3,
-        bidirectional=True,
-        padding_idx=0
-    ):
-        super().__init__()
+        bidirectional=True
+    )
 
-        self.bidirectional = bidirectional
-        self.num_directions = 2 if bidirectional else 1
+    print(model)
 
-        self.embedding = nn.Embedding(
-            num_embeddings=vocab_size,
-            embedding_dim=embedding_dim,
-            padding_idx=padding_idx
-        )
+    num_parameters = sum(
+        p.numel() for p in model.parameters() if p.requires_grad
+    )
 
-        self.lstm = nn.LSTM(
-            input_size=embedding_dim,
-            hidden_size=hidden_dim,
-            num_layers=num_layers,
-            batch_first=True,
-            dropout=dropout_rate if num_layers > 1 else 0.0,
-            bidirectional=bidirectional
-        )
-
-        lstm_output_dim = hidden_dim * self.num_directions
-
-        self.regressor = nn.Sequential(
-            nn.Linear(lstm_output_dim, 128),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(128, output_dim)
-        )
-
-    def forward(self, x):
-        """
-        Args:
-            x: Tensor of token indices with shape
-               (batch_size, sequence_length)
-
-        Returns:
-            Prediction tensor with shape
-            (batch_size, output_dim)
-        """
-
-        embedded = self.embedding(x)
-
-        lstm_output, (hidden, cell) = self.lstm(embedded)
-
-        if self.bidirectional:
-            forward_hidden = hidden[-2]
-            backward_hidden = hidden[-1]
-            final_hidden = torch.cat(
-                [forward_hidden, backward_hidden],
-                dim=1
-            )
-        else:
-            final_hidden = hidden[-1]
-
-        output = self.regressor(final_hidden)
-
-        return output
-```
-
-Example:
-
-```python
-model = SMILES_LSTM(
-    vocab_size=50,
-    embedding_dim=128,
-    hidden_dim=256,
-    num_layers=2,
-    output_dim=1,
-    dropout_rate=0.3,
-    bidirectional=True
-)
-
-print(model)
-
-num_parameters = sum(
-    p.numel() for p in model.parameters() if p.requires_grad
-)
-
-print(f"Trainable parameters: {num_parameters:,}")
-```
+    print(f"Trainable parameters: {num_parameters:,}")
+    ```
 
 
 #### LSTM Internal Gates
@@ -3904,51 +3940,53 @@ where $\odot$ means element-wise multiplication.
 
 This implementation is mainly for understanding. In practice, use `nn.LSTM`.
 
-```python
-class LSTMCellFromScratch(nn.Module):
-    """
-    Single LSTM cell showing the internal gate operations.
-    """
+??? note "Example"
 
-    def __init__(self, input_size, hidden_size):
-        super().__init__()
+    ```python
+    class LSTMCellFromScratch(nn.Module):
+        """
+        Single LSTM cell showing the internal gate operations.
+        """
 
-        self.hidden_size = hidden_size
+        def __init__(self, input_size, hidden_size):
+            super().__init__()
 
-        self.forget_gate = nn.Linear(
-            input_size + hidden_size,
-            hidden_size
-        )
+            self.hidden_size = hidden_size
 
-        self.input_gate = nn.Linear(
-            input_size + hidden_size,
-            hidden_size
-        )
+            self.forget_gate = nn.Linear(
+                input_size + hidden_size,
+                hidden_size
+            )
 
-        self.output_gate = nn.Linear(
-            input_size + hidden_size,
-            hidden_size
-        )
+            self.input_gate = nn.Linear(
+                input_size + hidden_size,
+                hidden_size
+            )
 
-        self.candidate_layer = nn.Linear(
-            input_size + hidden_size,
-            hidden_size
-        )
+            self.output_gate = nn.Linear(
+                input_size + hidden_size,
+                hidden_size
+            )
 
-    def forward(self, x_t, h_prev, c_prev):
-        combined = torch.cat([x_t, h_prev], dim=1)
+            self.candidate_layer = nn.Linear(
+                input_size + hidden_size,
+                hidden_size
+            )
 
-        f_t = torch.sigmoid(self.forget_gate(combined))
-        i_t = torch.sigmoid(self.input_gate(combined))
-        o_t = torch.sigmoid(self.output_gate(combined))
+        def forward(self, x_t, h_prev, c_prev):
+            combined = torch.cat([x_t, h_prev], dim=1)
 
-        c_candidate = torch.tanh(self.candidate_layer(combined))
+            f_t = torch.sigmoid(self.forget_gate(combined))
+            i_t = torch.sigmoid(self.input_gate(combined))
+            o_t = torch.sigmoid(self.output_gate(combined))
 
-        c_t = f_t * c_prev + i_t * c_candidate
-        h_t = o_t * torch.tanh(c_t)
+            c_candidate = torch.tanh(self.candidate_layer(combined))
 
-        return h_t, c_t
-```
+            c_t = f_t * c_prev + i_t * c_candidate
+            h_t = o_t * torch.tanh(c_t)
+
+            return h_t, c_t
+    ```
 
 
 
@@ -3979,239 +4017,71 @@ where:
 * $\alpha_t$ is the normalized attention weight,
 * $\mathbf{h}_t$ is the LSTM output at position (t).
 
-```python
-class SMILES_LSTM_Attention(nn.Module):
-    """
-    Bidirectional LSTM with attention for SMILES-based prediction.
-    """
+??? note "Example"
 
-    def __init__(
-        self,
-        vocab_size,
-        embedding_dim=128,
-        hidden_dim=256,
-        output_dim=1,
-        dropout_rate=0.3,
-        padding_idx=0
-    ):
-        super().__init__()
+    ```python
+    class SMILES_LSTM_Attention(nn.Module):
+        """
+        Bidirectional LSTM with attention for SMILES-based prediction.
+        """
 
-        self.embedding = nn.Embedding(
+        def __init__(
+            self,
             vocab_size,
-            embedding_dim,
-            padding_idx=padding_idx
-        )
+            embedding_dim=128,
+            hidden_dim=256,
+            output_dim=1,
+            dropout_rate=0.3,
+            padding_idx=0
+        ):
+            super().__init__()
 
-        self.lstm = nn.LSTM(
-            input_size=embedding_dim,
-            hidden_size=hidden_dim,
-            batch_first=True,
-            bidirectional=True
-        )
+            self.embedding = nn.Embedding(
+                vocab_size,
+                embedding_dim,
+                padding_idx=padding_idx
+            )
 
-        self.attention = nn.Linear(hidden_dim * 2, 1)
+            self.lstm = nn.LSTM(
+                input_size=embedding_dim,
+                hidden_size=hidden_dim,
+                batch_first=True,
+                bidirectional=True
+            )
 
-        self.regressor = nn.Sequential(
-            nn.Linear(hidden_dim * 2, 128),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(128, output_dim)
-        )
+            self.attention = nn.Linear(hidden_dim * 2, 1)
 
-    def forward(self, x):
-        embedded = self.embedding(x)
+            self.regressor = nn.Sequential(
+                nn.Linear(hidden_dim * 2, 128),
+                nn.ReLU(),
+                nn.Dropout(dropout_rate),
+                nn.Linear(128, output_dim)
+            )
 
-        lstm_output, _ = self.lstm(embedded)
+        def forward(self, x):
+            embedded = self.embedding(x)
 
-        attention_scores = self.attention(lstm_output)
+            lstm_output, _ = self.lstm(embedded)
 
-        attention_weights = torch.softmax(
-            attention_scores,
-            dim=1
-        )
+            attention_scores = self.attention(lstm_output)
 
-        context = torch.sum(
-            attention_weights * lstm_output,
-            dim=1
-        )
-
-        output = self.regressor(context)
-
-        return output, attention_weights
-```
-
-
-### 5.2 GRU Alternative
-
-A **Gated Recurrent Unit (GRU)** is a simpler alternative to an LSTM. It uses fewer gates and does 
-not maintain a separate cell state.
-
-GRUs are often faster to train while giving performance similar to LSTMs on many molecular sequence tasks.
-
-
-#### GRU vs. LSTM
-
-| Feature        | LSTM                                | GRU                      |
-| -------------- | ----------------------------------- | ------------------------ |
-| Gates          | Input, forget, output               | Reset, update            |
-| Memory state   | Hidden state and cell state         | Hidden state only        |
-| Parameters     | More                                | Fewer                    |
-| Training speed | Slower                              | Faster                   |
-| Memory usage   | Higher                              | Lower                    |
-| Best use case  | Longer or more complex dependencies | Faster sequence modeling |
-
-
-
-#### GRU Model
-
-```python
-class SMILES_GRU(nn.Module):
-    """
-    GRU model for molecular property prediction from SMILES strings.
-    """
-
-    def __init__(
-        self,
-        vocab_size,
-        embedding_dim=128,
-        hidden_dim=256,
-        num_layers=2,
-        output_dim=1,
-        dropout_rate=0.3,
-        bidirectional=True,
-        padding_idx=0
-    ):
-        super().__init__()
-
-        self.bidirectional = bidirectional
-        self.num_directions = 2 if bidirectional else 1
-
-        self.embedding = nn.Embedding(
-            vocab_size,
-            embedding_dim,
-            padding_idx=padding_idx
-        )
-
-        self.gru = nn.GRU(
-            input_size=embedding_dim,
-            hidden_size=hidden_dim,
-            num_layers=num_layers,
-            batch_first=True,
-            dropout=dropout_rate if num_layers > 1 else 0.0,
-            bidirectional=bidirectional
-        )
-
-        gru_output_dim = hidden_dim * self.num_directions
-
-        self.regressor = nn.Sequential(
-            nn.Linear(gru_output_dim, 128),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(128, output_dim)
-        )
-
-    def forward(self, x):
-        embedded = self.embedding(x)
-
-        gru_output, hidden = self.gru(embedded)
-
-        if self.bidirectional:
-            forward_hidden = hidden[-2]
-            backward_hidden = hidden[-1]
-            final_hidden = torch.cat(
-                [forward_hidden, backward_hidden],
+            attention_weights = torch.softmax(
+                attention_scores,
                 dim=1
             )
-        else:
-            final_hidden = hidden[-1]
 
-        output = self.regressor(final_hidden)
+            context = torch.sum(
+                attention_weights * lstm_output,
+                dim=1
+            )
 
-        return output
-```
+            output = self.regressor(context)
 
-
-
-#### GRU Internal Gates
-
-A GRU uses:
-
-* **Reset gate:** controls how much past information is forgotten.
-* **Update gate:** controls how much old information is kept.
-
-The equations are:
-
-$$
-\mathbf{r}_t =
-\sigma(\mathbf{W}_r[\mathbf{x}*t,\mathbf{h}*{t-1}] + \mathbf{b}_r)
-$$
-
-$$
-\mathbf{z}_t =
-\sigma(\mathbf{W}_z[\mathbf{x}*t,\mathbf{h}*{t-1}] + \mathbf{b}_z)
-$$
-
-$$
-\tilde{\mathbf{h}}_t =
-\tanh(\mathbf{W}_h[\mathbf{x}_t,\mathbf{r}*t \odot \mathbf{h}*{t-1}] + \mathbf{b}_h)
-$$
-
-$$
-\mathbf{h}_t =
-(1-\mathbf{z}*t)\odot \mathbf{h}*{t-1}
-+
-\mathbf{z}_t \odot \tilde{\mathbf{h}}_t
-$$
+            return output, attention_weights
+    ```
 
 
-#### Manual GRU Cell
-
-```python
-class GRUCellFromScratch(nn.Module):
-    """
-    Single GRU cell showing the reset and update gates.
-    """
-
-    def __init__(self, input_size, hidden_size):
-        super().__init__()
-
-        self.reset_gate = nn.Linear(
-            input_size + hidden_size,
-            hidden_size
-        )
-
-        self.update_gate = nn.Linear(
-            input_size + hidden_size,
-            hidden_size
-        )
-
-        self.candidate_layer = nn.Linear(
-            input_size + hidden_size,
-            hidden_size
-        )
-
-    def forward(self, x_t, h_prev):
-        combined = torch.cat([x_t, h_prev], dim=1)
-
-        r_t = torch.sigmoid(self.reset_gate(combined))
-        z_t = torch.sigmoid(self.update_gate(combined))
-
-        candidate_input = torch.cat(
-            [x_t, r_t * h_prev],
-            dim=1
-        )
-
-        h_candidate = torch.tanh(
-            self.candidate_layer(candidate_input)
-        )
-
-        h_t = (1 - z_t) * h_prev + z_t * h_candidate
-
-        return h_t
-```
-
-
-### 5.3 Comparison with CNNs
+### 5.2 Comparison with CNNs
 
 CNNs and RNNs process SMILES strings differently.
 
@@ -4229,67 +4099,33 @@ GRU** processes the sequence step by step and can model longer-range dependencie
 | LSTM + Attention | Highlights important tokens                 | More parameters and slower training | Interpretability, complex sequence patterns |
 
 
-#### Corrected Model Comparison Example
+#### Model Comparison Example
 
 This example assumes that `SMILESTokenizer`, `SMILESDataset`, `SMILES_CNN`, `SMILES_LSTM`, `SMILES_GRU`, 
 and `SMILES_LSTM_Attention` are already defined.
 
-```python
-import time
-import numpy as np
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
-from sklearn.metrics import mean_squared_error, r2_score
+??? note "Example"
+
+    ```python
+    import time
+    import numpy as np
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import DataLoader
+    from sklearn.metrics import mean_squared_error, r2_score
 
 
-def train_one_epoch(model, loader, optimizer, criterion, device):
-    model.train()
+    def train_one_epoch(model, loader, optimizer, criterion, device):
+        model.train()
 
-    total_loss = 0.0
-    total_samples = 0
+        total_loss = 0.0
+        total_samples = 0
 
-    for batch_x, batch_y in loader:
-        batch_x = batch_x.to(device)
-        batch_y = batch_y.to(device)
-
-        optimizer.zero_grad()
-
-        outputs = model(batch_x)
-
-        if isinstance(outputs, tuple):
-            predictions = outputs[0]
-        else:
-            predictions = outputs
-
-        loss = criterion(predictions, batch_y)
-
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(
-            model.parameters(),
-            max_norm=1.0
-        )
-        optimizer.step()
-
-        total_loss += loss.item() * batch_x.size(0)
-        total_samples += batch_x.size(0)
-
-    return total_loss / total_samples
-
-
-def evaluate_sequence_model(model, loader, criterion, device):
-    model.eval()
-
-    total_loss = 0.0
-    total_samples = 0
-
-    predictions_list = []
-    labels_list = []
-
-    with torch.no_grad():
         for batch_x, batch_y in loader:
             batch_x = batch_x.to(device)
             batch_y = batch_y.to(device)
+
+            optimizer.zero_grad()
 
             outputs = model(batch_x)
 
@@ -4300,156 +4136,192 @@ def evaluate_sequence_model(model, loader, criterion, device):
 
             loss = criterion(predictions, batch_y)
 
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(
+                model.parameters(),
+                max_norm=1.0
+            )
+            optimizer.step()
+
             total_loss += loss.item() * batch_x.size(0)
             total_samples += batch_x.size(0)
 
-            predictions_list.append(predictions.cpu().numpy())
-            labels_list.append(batch_y.cpu().numpy())
-
-    predictions = np.concatenate(predictions_list).ravel()
-    labels = np.concatenate(labels_list).ravel()
-
-    rmse = np.sqrt(mean_squared_error(labels, predictions))
-    r2 = r2_score(labels, predictions)
-
-    return {
-        "loss": total_loss / total_samples,
-        "rmse": rmse,
-        "r2": r2
-    }
+        return total_loss / total_samples
 
 
-def compare_cnn_lstm_gru(
-    smiles_train,
-    y_train,
-    smiles_val,
-    y_val,
-    epochs=20,
-    batch_size=64
-):
-    """
-    Compare CNN, LSTM, GRU, and LSTM with attention
-    on the same SMILES regression dataset.
-    """
+    def evaluate_sequence_model(model, loader, criterion, device):
+        model.eval()
 
-    device = torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
-    )
+        total_loss = 0.0
+        total_samples = 0
 
-    tokenizer = SMILESTokenizer()
+        predictions_list = []
+        labels_list = []
 
-    train_dataset = SMILESDataset(
+        with torch.no_grad():
+            for batch_x, batch_y in loader:
+                batch_x = batch_x.to(device)
+                batch_y = batch_y.to(device)
+
+                outputs = model(batch_x)
+
+                if isinstance(outputs, tuple):
+                    predictions = outputs[0]
+                else:
+                    predictions = outputs
+
+                loss = criterion(predictions, batch_y)
+
+                total_loss += loss.item() * batch_x.size(0)
+                total_samples += batch_x.size(0)
+
+                predictions_list.append(predictions.cpu().numpy())
+                labels_list.append(batch_y.cpu().numpy())
+
+        predictions = np.concatenate(predictions_list).ravel()
+        labels = np.concatenate(labels_list).ravel()
+
+        rmse = np.sqrt(mean_squared_error(labels, predictions))
+        r2 = r2_score(labels, predictions)
+
+        return {
+            "loss": total_loss / total_samples,
+            "rmse": rmse,
+            "r2": r2
+        }
+
+
+    def compare_cnn_lstm_gru(
         smiles_train,
         y_train,
-        tokenizer,
-        max_length=100
-    )
-
-    val_dataset = SMILESDataset(
         smiles_val,
         y_val,
-        tokenizer,
-        max_length=100
-    )
+        epochs=20,
+        batch_size=64
+    ):
+        """
+        Compare CNN, LSTM, GRU, and LSTM with attention
+        on the same SMILES regression dataset.
+        """
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True
-    )
-
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=batch_size,
-        shuffle=False
-    )
-
-    vocab_size = len(tokenizer.vocab)
-
-    models = {
-        "1D CNN": SMILES_CNN(vocab_size=vocab_size),
-        "LSTM": SMILES_LSTM(vocab_size=vocab_size),
-        "GRU": SMILES_GRU(vocab_size=vocab_size),
-        "LSTM + Attention": SMILES_LSTM_Attention(
-            vocab_size=vocab_size,
-            embedding_dim=128,
-            hidden_dim=256,
-            output_dim=1
-        )
-    }
-
-    criterion = nn.MSELoss()
-
-    results = {}
-
-    for model_name, model in models.items():
-        print(f"\nTraining {model_name}...")
-
-        model = model.to(device)
-
-        optimizer = torch.optim.AdamW(
-            model.parameters(),
-            lr=1e-3,
-            weight_decay=1e-5
+        device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
         )
 
-        start_time = time.time()
+        tokenizer = SMILESTokenizer()
 
-        for epoch in range(epochs):
-            train_loss = train_one_epoch(
+        train_dataset = SMILESDataset(
+            smiles_train,
+            y_train,
+            tokenizer,
+            max_length=100
+        )
+
+        val_dataset = SMILESDataset(
+            smiles_val,
+            y_val,
+            tokenizer,
+            max_length=100
+        )
+
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True
+        )
+
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=batch_size,
+            shuffle=False
+        )
+
+        vocab_size = len(tokenizer.vocab)
+
+        models = {
+            "1D CNN": SMILES_CNN(vocab_size=vocab_size),
+            "LSTM": SMILES_LSTM(vocab_size=vocab_size),
+            "GRU": SMILES_GRU(vocab_size=vocab_size),
+            "LSTM + Attention": SMILES_LSTM_Attention(
+                vocab_size=vocab_size,
+                embedding_dim=128,
+                hidden_dim=256,
+                output_dim=1
+            )
+        }
+
+        criterion = nn.MSELoss()
+
+        results = {}
+
+        for model_name, model in models.items():
+            print(f"\nTraining {model_name}...")
+
+            model = model.to(device)
+
+            optimizer = torch.optim.AdamW(
+                model.parameters(),
+                lr=1e-3,
+                weight_decay=1e-5
+            )
+
+            start_time = time.time()
+
+            for epoch in range(epochs):
+                train_loss = train_one_epoch(
+                    model,
+                    train_loader,
+                    optimizer,
+                    criterion,
+                    device
+                )
+
+            elapsed_time = time.time() - start_time
+
+            val_metrics = evaluate_sequence_model(
                 model,
-                train_loader,
-                optimizer,
+                val_loader,
                 criterion,
                 device
             )
 
-        elapsed_time = time.time() - start_time
+            num_parameters = sum(
+                p.numel() for p in model.parameters()
+                if p.requires_grad
+            )
 
-        val_metrics = evaluate_sequence_model(
-            model,
-            val_loader,
-            criterion,
-            device
-        )
+            results[model_name] = {
+                "RMSE": val_metrics["rmse"],
+                "R2": val_metrics["r2"],
+                "Parameters": num_parameters,
+                "Training time": elapsed_time
+            }
 
-        num_parameters = sum(
-            p.numel() for p in model.parameters()
-            if p.requires_grad
-        )
+        print("\n" + "=" * 80)
+        print("MODEL COMPARISON")
+        print("=" * 80)
 
-        results[model_name] = {
-            "RMSE": val_metrics["rmse"],
-            "R2": val_metrics["r2"],
-            "Parameters": num_parameters,
-            "Training time": elapsed_time
-        }
-
-    print("\n" + "=" * 80)
-    print("MODEL COMPARISON")
-    print("=" * 80)
-
-    print(
-        f"{'Model':<20} "
-        f"{'RMSE':<12} "
-        f"{'R2':<12} "
-        f"{'Parameters':<15} "
-        f"{'Time (s)':<12}"
-    )
-
-    print("-" * 80)
-
-    for model_name, metrics in results.items():
         print(
-            f"{model_name:<20} "
-            f"{metrics['RMSE']:<12.4f} "
-            f"{metrics['R2']:<12.4f} "
-            f"{metrics['Parameters']:<15,} "
-            f"{metrics['Training time']:<12.1f}"
+            f"{'Model':<20} "
+            f"{'RMSE':<12} "
+            f"{'R2':<12} "
+            f"{'Parameters':<15} "
+            f"{'Time (s)':<12}"
         )
 
-    return results
-```
+        print("-" * 80)
+
+        for model_name, metrics in results.items():
+            print(
+                f"{model_name:<20} "
+                f"{metrics['RMSE']:<12.4f} "
+                f"{metrics['R2']:<12.4f} "
+                f"{metrics['Parameters']:<15,} "
+                f"{metrics['Training time']:<12.1f}"
+            )
+
+        return results
+    ```
 
 #### Typical Behavior
 
@@ -4573,168 +4445,170 @@ L =
 (\mathbf{x}_i - \hat{\mathbf{x}}_i)^2
 $$
 
-#### Corrected Autoencoder Example
+#### Autoencoder Example
 
-```python
-import copy
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
+??? note "Example"
 
-from torch.utils.data import DataLoader, TensorDataset
+    ```python
+    import copy
+    import numpy as np
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
 
-from rdkit import Chem
-from rdkit.Chem import AllChem
+    from torch.utils.data import DataLoader, TensorDataset
 
-
-class MolecularAutoencoder(nn.Module):
-    """
-    Autoencoder for learning molecular fingerprint representations.
-    """
-
-    def __init__(self, input_dim=2048, encoding_dim=256):
-        super().__init__()
-
-        self.encoder = nn.Sequential(
-            nn.Linear(input_dim, 1024),
-            nn.ReLU(),
-            nn.BatchNorm1d(1024),
-
-            nn.Linear(1024, 512),
-            nn.ReLU(),
-            nn.BatchNorm1d(512),
-
-            nn.Linear(512, encoding_dim),
-            nn.ReLU()
-        )
-
-        self.decoder = nn.Sequential(
-            nn.Linear(encoding_dim, 512),
-            nn.ReLU(),
-            nn.BatchNorm1d(512),
-
-            nn.Linear(512, 1024),
-            nn.ReLU(),
-            nn.BatchNorm1d(1024),
-
-            nn.Linear(1024, input_dim),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        z = self.encoder(x)
-        reconstruction = self.decoder(z)
-        return reconstruction
-
-    def encode(self, x):
-        return self.encoder(x)
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
 
 
-def smiles_to_fingerprints(smiles_list, radius=2, n_bits=2048):
-    """
-    Convert SMILES strings to Morgan fingerprints.
-    Invalid molecules are skipped.
-    """
+    class MolecularAutoencoder(nn.Module):
+        """
+        Autoencoder for learning molecular fingerprint representations.
+        """
 
-    fingerprints = []
+        def __init__(self, input_dim=2048, encoding_dim=256):
+            super().__init__()
 
-    for smiles in smiles_list:
-        mol = Chem.MolFromSmiles(str(smiles))
+            self.encoder = nn.Sequential(
+                nn.Linear(input_dim, 1024),
+                nn.ReLU(),
+                nn.BatchNorm1d(1024),
 
-        if mol is None:
-            continue
+                nn.Linear(1024, 512),
+                nn.ReLU(),
+                nn.BatchNorm1d(512),
 
-        fp = AllChem.GetMorganFingerprintAsBitVect(
-            mol,
-            radius,
-            nBits=n_bits
-        )
-
-        fingerprints.append(np.asarray(fp, dtype=np.float32))
-
-    if len(fingerprints) == 0:
-        raise ValueError("No valid molecules were found.")
-
-    return np.asarray(fingerprints, dtype=np.float32)
-
-
-def pretrain_autoencoder(
-    smiles_list,
-    input_dim=2048,
-    encoding_dim=256,
-    batch_size=256,
-    num_epochs=50,
-    learning_rate=1e-3,
-    device=None
-):
-    """
-    Pre-train an autoencoder on unlabeled molecular fingerprints.
-    """
-
-    if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    device = torch.device(device)
-
-    fingerprints = smiles_to_fingerprints(
-        smiles_list,
-        n_bits=input_dim
-    )
-
-    x = torch.tensor(fingerprints, dtype=torch.float32)
-
-    dataset = TensorDataset(x, x)
-
-    dataloader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=True
-    )
-
-    model = MolecularAutoencoder(
-        input_dim=input_dim,
-        encoding_dim=encoding_dim
-    ).to(device)
-
-    optimizer = optim.AdamW(
-        model.parameters(),
-        lr=learning_rate,
-        weight_decay=1e-5
-    )
-
-    criterion = nn.MSELoss()
-
-    for epoch in range(num_epochs):
-        model.train()
-        total_loss = 0.0
-        total_samples = 0
-
-        for batch_x, _ in dataloader:
-            batch_x = batch_x.to(device)
-
-            optimizer.zero_grad()
-
-            reconstruction = model(batch_x)
-
-            loss = criterion(reconstruction, batch_x)
-
-            loss.backward()
-            optimizer.step()
-
-            total_loss += loss.item() * batch_x.size(0)
-            total_samples += batch_x.size(0)
-
-        avg_loss = total_loss / total_samples
-
-        if (epoch + 1) % 10 == 0:
-            print(
-                f"Epoch {epoch + 1}/{num_epochs}, "
-                f"Reconstruction Loss: {avg_loss:.4f}"
+                nn.Linear(512, encoding_dim),
+                nn.ReLU()
             )
 
-    return model
-```
+            self.decoder = nn.Sequential(
+                nn.Linear(encoding_dim, 512),
+                nn.ReLU(),
+                nn.BatchNorm1d(512),
+
+                nn.Linear(512, 1024),
+                nn.ReLU(),
+                nn.BatchNorm1d(1024),
+
+                nn.Linear(1024, input_dim),
+                nn.Sigmoid()
+            )
+
+        def forward(self, x):
+            z = self.encoder(x)
+            reconstruction = self.decoder(z)
+            return reconstruction
+
+        def encode(self, x):
+            return self.encoder(x)
+
+
+    def smiles_to_fingerprints(smiles_list, radius=2, n_bits=2048):
+        """
+        Convert SMILES strings to Morgan fingerprints.
+        Invalid molecules are skipped.
+        """
+
+        fingerprints = []
+
+        for smiles in smiles_list:
+            mol = Chem.MolFromSmiles(str(smiles))
+
+            if mol is None:
+                continue
+
+            fp = AllChem.GetMorganFingerprintAsBitVect(
+                mol,
+                radius,
+                nBits=n_bits
+            )
+
+            fingerprints.append(np.asarray(fp, dtype=np.float32))
+
+        if len(fingerprints) == 0:
+            raise ValueError("No valid molecules were found.")
+
+        return np.asarray(fingerprints, dtype=np.float32)
+
+
+    def pretrain_autoencoder(
+        smiles_list,
+        input_dim=2048,
+        encoding_dim=256,
+        batch_size=256,
+        num_epochs=50,
+        learning_rate=1e-3,
+        device=None
+    ):
+        """
+        Pre-train an autoencoder on unlabeled molecular fingerprints.
+        """
+
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        device = torch.device(device)
+
+        fingerprints = smiles_to_fingerprints(
+            smiles_list,
+            n_bits=input_dim
+        )
+
+        x = torch.tensor(fingerprints, dtype=torch.float32)
+
+        dataset = TensorDataset(x, x)
+
+        dataloader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=True
+        )
+
+        model = MolecularAutoencoder(
+            input_dim=input_dim,
+            encoding_dim=encoding_dim
+        ).to(device)
+
+        optimizer = optim.AdamW(
+            model.parameters(),
+            lr=learning_rate,
+            weight_decay=1e-5
+        )
+
+        criterion = nn.MSELoss()
+
+        for epoch in range(num_epochs):
+            model.train()
+            total_loss = 0.0
+            total_samples = 0
+
+            for batch_x, _ in dataloader:
+                batch_x = batch_x.to(device)
+
+                optimizer.zero_grad()
+
+                reconstruction = model(batch_x)
+
+                loss = criterion(reconstruction, batch_x)
+
+                loss.backward()
+                optimizer.step()
+
+                total_loss += loss.item() * batch_x.size(0)
+                total_samples += batch_x.size(0)
+
+            avg_loss = total_loss / total_samples
+
+            if (epoch + 1) % 10 == 0:
+                print(
+                    f"Epoch {epoch + 1}/{num_epochs}, "
+                    f"Reconstruction Loss: {avg_loss:.4f}"
+                )
+
+        return model
+    ```
 
 
 ### 6.3 Using the Pre-Trained Encoder
@@ -4753,39 +4627,41 @@ where:
 * $g_\phi$ is a new prediction head,
 * $\hat{y}$ is the target property prediction.
 
-```python
-class PretrainedMolecularModel(nn.Module):
-    """
-    Molecular property predictor using a pre-trained encoder.
-    """
+??? note "Example"
 
-    def __init__(
-        self,
-        pretrained_autoencoder,
-        encoding_dim=256,
-        output_dim=1,
-        freeze_encoder=False
-    ):
-        super().__init__()
+    ```python
+    class PretrainedMolecularModel(nn.Module):
+        """
+        Molecular property predictor using a pre-trained encoder.
+        """
 
-        self.encoder = pretrained_autoencoder.encoder
+        def __init__(
+            self,
+            pretrained_autoencoder,
+            encoding_dim=256,
+            output_dim=1,
+            freeze_encoder=False
+        ):
+            super().__init__()
 
-        if freeze_encoder:
-            for parameter in self.encoder.parameters():
-                parameter.requires_grad = False
+            self.encoder = pretrained_autoencoder.encoder
 
-        self.prediction_head = nn.Sequential(
-            nn.Linear(encoding_dim, 128),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(128, output_dim)
-        )
+            if freeze_encoder:
+                for parameter in self.encoder.parameters():
+                    parameter.requires_grad = False
 
-    def forward(self, x):
-        features = self.encoder(x)
-        prediction = self.prediction_head(features)
-        return prediction
-```
+            self.prediction_head = nn.Sequential(
+                nn.Linear(encoding_dim, 128),
+                nn.ReLU(),
+                nn.Dropout(0.3),
+                nn.Linear(128, output_dim)
+            )
+
+        def forward(self, x):
+            features = self.encoder(x)
+            prediction = self.prediction_head(features)
+            return prediction
+    ```
 
 ### 6.4 Fine-Tuning Workflow
 
@@ -4799,267 +4675,135 @@ Typical strategies:
 
 #### Dataset for Fine-Tuning
 
-```python
-class MolecularFingerprintDataset(torch.utils.data.Dataset):
-    """
-    Dataset for supervised molecular property prediction.
-    """
+??? note "Example"
 
-    def __init__(self, smiles_list, labels, n_bits=2048):
-        fingerprints = []
-        valid_labels = []
+    ```python
+    class MolecularFingerprintDataset(torch.utils.data.Dataset):
+        """
+        Dataset for supervised molecular property prediction.
+        """
 
-        for smiles, label in zip(smiles_list, labels):
-            mol = Chem.MolFromSmiles(str(smiles))
+        def __init__(self, smiles_list, labels, n_bits=2048):
+            fingerprints = []
+            valid_labels = []
 
-            if mol is None:
-                continue
+            for smiles, label in zip(smiles_list, labels):
+                mol = Chem.MolFromSmiles(str(smiles))
 
-            fp = AllChem.GetMorganFingerprintAsBitVect(
-                mol,
-                2,
-                nBits=n_bits
+                if mol is None:
+                    continue
+
+                fp = AllChem.GetMorganFingerprintAsBitVect(
+                    mol,
+                    2,
+                    nBits=n_bits
+                )
+
+                fingerprints.append(np.asarray(fp, dtype=np.float32))
+                valid_labels.append(label)
+
+            if len(fingerprints) == 0:
+                raise ValueError("No valid molecules were found.")
+
+            self.x = torch.tensor(
+                np.asarray(fingerprints),
+                dtype=torch.float32
             )
 
-            fingerprints.append(np.asarray(fp, dtype=np.float32))
-            valid_labels.append(label)
+            self.y = torch.tensor(
+                np.asarray(valid_labels),
+                dtype=torch.float32
+            ).view(-1, 1)
 
-        if len(fingerprints) == 0:
-            raise ValueError("No valid molecules were found.")
+        def __len__(self):
+            return len(self.x)
 
-        self.x = torch.tensor(
-            np.asarray(fingerprints),
-            dtype=torch.float32
-        )
+        def __getitem__(self, idx):
+            return self.x[idx], self.y[idx]
+    ```
 
-        self.y = torch.tensor(
-            np.asarray(valid_labels),
-            dtype=torch.float32
-        ).view(-1, 1)
+#### Fine-Tuning Function
 
-    def __len__(self):
-        return len(self.x)
+??? note "Example"
 
-    def __getitem__(self, idx):
-        return self.x[idx], self.y[idx]
-```
-
-#### Corrected Fine-Tuning Function
-
-```python
-from sklearn.metrics import mean_squared_error
+    ```python
+    from sklearn.metrics import mean_squared_error
 
 
-def fine_tune_pretrained_model(
-    pretrained_autoencoder,
-    smiles_train,
-    y_train,
-    smiles_val,
-    y_val,
-    freeze_encoder=True,
-    batch_size=64,
-    num_epochs=30,
-    learning_rate=1e-4,
-    device=None
-):
-    """
-    Fine-tune a pre-trained molecular encoder on a downstream regression task.
-    """
-
-    if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    device = torch.device(device)
-
-    model = PretrainedMolecularModel(
-        pretrained_autoencoder=pretrained_autoencoder,
-        encoding_dim=256,
-        output_dim=1,
-        freeze_encoder=freeze_encoder
-    ).to(device)
-
-    train_dataset = MolecularFingerprintDataset(
+    def fine_tune_pretrained_model(
+        pretrained_autoencoder,
         smiles_train,
-        y_train
-    )
-
-    val_dataset = MolecularFingerprintDataset(
+        y_train,
         smiles_val,
-        y_val
-    )
+        y_val,
+        freeze_encoder=True,
+        batch_size=64,
+        num_epochs=30,
+        learning_rate=1e-4,
+        device=None
+    ):
+        """
+        Fine-tune a pre-trained molecular encoder on a downstream regression task.
+        """
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True
-    )
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=batch_size,
-        shuffle=False
-    )
+        device = torch.device(device)
 
-    optimizer = optim.AdamW(
-        filter(lambda p: p.requires_grad, model.parameters()),
-        lr=learning_rate,
-        weight_decay=1e-5
-    )
+        model = PretrainedMolecularModel(
+            pretrained_autoencoder=pretrained_autoencoder,
+            encoding_dim=256,
+            output_dim=1,
+            freeze_encoder=freeze_encoder
+        ).to(device)
 
-    criterion = nn.MSELoss()
-
-    history = {
-        "train_loss": [],
-        "val_loss": [],
-        "val_rmse": []
-    }
-
-    best_val_loss = float("inf")
-    best_model_state = copy.deepcopy(model.state_dict())
-    patience = 10
-    patience_counter = 0
-
-    for epoch in range(num_epochs):
-        model.train()
-
-        train_loss = 0.0
-        train_samples = 0
-
-        for batch_x, batch_y in train_loader:
-            batch_x = batch_x.to(device)
-            batch_y = batch_y.to(device)
-
-            optimizer.zero_grad()
-
-            predictions = model(batch_x)
-
-            loss = criterion(predictions, batch_y)
-
-            loss.backward()
-            optimizer.step()
-
-            train_loss += loss.item() * batch_x.size(0)
-            train_samples += batch_x.size(0)
-
-        train_loss /= train_samples
-
-        model.eval()
-
-        val_loss = 0.0
-        val_samples = 0
-        all_predictions = []
-        all_labels = []
-
-        with torch.no_grad():
-            for batch_x, batch_y in val_loader:
-                batch_x = batch_x.to(device)
-                batch_y = batch_y.to(device)
-
-                predictions = model(batch_x)
-
-                loss = criterion(predictions, batch_y)
-
-                val_loss += loss.item() * batch_x.size(0)
-                val_samples += batch_x.size(0)
-
-                all_predictions.append(predictions.cpu().numpy())
-                all_labels.append(batch_y.cpu().numpy())
-
-        val_loss /= val_samples
-
-        all_predictions = np.concatenate(all_predictions).ravel()
-        all_labels = np.concatenate(all_labels).ravel()
-
-        val_rmse = np.sqrt(
-            mean_squared_error(all_labels, all_predictions)
+        train_dataset = MolecularFingerprintDataset(
+            smiles_train,
+            y_train
         )
 
-        history["train_loss"].append(train_loss)
-        history["val_loss"].append(val_loss)
-        history["val_rmse"].append(val_rmse)
-
-        print(
-            f"Epoch {epoch + 1}/{num_epochs}: "
-            f"Train Loss={train_loss:.4f}, "
-            f"Val Loss={val_loss:.4f}, "
-            f"RMSE={val_rmse:.4f}"
+        val_dataset = MolecularFingerprintDataset(
+            smiles_val,
+            y_val
         )
 
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            best_model_state = copy.deepcopy(model.state_dict())
-            patience_counter = 0
-        else:
-            patience_counter += 1
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True
+        )
 
-        if patience_counter >= patience:
-            print(f"Early stopping at epoch {epoch + 1}")
-            break
-
-    model.load_state_dict(best_model_state)
-
-    return model, history
-```
-
-### 6.5 Gradual Unfreezing
-
-Gradual unfreezing is useful when the downstream dataset is small. It avoids changing the 
-pre-trained encoder too aggressively at the beginning of fine-tuning.
-
-```python
-def set_requires_grad(module, value):
-    for parameter in module.parameters():
-        parameter.requires_grad = value
-
-
-def gradual_unfreezing(
-    model,
-    train_loader,
-    criterion,
-    device,
-    phase_epochs=5
-):
-    """
-    Fine-tune the model in stages.
-
-    Phase 1:
-        Freeze encoder and train only the prediction head.
-
-    Phase 2:
-        Unfreeze encoder and train the full model with a smaller learning rate.
-    """
-
-    phases = [
-        {
-            "name": "Train prediction head only",
-            "freeze_encoder": True,
-            "learning_rate": 1e-3
-        },
-        {
-            "name": "Fine-tune full model",
-            "freeze_encoder": False,
-            "learning_rate": 1e-4
-        }
-    ]
-
-    for phase in phases:
-        print(f"\n{phase['name']}")
-
-        set_requires_grad(
-            model.encoder,
-            not phase["freeze_encoder"]
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=batch_size,
+            shuffle=False
         )
 
         optimizer = optim.AdamW(
             filter(lambda p: p.requires_grad, model.parameters()),
-            lr=phase["learning_rate"],
+            lr=learning_rate,
             weight_decay=1e-5
         )
 
-        for epoch in range(phase_epochs):
+        criterion = nn.MSELoss()
+
+        history = {
+            "train_loss": [],
+            "val_loss": [],
+            "val_rmse": []
+        }
+
+        best_val_loss = float("inf")
+        best_model_state = copy.deepcopy(model.state_dict())
+        patience = 10
+        patience_counter = 0
+
+        for epoch in range(num_epochs):
             model.train()
-            total_loss = 0.0
-            total_samples = 0
+
+            train_loss = 0.0
+            train_samples = 0
 
             for batch_x, batch_y in train_loader:
                 batch_x = batch_x.to(device)
@@ -5074,16 +4818,154 @@ def gradual_unfreezing(
                 loss.backward()
                 optimizer.step()
 
-                total_loss += loss.item() * batch_x.size(0)
-                total_samples += batch_x.size(0)
+                train_loss += loss.item() * batch_x.size(0)
+                train_samples += batch_x.size(0)
 
-            print(
-                f"Epoch {epoch + 1}/{phase_epochs}, "
-                f"Loss: {total_loss / total_samples:.4f}"
+            train_loss /= train_samples
+
+            model.eval()
+
+            val_loss = 0.0
+            val_samples = 0
+            all_predictions = []
+            all_labels = []
+
+            with torch.no_grad():
+                for batch_x, batch_y in val_loader:
+                    batch_x = batch_x.to(device)
+                    batch_y = batch_y.to(device)
+
+                    predictions = model(batch_x)
+
+                    loss = criterion(predictions, batch_y)
+
+                    val_loss += loss.item() * batch_x.size(0)
+                    val_samples += batch_x.size(0)
+
+                    all_predictions.append(predictions.cpu().numpy())
+                    all_labels.append(batch_y.cpu().numpy())
+
+            val_loss /= val_samples
+
+            all_predictions = np.concatenate(all_predictions).ravel()
+            all_labels = np.concatenate(all_labels).ravel()
+
+            val_rmse = np.sqrt(
+                mean_squared_error(all_labels, all_predictions)
             )
 
-    return model
-```
+            history["train_loss"].append(train_loss)
+            history["val_loss"].append(val_loss)
+            history["val_rmse"].append(val_rmse)
+
+            print(
+                f"Epoch {epoch + 1}/{num_epochs}: "
+                f"Train Loss={train_loss:.4f}, "
+                f"Val Loss={val_loss:.4f}, "
+                f"RMSE={val_rmse:.4f}"
+            )
+
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_model_state = copy.deepcopy(model.state_dict())
+                patience_counter = 0
+            else:
+                patience_counter += 1
+
+            if patience_counter >= patience:
+                print(f"Early stopping at epoch {epoch + 1}")
+                break
+
+        model.load_state_dict(best_model_state)
+
+        return model, history
+    ```
+
+### 6.5 Gradual Unfreezing
+
+Gradual unfreezing is useful when the downstream dataset is small. It avoids changing the 
+pre-trained encoder too aggressively at the beginning of fine-tuning.
+
+??? note "Example"
+
+    ```python
+    def set_requires_grad(module, value):
+        for parameter in module.parameters():
+            parameter.requires_grad = value
+
+
+    def gradual_unfreezing(
+        model,
+        train_loader,
+        criterion,
+        device,
+        phase_epochs=5
+    ):
+        """
+        Fine-tune the model in stages.
+
+        Phase 1:
+            Freeze encoder and train only the prediction head.
+
+        Phase 2:
+            Unfreeze encoder and train the full model with a smaller learning rate.
+        """
+
+        phases = [
+            {
+                "name": "Train prediction head only",
+                "freeze_encoder": True,
+                "learning_rate": 1e-3
+            },
+            {
+                "name": "Fine-tune full model",
+                "freeze_encoder": False,
+                "learning_rate": 1e-4
+            }
+        ]
+
+        for phase in phases:
+            print(f"\n{phase['name']}")
+
+            set_requires_grad(
+                model.encoder,
+                not phase["freeze_encoder"]
+            )
+
+            optimizer = optim.AdamW(
+                filter(lambda p: p.requires_grad, model.parameters()),
+                lr=phase["learning_rate"],
+                weight_decay=1e-5
+            )
+
+            for epoch in range(phase_epochs):
+                model.train()
+                total_loss = 0.0
+                total_samples = 0
+
+                for batch_x, batch_y in train_loader:
+                    batch_x = batch_x.to(device)
+                    batch_y = batch_y.to(device)
+
+                    optimizer.zero_grad()
+
+                    predictions = model(batch_x)
+
+                    loss = criterion(predictions, batch_y)
+
+                    loss.backward()
+                    optimizer.step()
+
+                    total_loss += loss.item() * batch_x.size(0)
+                    total_samples += batch_x.size(0)
+
+                print(
+                    f"Epoch {epoch + 1}/{phase_epochs}, "
+                    f"Loss: {total_loss / total_samples:.4f}"
+                )
+
+        return model
+    ```
 
 
 ### 6.6 Pre-Trained Language Models for Molecules
@@ -5106,142 +4988,146 @@ $$
 
 #### ChemBERTa Fine-Tuning Example
 
-```python
-import torch
-import torch.nn as nn
-from transformers import AutoTokenizer, AutoModel
+??? note "Example"
+
+    ```python
+    import torch
+    import torch.nn as nn
+    from transformers import AutoTokenizer, AutoModel
 
 
-class ChemBERTaFineTuner(nn.Module):
-    """
-    Fine-tune ChemBERTa for molecular property prediction.
-    """
+    class ChemBERTaFineTuner(nn.Module):
+        """
+        Fine-tune ChemBERTa for molecular property prediction.
+        """
 
-    def __init__(
-        self,
-        model_name="seyonec/ChemBERTa-zinc-base-v1",
-        output_dim=1,
-        dropout_rate=0.3
-    ):
-        super().__init__()
+        def __init__(
+            self,
+            model_name="seyonec/ChemBERTa-zinc-base-v1",
+            output_dim=1,
+            dropout_rate=0.3
+        ):
+            super().__init__()
 
-        self.chemberta = AutoModel.from_pretrained(model_name)
+            self.chemberta = AutoModel.from_pretrained(model_name)
 
-        hidden_size = self.chemberta.config.hidden_size
+            hidden_size = self.chemberta.config.hidden_size
 
-        self.prediction_head = nn.Sequential(
-            nn.Linear(hidden_size, 256),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(256, output_dim)
-        )
+            self.prediction_head = nn.Sequential(
+                nn.Linear(hidden_size, 256),
+                nn.ReLU(),
+                nn.Dropout(dropout_rate),
+                nn.Linear(256, output_dim)
+            )
 
-    def forward(self, input_ids, attention_mask):
-        outputs = self.chemberta(
-            input_ids=input_ids,
-            attention_mask=attention_mask
-        )
-
-        cls_embedding = outputs.last_hidden_state[:, 0, :]
-
-        prediction = self.prediction_head(cls_embedding)
-
-        return prediction
-```
-
-#### Corrected ChemBERTa Training Example
-
-```python
-def fine_tune_chemberta(
-    smiles_train,
-    y_train,
-    model_name="seyonec/ChemBERTa-zinc-base-v1",
-    num_epochs=5,
-    learning_rate=2e-5,
-    batch_size=16,
-    device=None
-):
-    """
-    Fine-tune ChemBERTa on a molecular regression task.
-    """
-
-    if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    device = torch.device(device)
-
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-    encoded = tokenizer(
-        list(smiles_train),
-        padding=True,
-        truncation=True,
-        max_length=256,
-        return_tensors="pt"
-    )
-
-    labels = torch.tensor(
-        y_train,
-        dtype=torch.float32
-    ).view(-1, 1)
-
-    dataset = TensorDataset(
-        encoded["input_ids"],
-        encoded["attention_mask"],
-        labels
-    )
-
-    dataloader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=True
-    )
-
-    model = ChemBERTaFineTuner(
-        model_name=model_name,
-        output_dim=1
-    ).to(device)
-
-    optimizer = optim.AdamW(
-        model.parameters(),
-        lr=learning_rate,
-        weight_decay=1e-5
-    )
-
-    criterion = nn.MSELoss()
-
-    for epoch in range(num_epochs):
-        model.train()
-        total_loss = 0.0
-        total_samples = 0
-
-        for input_ids, attention_mask, batch_y in dataloader:
-            input_ids = input_ids.to(device)
-            attention_mask = attention_mask.to(device)
-            batch_y = batch_y.to(device)
-
-            optimizer.zero_grad()
-
-            predictions = model(
+        def forward(self, input_ids, attention_mask):
+            outputs = self.chemberta(
                 input_ids=input_ids,
                 attention_mask=attention_mask
             )
 
-            loss = criterion(predictions, batch_y)
+            cls_embedding = outputs.last_hidden_state[:, 0, :]
 
-            loss.backward()
-            optimizer.step()
+            prediction = self.prediction_head(cls_embedding)
 
-            total_loss += loss.item() * input_ids.size(0)
-            total_samples += input_ids.size(0)
+            return prediction
+    ```
 
-        print(
-            f"Epoch {epoch + 1}/{num_epochs}, "
-            f"Loss: {total_loss / total_samples:.4f}"
+#### ChemBERTa Training Example
+
+??? note "Example"
+
+    ```python
+    def fine_tune_chemberta(
+        smiles_train,
+        y_train,
+        model_name="seyonec/ChemBERTa-zinc-base-v1",
+        num_epochs=5,
+        learning_rate=2e-5,
+        batch_size=16,
+        device=None
+    ):
+        """
+        Fine-tune ChemBERTa on a molecular regression task.
+        """
+
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        device = torch.device(device)
+
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        encoded = tokenizer(
+            list(smiles_train),
+            padding=True,
+            truncation=True,
+            max_length=256,
+            return_tensors="pt"
         )
 
-    return model
-```
+        labels = torch.tensor(
+            y_train,
+            dtype=torch.float32
+        ).view(-1, 1)
+
+        dataset = TensorDataset(
+            encoded["input_ids"],
+            encoded["attention_mask"],
+            labels
+        )
+
+        dataloader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=True
+        )
+
+        model = ChemBERTaFineTuner(
+            model_name=model_name,
+            output_dim=1
+        ).to(device)
+
+        optimizer = optim.AdamW(
+            model.parameters(),
+            lr=learning_rate,
+            weight_decay=1e-5
+        )
+
+        criterion = nn.MSELoss()
+
+        for epoch in range(num_epochs):
+            model.train()
+            total_loss = 0.0
+            total_samples = 0
+
+            for input_ids, attention_mask, batch_y in dataloader:
+                input_ids = input_ids.to(device)
+                attention_mask = attention_mask.to(device)
+                batch_y = batch_y.to(device)
+
+                optimizer.zero_grad()
+
+                predictions = model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask
+                )
+
+                loss = criterion(predictions, batch_y)
+
+                loss.backward()
+                optimizer.step()
+
+                total_loss += loss.item() * input_ids.size(0)
+                total_samples += input_ids.size(0)
+
+            print(
+                f"Epoch {epoch + 1}/{num_epochs}, "
+                f"Loss: {total_loss / total_samples:.4f}"
+            )
+
+        return model
+    ```
 
 
 ### 6.7 Comparing Transfer Learning Strategies
@@ -5256,63 +5142,65 @@ The best transfer learning strategy depends on the available data and molecular 
 | ChemBERTa fine-tuning   | SMILES data are available           | Uses large-scale language pre-training |
 
 
-#### Corrected Comparison Template
+#### Comparison Template
 
-```python
-def compare_transfer_learning_strategies():
-    """
-    Template for comparing transfer learning strategies.
+??? note "Example"
 
-    This function is intentionally a template because each strategy requires
-    different datasets and training routines.
-    """
+    ```python
+    def compare_transfer_learning_strategies():
+        """
+        Template for comparing transfer learning strategies.
 
-    results = {
-        "From Scratch": {
-            "RMSE": 0.95,
-            "R2": 0.68,
-            "Training Time": "120 min"
-        },
-        "Autoencoder Transfer": {
-            "RMSE": 0.78,
-            "R2": 0.79,
-            "Training Time": "45 min"
-        },
-        "Multi-Task Transfer": {
-            "RMSE": 0.72,
-            "R2": 0.82,
-            "Training Time": "35 min"
-        },
-        "ChemBERTa": {
-            "RMSE": 0.65,
-            "R2": 0.87,
-            "Training Time": "25 min"
+        This function is intentionally a template because each strategy requires
+        different datasets and training routines.
+        """
+
+        results = {
+            "From Scratch": {
+                "RMSE": 0.95,
+                "R2": 0.68,
+                "Training Time": "120 min"
+            },
+            "Autoencoder Transfer": {
+                "RMSE": 0.78,
+                "R2": 0.79,
+                "Training Time": "45 min"
+            },
+            "Multi-Task Transfer": {
+                "RMSE": 0.72,
+                "R2": 0.82,
+                "Training Time": "35 min"
+            },
+            "ChemBERTa": {
+                "RMSE": 0.65,
+                "R2": 0.87,
+                "Training Time": "25 min"
+            }
         }
-    }
 
-    print("\n" + "=" * 70)
-    print("TRANSFER LEARNING COMPARISON")
-    print("=" * 70)
+        print("\n" + "=" * 70)
+        print("TRANSFER LEARNING COMPARISON")
+        print("=" * 70)
 
-    print(
-        f"{'Strategy':<30} "
-        f"{'RMSE':<10} "
-        f"{'R2':<10} "
-        f"{'Training Time':<15}"
-    )
-
-    print("-" * 70)
-
-    for strategy, metrics in results.items():
         print(
-            f"{strategy:<30} "
-            f"{metrics['RMSE']:<10.4f} "
-            f"{metrics['R2']:<10.4f} "
-            f"{metrics['Training Time']:<15}"
+            f"{'Strategy':<30} "
+            f"{'RMSE':<10} "
+            f"{'R2':<10} "
+            f"{'Training Time':<15}"
         )
 
-    return results
-```
+        print("-" * 70)
+
+        for strategy, metrics in results.items():
+            print(
+                f"{strategy:<30} "
+                f"{metrics['RMSE']:<10.4f} "
+                f"{metrics['R2']:<10.4f} "
+                f"{metrics['Training Time']:<15}"
+            )
+
+        return results
+    ```
 
 ### 6.8 Key Takeaways
 
@@ -5345,642 +5233,644 @@ Blood-Brain Barrier (BBB) permeability is crucial for CNS drugs. We'll predict l
 
 ### 7.2 Full Pipeline
 
-```python
-# BBB permeability example
+??? note "Example"
 
-import time
-import copy
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+    ```python
+    # BBB permeability example
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+    import time
+    import copy
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
 
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    from torch.utils.data import Dataset, DataLoader
 
-from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors
-from tqdm import tqdm
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
-
-np.random.seed(42)
-torch.manual_seed(42)
-
-# 1. DATA LOADING AND PREPROCESSING
-
-def generate_synthetic_bbb_data(n_samples=2000, random_state=42):
-    """
-    Generate synthetic BBB permeability data.
-
-    The synthetic logBB target is based on simple molecular descriptors:
-    higher logP increases BBB permeability, while higher TPSA and molecular
-    weight tend to reduce BBB permeability.
-    """
-
-    rng = np.random.default_rng(random_state)
-
-    templates = np.array([
-        "CCO",
-        "CC(C)O",
-        "CCCO",
-        "CC(C)CO",
-        "CCCCO",
-        "c1ccccc1",
-        "Cc1ccccc1",
-        "Oc1ccccc1",
-        "Nc1ccccc1",
-        "CC(=O)O",
-        "CC(=O)N",
-        "CCNC",
-        "CCN(C)C",
-        "O=C(O)c1ccccc1",
-        "Nc1ccc(O)cc1",
-        "CCOC(=O)c1ccccc1",
-        "CCN(CC)CC",
-        "CC(C)NCC(O)c1ccccc1",
-        "COc1ccccc1",
-        "CC(C)c1ccccc1"
-    ])
-
-    smiles_list = []
-    logbb_list = []
-
-    for _ in range(n_samples):
-        smiles = rng.choice(templates)
-        mol = Chem.MolFromSmiles(smiles)
-
-        if mol is None:
-            continue
-
-        mw = Descriptors.MolWt(mol)
-        logp = Descriptors.MolLogP(mol)
-        tpsa = Descriptors.TPSA(mol)
-        hbd = Descriptors.NumHDonors(mol)
-
-        logbb = (
-            0.35 * logp
-            - 0.015 * tpsa
-            - 0.002 * mw
-            - 0.20 * hbd
-            + rng.normal(0, 0.25)
-        )
-
-        logbb = np.clip(logbb, -3.0, 2.0)
-
-        smiles_list.append(smiles)
-        logbb_list.append(logbb)
-
-    return pd.DataFrame({
-        "SMILES": smiles_list,
-        "logBB": logbb_list
-    })
+    from rdkit import Chem
+    from rdkit.Chem import AllChem, Descriptors
+    from tqdm import tqdm
 
 
-def load_bbb_data(filepath="bbb_permeability.csv"):
-    """
-    Load a BBB permeability dataset.
+    np.random.seed(42)
+    torch.manual_seed(42)
 
-    Expected columns:
-        SMILES, logBB
-    """
+    # 1. DATA LOADING AND PREPROCESSING
 
-    try:
-        df = pd.read_csv(filepath)
-        print(f"Loaded data from {filepath}")
-    except FileNotFoundError:
-        print("File not found. Generating synthetic BBB data...")
-        df = generate_synthetic_bbb_data(2000)
+    def generate_synthetic_bbb_data(n_samples=2000, random_state=42):
+        """
+        Generate synthetic BBB permeability data.
 
-    required_columns = {"SMILES", "logBB"}
+        The synthetic logBB target is based on simple molecular descriptors:
+        higher logP increases BBB permeability, while higher TPSA and molecular
+        weight tend to reduce BBB permeability.
+        """
 
-    if not required_columns.issubset(df.columns):
-        raise ValueError("Dataset must contain columns: SMILES and logBB")
+        rng = np.random.default_rng(random_state)
 
-    valid_rows = []
+        templates = np.array([
+            "CCO",
+            "CC(C)O",
+            "CCCO",
+            "CC(C)CO",
+            "CCCCO",
+            "c1ccccc1",
+            "Cc1ccccc1",
+            "Oc1ccccc1",
+            "Nc1ccccc1",
+            "CC(=O)O",
+            "CC(=O)N",
+            "CCNC",
+            "CCN(C)C",
+            "O=C(O)c1ccccc1",
+            "Nc1ccc(O)cc1",
+            "CCOC(=O)c1ccccc1",
+            "CCN(CC)CC",
+            "CC(C)NCC(O)c1ccccc1",
+            "COc1ccccc1",
+            "CC(C)c1ccccc1"
+        ])
 
-    for _, row in df.iterrows():
-        mol = Chem.MolFromSmiles(str(row["SMILES"]))
+        smiles_list = []
+        logbb_list = []
 
-        if mol is not None and np.isfinite(row["logBB"]):
-            valid_rows.append(row)
+        for _ in range(n_samples):
+            smiles = rng.choice(templates)
+            mol = Chem.MolFromSmiles(smiles)
 
-    df = pd.DataFrame(valid_rows).reset_index(drop=True)
+            if mol is None:
+                continue
 
-    print(f"Loaded {len(df)} valid molecules")
-    print(f"logBB range: [{df['logBB'].min():.2f}, {df['logBB'].max():.2f}]")
+            mw = Descriptors.MolWt(mol)
+            logp = Descriptors.MolLogP(mol)
+            tpsa = Descriptors.TPSA(mol)
+            hbd = Descriptors.NumHDonors(mol)
 
-    return df
-
-# 2. FEATURE EXTRACTION
-
-def compute_molecular_fingerprints(smiles_list, radius=2, n_bits=2048):
-    """
-    Compute Morgan fingerprints.
-
-    Output shape:
-        (number_of_molecules, n_bits)
-    """
-
-    fingerprints = []
-
-    for smiles in tqdm(smiles_list, desc="Computing fingerprints"):
-        mol = Chem.MolFromSmiles(str(smiles))
-
-        if mol is None:
-            fp_array = np.zeros(n_bits, dtype=np.float32)
-        else:
-            fp = AllChem.GetMorganFingerprintAsBitVect(
-                mol,
-                radius,
-                nBits=n_bits
+            logbb = (
+                0.35 * logp
+                - 0.015 * tpsa
+                - 0.002 * mw
+                - 0.20 * hbd
+                + rng.normal(0, 0.25)
             )
-            fp_array = np.asarray(fp, dtype=np.float32)
 
-        fingerprints.append(fp_array)
+            logbb = np.clip(logbb, -3.0, 2.0)
 
-    return np.asarray(fingerprints, dtype=np.float32)
+            smiles_list.append(smiles)
+            logbb_list.append(logbb)
 
-# 3. DEEP LEARNING MODEL
+        return pd.DataFrame({
+            "SMILES": smiles_list,
+            "logBB": logbb_list
+        })
 
-class BBBPermeabilityModel(nn.Module):
-    """
-    Feedforward neural network for BBB permeability prediction.
-    """
 
-    def __init__(self, input_dim=2048):
-        super().__init__()
+    def load_bbb_data(filepath="bbb_permeability.csv"):
+        """
+        Load a BBB permeability dataset.
 
-        self.network = nn.Sequential(
-            nn.Linear(input_dim, 512),
-            nn.BatchNorm1d(512),
-            nn.ReLU(),
-            nn.Dropout(0.3),
+        Expected columns:
+            SMILES, logBB
+        """
 
-            nn.Linear(512, 256),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.Dropout(0.3),
+        try:
+            df = pd.read_csv(filepath)
+            print(f"Loaded data from {filepath}")
+        except FileNotFoundError:
+            print("File not found. Generating synthetic BBB data...")
+            df = generate_synthetic_bbb_data(2000)
 
-            nn.Linear(256, 128),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
-            nn.Dropout(0.2),
+        required_columns = {"SMILES", "logBB"}
 
-            nn.Linear(128, 1)
-        )
+        if not required_columns.issubset(df.columns):
+            raise ValueError("Dataset must contain columns: SMILES and logBB")
 
-        self._initialize_weights()
+        valid_rows = []
 
-    def _initialize_weights(self):
-        for module in self.modules():
-            if isinstance(module, nn.Linear):
-                nn.init.kaiming_normal_(
-                    module.weight,
-                    mode="fan_in",
-                    nonlinearity="relu"
+        for _, row in df.iterrows():
+            mol = Chem.MolFromSmiles(str(row["SMILES"]))
+
+            if mol is not None and np.isfinite(row["logBB"]):
+                valid_rows.append(row)
+
+        df = pd.DataFrame(valid_rows).reset_index(drop=True)
+
+        print(f"Loaded {len(df)} valid molecules")
+        print(f"logBB range: [{df['logBB'].min():.2f}, {df['logBB'].max():.2f}]")
+
+        return df
+
+    # 2. FEATURE EXTRACTION
+
+    def compute_molecular_fingerprints(smiles_list, radius=2, n_bits=2048):
+        """
+        Compute Morgan fingerprints.
+
+        Output shape:
+            (number_of_molecules, n_bits)
+        """
+
+        fingerprints = []
+
+        for smiles in tqdm(smiles_list, desc="Computing fingerprints"):
+            mol = Chem.MolFromSmiles(str(smiles))
+
+            if mol is None:
+                fp_array = np.zeros(n_bits, dtype=np.float32)
+            else:
+                fp = AllChem.GetMorganFingerprintAsBitVect(
+                    mol,
+                    radius,
+                    nBits=n_bits
                 )
-                nn.init.zeros_(module.bias)
+                fp_array = np.asarray(fp, dtype=np.float32)
 
-    def forward(self, x):
-        return self.network(x)
+            fingerprints.append(fp_array)
 
+        return np.asarray(fingerprints, dtype=np.float32)
 
-class BBBDataset(Dataset):
-    """
-    PyTorch dataset for BBB permeability prediction.
-    """
+    # 3. DEEP LEARNING MODEL
 
-    def __init__(self, features, labels):
-        self.features = torch.tensor(features, dtype=torch.float32)
-        self.labels = torch.tensor(labels, dtype=torch.float32).view(-1, 1)
+    class BBBPermeabilityModel(nn.Module):
+        """
+        Feedforward neural network for BBB permeability prediction.
+        """
 
-    def __len__(self):
-        return len(self.features)
+        def __init__(self, input_dim=2048):
+            super().__init__()
 
-    def __getitem__(self, idx):
-        return self.features[idx], self.labels[idx]
+            self.network = nn.Sequential(
+                nn.Linear(input_dim, 512),
+                nn.BatchNorm1d(512),
+                nn.ReLU(),
+                nn.Dropout(0.3),
 
-# 4. TRAINING FUNCTION
+                nn.Linear(512, 256),
+                nn.BatchNorm1d(256),
+                nn.ReLU(),
+                nn.Dropout(0.3),
 
-def train_deep_learning_model(
-    X_train,
-    y_train,
-    X_val,
-    y_val,
-    num_epochs=100,
-    batch_size=64,
-    lr=1e-3,
-    patience=20
-):
-    """
-    Train the neural network model.
-    """
+                nn.Linear(256, 128),
+                nn.BatchNorm1d(128),
+                nn.ReLU(),
+                nn.Dropout(0.2),
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
-
-    train_dataset = BBBDataset(X_train, y_train)
-    val_dataset = BBBDataset(X_val, y_val)
-
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True
-    )
-
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=batch_size,
-        shuffle=False
-    )
-
-    model = BBBPermeabilityModel(input_dim=X_train.shape[1]).to(device)
-
-    criterion = nn.MSELoss()
-    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
-
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer,
-        mode="min",
-        patience=10,
-        factor=0.5
-    )
-
-    history = {
-        "train_loss": [],
-        "val_loss": [],
-        "val_rmse": [],
-        "val_mae": [],
-        "val_r2": []
-    }
-
-    best_val_loss = float("inf")
-    best_model_state = copy.deepcopy(model.state_dict())
-    patience_counter = 0
-
-    start_time = time.time()
-
-    for epoch in range(num_epochs):
-        model.train()
-        train_loss = 0.0
-
-        for batch_x, batch_y in train_loader:
-            batch_x = batch_x.to(device)
-            batch_y = batch_y.to(device)
-
-            optimizer.zero_grad()
-
-            predictions = model(batch_x)
-            loss = criterion(predictions, batch_y)
-
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
-
-            train_loss += loss.item() * batch_x.size(0)
-
-        train_loss /= len(train_loader.dataset)
-
-        model.eval()
-        val_loss = 0.0
-        all_preds = []
-        all_labels = []
-
-        with torch.no_grad():
-            for batch_x, batch_y in val_loader:
-                batch_x = batch_x.to(device)
-                batch_y = batch_y.to(device)
-
-                predictions = model(batch_x)
-                loss = criterion(predictions, batch_y)
-
-                val_loss += loss.item() * batch_x.size(0)
-
-                all_preds.append(predictions.cpu().numpy())
-                all_labels.append(batch_y.cpu().numpy())
-
-        val_loss /= len(val_loader.dataset)
-
-        all_preds = np.concatenate(all_preds).ravel()
-        all_labels = np.concatenate(all_labels).ravel()
-
-        val_rmse = np.sqrt(mean_squared_error(all_labels, all_preds))
-        val_mae = mean_absolute_error(all_labels, all_preds)
-        val_r2 = r2_score(all_labels, all_preds)
-
-        history["train_loss"].append(train_loss)
-        history["val_loss"].append(val_loss)
-        history["val_rmse"].append(val_rmse)
-        history["val_mae"].append(val_mae)
-        history["val_r2"].append(val_r2)
-
-        scheduler.step(val_loss)
-
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            best_model_state = copy.deepcopy(model.state_dict())
-            patience_counter = 0
-        else:
-            patience_counter += 1
-
-        if (epoch + 1) % 10 == 0:
-            current_lr = optimizer.param_groups[0]["lr"]
-
-            print(f"Epoch {epoch + 1}/{num_epochs}")
-            print(f"  Train Loss: {train_loss:.4f}")
-            print(
-                f"  Val Loss: {val_loss:.4f}, "
-                f"RMSE: {val_rmse:.4f}, "
-                f"MAE: {val_mae:.4f}, "
-                f"R²: {val_r2:.4f}, "
-                f"LR: {current_lr:.2e}"
+                nn.Linear(128, 1)
             )
 
-        if patience_counter >= patience:
-            print(f"\nEarly stopping at epoch {epoch + 1}")
-            break
+            self._initialize_weights()
 
-    training_time = time.time() - start_time
+        def _initialize_weights(self):
+            for module in self.modules():
+                if isinstance(module, nn.Linear):
+                    nn.init.kaiming_normal_(
+                        module.weight,
+                        mode="fan_in",
+                        nonlinearity="relu"
+                    )
+                    nn.init.zeros_(module.bias)
 
-    model.load_state_dict(best_model_state)
-
-    torch.save(
-        {
-            "model_state_dict": best_model_state,
-            "input_dim": X_train.shape[1],
-            "best_val_loss": best_val_loss,
-            "history": history
-        },
-        "best_bbb_model.pth"
-    )
-
-    return model, history, training_time
+        def forward(self, x):
+            return self.network(x)
 
 
-# 5. RANDOM FOREST BASELINE
+    class BBBDataset(Dataset):
+        """
+        PyTorch dataset for BBB permeability prediction.
+        """
 
-def train_random_forest_model(X_train, y_train, X_val, y_val):
-    """
-    Train a Random Forest baseline.
-    """
+        def __init__(self, features, labels):
+            self.features = torch.tensor(features, dtype=torch.float32)
+            self.labels = torch.tensor(labels, dtype=torch.float32).view(-1, 1)
 
-    start_time = time.time()
+        def __len__(self):
+            return len(self.features)
 
-    rf_model = RandomForestRegressor(
-        n_estimators=500,
-        max_depth=20,
-        min_samples_split=5,
-        min_samples_leaf=2,
-        random_state=42,
-        n_jobs=-1
-    )
+        def __getitem__(self, idx):
+            return self.features[idx], self.labels[idx]
 
-    rf_model.fit(X_train, y_train)
+    # 4. TRAINING FUNCTION
 
-    train_pred = rf_model.predict(X_train)
-    val_pred = rf_model.predict(X_val)
-
-    train_rmse = np.sqrt(mean_squared_error(y_train, train_pred))
-    val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))
-    val_mae = mean_absolute_error(y_val, val_pred)
-    val_r2 = r2_score(y_val, val_pred)
-
-    training_time = time.time() - start_time
-
-    print("\nRandom Forest Results:")
-    print(f"  Train RMSE: {train_rmse:.4f}")
-    print(f"  Val RMSE: {val_rmse:.4f}")
-    print(f"  Val MAE: {val_mae:.4f}")
-    print(f"  Val R²: {val_r2:.4f}")
-    print(f"  Training time: {training_time:.2f}s")
-
-    return rf_model, {
-        "train_rmse": train_rmse,
-        "val_rmse": val_rmse,
-        "val_mae": val_mae,
-        "val_r2": val_r2,
-        "time": training_time
-    }
-
-# 6. EVALUATION AND VISUALIZATION
-
-def evaluate_model(model, X_test, y_test, model_type="dl"):
-    """
-    Evaluate either a deep learning or Random Forest model.
-    """
-
-    if model_type == "dl":
-        device = next(model.parameters()).device
-        model.eval()
-
-        test_dataset = BBBDataset(X_test, y_test)
-        test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
-
-        predictions = []
-
-        with torch.no_grad():
-            for batch_x, _ in test_loader:
-                batch_x = batch_x.to(device)
-                pred = model(batch_x)
-                predictions.append(pred.cpu().numpy())
-
-        predictions = np.concatenate(predictions).ravel()
-
-    else:
-        predictions = model.predict(X_test)
-
-    rmse = np.sqrt(mean_squared_error(y_test, predictions))
-    mae = mean_absolute_error(y_test, predictions)
-    r2 = r2_score(y_test, predictions)
-
-    print("\nTest Set Evaluation:")
-    print(f"  RMSE: {rmse:.4f}")
-    print(f"  MAE: {mae:.4f}")
-    print(f"  R²: {r2:.4f}")
-
-    return predictions, {
-        "rmse": rmse,
-        "mae": mae,
-        "r2": r2
-    }
-
-
-def visualize_results(y_true, y_pred_dl, y_pred_rf, history):
-    """
-    Visualize training curves and prediction quality.
-    """
-
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-
-    axes[0, 0].plot(history["train_loss"], label="Train Loss")
-    axes[0, 0].plot(history["val_loss"], label="Validation Loss")
-    axes[0, 0].set_xlabel("Epoch")
-    axes[0, 0].set_ylabel("MSE Loss")
-    axes[0, 0].set_title("Training History")
-    axes[0, 0].legend()
-    axes[0, 0].grid(True)
-
-    axes[0, 1].plot(history["val_rmse"], label="Validation RMSE")
-    axes[0, 1].set_xlabel("Epoch")
-    axes[0, 1].set_ylabel("RMSE")
-    axes[0, 1].set_title("Validation RMSE")
-    axes[0, 1].legend()
-    axes[0, 1].grid(True)
-
-    axes[0, 2].plot(history["val_r2"], label="Validation R²")
-    axes[0, 2].set_xlabel("Epoch")
-    axes[0, 2].set_ylabel("R² Score")
-    axes[0, 2].set_title("Validation R²")
-    axes[0, 2].legend()
-    axes[0, 2].grid(True)
-
-    min_val = min(y_true.min(), y_pred_dl.min(), y_pred_rf.min())
-    max_val = max(y_true.max(), y_pred_dl.max(), y_pred_rf.max())
-
-    axes[1, 0].scatter(y_true, y_pred_dl, alpha=0.5)
-    axes[1, 0].plot([min_val, max_val], [min_val, max_val], "r--", lw=2)
-    axes[1, 0].set_xlabel("True logBB")
-    axes[1, 0].set_ylabel("Predicted logBB")
-    axes[1, 0].set_title("Deep Learning Predictions")
-    axes[1, 0].grid(True)
-
-    axes[1, 1].scatter(y_true, y_pred_rf, alpha=0.5)
-    axes[1, 1].plot([min_val, max_val], [min_val, max_val], "r--", lw=2)
-    axes[1, 1].set_xlabel("True logBB")
-    axes[1, 1].set_ylabel("Predicted logBB")
-    axes[1, 1].set_title("Random Forest Predictions")
-    axes[1, 1].grid(True)
-
-    residuals_dl = y_true - y_pred_dl
-    residuals_rf = y_true - y_pred_rf
-
-    axes[1, 2].hist(residuals_dl, bins=30, alpha=0.5, label="Deep Learning")
-    axes[1, 2].hist(residuals_rf, bins=30, alpha=0.5, label="Random Forest")
-    axes[1, 2].set_xlabel("Residual")
-    axes[1, 2].set_ylabel("Frequency")
-    axes[1, 2].set_title("Residual Distribution")
-    axes[1, 2].legend()
-    axes[1, 2].grid(True)
-
-    plt.tight_layout()
-    plt.savefig("bbb_prediction_results.png", dpi=150, bbox_inches="tight")
-    plt.show()
-
-
-# 7. MAIN EXECUTION
-
-def main():
-    print("=" * 70)
-    print("BBB PERMEABILITY PREDICTION PIPELINE")
-    print("=" * 70)
-
-    print("\n1. Loading data...")
-    df = load_bbb_data()
-
-    print("\n2. Splitting data...")
-
-    train_df, temp_df = train_test_split(
-        df,
-        test_size=0.3,
-        random_state=42
-    )
-
-    val_df, test_df = train_test_split(
-        temp_df,
-        test_size=0.5,
-        random_state=42
-    )
-
-    print(f"  Train: {len(train_df)} molecules")
-    print(f"  Validation: {len(val_df)} molecules")
-    print(f"  Test: {len(test_df)} molecules")
-
-    print("\n3. Extracting Morgan fingerprints...")
-
-    X_train = compute_molecular_fingerprints(train_df["SMILES"].values)
-    X_val = compute_molecular_fingerprints(val_df["SMILES"].values)
-    X_test = compute_molecular_fingerprints(test_df["SMILES"].values)
-
-    y_train = train_df["logBB"].values.astype(np.float32)
-    y_val = val_df["logBB"].values.astype(np.float32)
-    y_test = test_df["logBB"].values.astype(np.float32)
-
-    print("\n4. Training deep learning model...")
-
-    dl_model, history, dl_time = train_deep_learning_model(
+    def train_deep_learning_model(
         X_train,
         y_train,
         X_val,
         y_val,
         num_epochs=100,
         batch_size=64,
-        lr=1e-3
-    )
+        lr=1e-3,
+        patience=20
+    ):
+        """
+        Train the neural network model.
+        """
 
-    print(f"  Deep learning training time: {dl_time:.2f}s")
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"Using device: {device}")
 
-    print("\n5. Training Random Forest baseline...")
+        train_dataset = BBBDataset(X_train, y_train)
+        val_dataset = BBBDataset(X_val, y_val)
 
-    rf_model, rf_results = train_random_forest_model(
-        X_train,
-        y_train,
-        X_val,
-        y_val
-    )
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True
+        )
 
-    print("\n6. Evaluating models on the test set...")
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=batch_size,
+            shuffle=False
+        )
 
-    print("\nDeep Learning Model:")
-    dl_predictions, dl_metrics = evaluate_model(
-        dl_model,
-        X_test,
-        y_test,
-        model_type="dl"
-    )
+        model = BBBPermeabilityModel(input_dim=X_train.shape[1]).to(device)
 
-    print("\nRandom Forest Model:")
-    rf_predictions, rf_metrics = evaluate_model(
-        rf_model,
-        X_test,
-        y_test,
-        model_type="rf"
-    )
+        criterion = nn.MSELoss()
+        optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
 
-    print("\n" + "=" * 70)
-    print("FINAL COMPARISON")
-    print("=" * 70)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            patience=10,
+            factor=0.5
+        )
 
-    print(f"{'Metric':<15} {'Deep Learning':<20} {'Random Forest':<20}")
-    print("-" * 55)
-    print(f"{'RMSE':<15} {dl_metrics['rmse']:<20.4f} {rf_metrics['rmse']:<20.4f}")
-    print(f"{'MAE':<15} {dl_metrics['mae']:<20.4f} {rf_metrics['mae']:<20.4f}")
-    print(f"{'R²':<15} {dl_metrics['r2']:<20.4f} {rf_metrics['r2']:<20.4f}")
-    print(f"{'Time':<15} {dl_time:<20.1f}s {rf_results['time']:<20.1f}s")
+        history = {
+            "train_loss": [],
+            "val_loss": [],
+            "val_rmse": [],
+            "val_mae": [],
+            "val_r2": []
+        }
 
-    print("\n7. Generating visualizations...")
-    visualize_results(y_test, dl_predictions, rf_predictions, history)
+        best_val_loss = float("inf")
+        best_model_state = copy.deepcopy(model.state_dict())
+        patience_counter = 0
 
-    print("\n" + "=" * 70)
-    print("PIPELINE COMPLETE")
-    print("=" * 70)
+        start_time = time.time()
 
-    return {
-        "dl_model": dl_model,
-        "rf_model": rf_model,
-        "dl_metrics": dl_metrics,
-        "rf_metrics": rf_metrics,
-        "history": history
-    }
+        for epoch in range(num_epochs):
+            model.train()
+            train_loss = 0.0
+
+            for batch_x, batch_y in train_loader:
+                batch_x = batch_x.to(device)
+                batch_y = batch_y.to(device)
+
+                optimizer.zero_grad()
+
+                predictions = model(batch_x)
+                loss = criterion(predictions, batch_y)
+
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                optimizer.step()
+
+                train_loss += loss.item() * batch_x.size(0)
+
+            train_loss /= len(train_loader.dataset)
+
+            model.eval()
+            val_loss = 0.0
+            all_preds = []
+            all_labels = []
+
+            with torch.no_grad():
+                for batch_x, batch_y in val_loader:
+                    batch_x = batch_x.to(device)
+                    batch_y = batch_y.to(device)
+
+                    predictions = model(batch_x)
+                    loss = criterion(predictions, batch_y)
+
+                    val_loss += loss.item() * batch_x.size(0)
+
+                    all_preds.append(predictions.cpu().numpy())
+                    all_labels.append(batch_y.cpu().numpy())
+
+            val_loss /= len(val_loader.dataset)
+
+            all_preds = np.concatenate(all_preds).ravel()
+            all_labels = np.concatenate(all_labels).ravel()
+
+            val_rmse = np.sqrt(mean_squared_error(all_labels, all_preds))
+            val_mae = mean_absolute_error(all_labels, all_preds)
+            val_r2 = r2_score(all_labels, all_preds)
+
+            history["train_loss"].append(train_loss)
+            history["val_loss"].append(val_loss)
+            history["val_rmse"].append(val_rmse)
+            history["val_mae"].append(val_mae)
+            history["val_r2"].append(val_r2)
+
+            scheduler.step(val_loss)
+
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_model_state = copy.deepcopy(model.state_dict())
+                patience_counter = 0
+            else:
+                patience_counter += 1
+
+            if (epoch + 1) % 10 == 0:
+                current_lr = optimizer.param_groups[0]["lr"]
+
+                print(f"Epoch {epoch + 1}/{num_epochs}")
+                print(f"  Train Loss: {train_loss:.4f}")
+                print(
+                    f"  Val Loss: {val_loss:.4f}, "
+                    f"RMSE: {val_rmse:.4f}, "
+                    f"MAE: {val_mae:.4f}, "
+                    f"R²: {val_r2:.4f}, "
+                    f"LR: {current_lr:.2e}"
+                )
+
+            if patience_counter >= patience:
+                print(f"\nEarly stopping at epoch {epoch + 1}")
+                break
+
+        training_time = time.time() - start_time
+
+        model.load_state_dict(best_model_state)
+
+        torch.save(
+            {
+                "model_state_dict": best_model_state,
+                "input_dim": X_train.shape[1],
+                "best_val_loss": best_val_loss,
+                "history": history
+            },
+            "best_bbb_model.pth"
+        )
+
+        return model, history, training_time
 
 
-if __name__ == "__main__":
-    results = main()
-```
+    # 5. RANDOM FOREST BASELINE
+
+    def train_random_forest_model(X_train, y_train, X_val, y_val):
+        """
+        Train a Random Forest baseline.
+        """
+
+        start_time = time.time()
+
+        rf_model = RandomForestRegressor(
+            n_estimators=500,
+            max_depth=20,
+            min_samples_split=5,
+            min_samples_leaf=2,
+            random_state=42,
+            n_jobs=-1
+        )
+
+        rf_model.fit(X_train, y_train)
+
+        train_pred = rf_model.predict(X_train)
+        val_pred = rf_model.predict(X_val)
+
+        train_rmse = np.sqrt(mean_squared_error(y_train, train_pred))
+        val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))
+        val_mae = mean_absolute_error(y_val, val_pred)
+        val_r2 = r2_score(y_val, val_pred)
+
+        training_time = time.time() - start_time
+
+        print("\nRandom Forest Results:")
+        print(f"  Train RMSE: {train_rmse:.4f}")
+        print(f"  Val RMSE: {val_rmse:.4f}")
+        print(f"  Val MAE: {val_mae:.4f}")
+        print(f"  Val R²: {val_r2:.4f}")
+        print(f"  Training time: {training_time:.2f}s")
+
+        return rf_model, {
+            "train_rmse": train_rmse,
+            "val_rmse": val_rmse,
+            "val_mae": val_mae,
+            "val_r2": val_r2,
+            "time": training_time
+        }
+
+    # 6. EVALUATION AND VISUALIZATION
+
+    def evaluate_model(model, X_test, y_test, model_type="dl"):
+        """
+        Evaluate either a deep learning or Random Forest model.
+        """
+
+        if model_type == "dl":
+            device = next(model.parameters()).device
+            model.eval()
+
+            test_dataset = BBBDataset(X_test, y_test)
+            test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+            predictions = []
+
+            with torch.no_grad():
+                for batch_x, _ in test_loader:
+                    batch_x = batch_x.to(device)
+                    pred = model(batch_x)
+                    predictions.append(pred.cpu().numpy())
+
+            predictions = np.concatenate(predictions).ravel()
+
+        else:
+            predictions = model.predict(X_test)
+
+        rmse = np.sqrt(mean_squared_error(y_test, predictions))
+        mae = mean_absolute_error(y_test, predictions)
+        r2 = r2_score(y_test, predictions)
+
+        print("\nTest Set Evaluation:")
+        print(f"  RMSE: {rmse:.4f}")
+        print(f"  MAE: {mae:.4f}")
+        print(f"  R²: {r2:.4f}")
+
+        return predictions, {
+            "rmse": rmse,
+            "mae": mae,
+            "r2": r2
+        }
+
+
+    def visualize_results(y_true, y_pred_dl, y_pred_rf, history):
+        """
+        Visualize training curves and prediction quality.
+        """
+
+        fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+
+        axes[0, 0].plot(history["train_loss"], label="Train Loss")
+        axes[0, 0].plot(history["val_loss"], label="Validation Loss")
+        axes[0, 0].set_xlabel("Epoch")
+        axes[0, 0].set_ylabel("MSE Loss")
+        axes[0, 0].set_title("Training History")
+        axes[0, 0].legend()
+        axes[0, 0].grid(True)
+
+        axes[0, 1].plot(history["val_rmse"], label="Validation RMSE")
+        axes[0, 1].set_xlabel("Epoch")
+        axes[0, 1].set_ylabel("RMSE")
+        axes[0, 1].set_title("Validation RMSE")
+        axes[0, 1].legend()
+        axes[0, 1].grid(True)
+
+        axes[0, 2].plot(history["val_r2"], label="Validation R²")
+        axes[0, 2].set_xlabel("Epoch")
+        axes[0, 2].set_ylabel("R² Score")
+        axes[0, 2].set_title("Validation R²")
+        axes[0, 2].legend()
+        axes[0, 2].grid(True)
+
+        min_val = min(y_true.min(), y_pred_dl.min(), y_pred_rf.min())
+        max_val = max(y_true.max(), y_pred_dl.max(), y_pred_rf.max())
+
+        axes[1, 0].scatter(y_true, y_pred_dl, alpha=0.5)
+        axes[1, 0].plot([min_val, max_val], [min_val, max_val], "r--", lw=2)
+        axes[1, 0].set_xlabel("True logBB")
+        axes[1, 0].set_ylabel("Predicted logBB")
+        axes[1, 0].set_title("Deep Learning Predictions")
+        axes[1, 0].grid(True)
+
+        axes[1, 1].scatter(y_true, y_pred_rf, alpha=0.5)
+        axes[1, 1].plot([min_val, max_val], [min_val, max_val], "r--", lw=2)
+        axes[1, 1].set_xlabel("True logBB")
+        axes[1, 1].set_ylabel("Predicted logBB")
+        axes[1, 1].set_title("Random Forest Predictions")
+        axes[1, 1].grid(True)
+
+        residuals_dl = y_true - y_pred_dl
+        residuals_rf = y_true - y_pred_rf
+
+        axes[1, 2].hist(residuals_dl, bins=30, alpha=0.5, label="Deep Learning")
+        axes[1, 2].hist(residuals_rf, bins=30, alpha=0.5, label="Random Forest")
+        axes[1, 2].set_xlabel("Residual")
+        axes[1, 2].set_ylabel("Frequency")
+        axes[1, 2].set_title("Residual Distribution")
+        axes[1, 2].legend()
+        axes[1, 2].grid(True)
+
+        plt.tight_layout()
+        plt.savefig("bbb_prediction_results.png", dpi=150, bbox_inches="tight")
+        plt.show()
+
+
+    # 7. MAIN EXECUTION
+
+    def main():
+        print("=" * 70)
+        print("BBB PERMEABILITY PREDICTION PIPELINE")
+        print("=" * 70)
+
+        print("\n1. Loading data...")
+        df = load_bbb_data()
+
+        print("\n2. Splitting data...")
+
+        train_df, temp_df = train_test_split(
+            df,
+            test_size=0.3,
+            random_state=42
+        )
+
+        val_df, test_df = train_test_split(
+            temp_df,
+            test_size=0.5,
+            random_state=42
+        )
+
+        print(f"  Train: {len(train_df)} molecules")
+        print(f"  Validation: {len(val_df)} molecules")
+        print(f"  Test: {len(test_df)} molecules")
+
+        print("\n3. Extracting Morgan fingerprints...")
+
+        X_train = compute_molecular_fingerprints(train_df["SMILES"].values)
+        X_val = compute_molecular_fingerprints(val_df["SMILES"].values)
+        X_test = compute_molecular_fingerprints(test_df["SMILES"].values)
+
+        y_train = train_df["logBB"].values.astype(np.float32)
+        y_val = val_df["logBB"].values.astype(np.float32)
+        y_test = test_df["logBB"].values.astype(np.float32)
+
+        print("\n4. Training deep learning model...")
+
+        dl_model, history, dl_time = train_deep_learning_model(
+            X_train,
+            y_train,
+            X_val,
+            y_val,
+            num_epochs=100,
+            batch_size=64,
+            lr=1e-3
+        )
+
+        print(f"  Deep learning training time: {dl_time:.2f}s")
+
+        print("\n5. Training Random Forest baseline...")
+
+        rf_model, rf_results = train_random_forest_model(
+            X_train,
+            y_train,
+            X_val,
+            y_val
+        )
+
+        print("\n6. Evaluating models on the test set...")
+
+        print("\nDeep Learning Model:")
+        dl_predictions, dl_metrics = evaluate_model(
+            dl_model,
+            X_test,
+            y_test,
+            model_type="dl"
+        )
+
+        print("\nRandom Forest Model:")
+        rf_predictions, rf_metrics = evaluate_model(
+            rf_model,
+            X_test,
+            y_test,
+            model_type="rf"
+        )
+
+        print("\n" + "=" * 70)
+        print("FINAL COMPARISON")
+        print("=" * 70)
+
+        print(f"{'Metric':<15} {'Deep Learning':<20} {'Random Forest':<20}")
+        print("-" * 55)
+        print(f"{'RMSE':<15} {dl_metrics['rmse']:<20.4f} {rf_metrics['rmse']:<20.4f}")
+        print(f"{'MAE':<15} {dl_metrics['mae']:<20.4f} {rf_metrics['mae']:<20.4f}")
+        print(f"{'R²':<15} {dl_metrics['r2']:<20.4f} {rf_metrics['r2']:<20.4f}")
+        print(f"{'Time':<15} {dl_time:<20.1f}s {rf_results['time']:<20.1f}s")
+
+        print("\n7. Generating visualizations...")
+        visualize_results(y_test, dl_predictions, rf_predictions, history)
+
+        print("\n" + "=" * 70)
+        print("PIPELINE COMPLETE")
+        print("=" * 70)
+
+        return {
+            "dl_model": dl_model,
+            "rf_model": rf_model,
+            "dl_metrics": dl_metrics,
+            "rf_metrics": rf_metrics,
+            "history": history
+        }
+
+
+    if __name__ == "__main__":
+        results = main()
+    ```
 
 ## 8. Model Interpretation
 
@@ -6020,117 +5910,121 @@ $$
 This combines feature sensitivity with the actual feature value.
 
 
-#### Corrected Gradient Importance Function
+#### Gradient Importance Function
 
-```python
-import numpy as np
-import torch
-import matplotlib.pyplot as plt
+??? note "Example"
+
+    ```python
+    import numpy as np
+    import torch
+    import matplotlib.pyplot as plt
 
 
-def compute_gradient_importance(model, X, device=None):
-    """
-    Compute gradient-based feature importance.
+    def compute_gradient_importance(model, X, device=None):
+        """
+        Compute gradient-based feature importance.
 
-    Args:
-        model:
-            Trained PyTorch model.
+        Args:
+            model:
+                Trained PyTorch model.
 
-        X:
-            Input features as a NumPy array or PyTorch tensor.
-            Shape: (num_samples, num_features)
+            X:
+                Input features as a NumPy array or PyTorch tensor.
+                Shape: (num_samples, num_features)
 
-        device:
-            Device used for computation.
+            device:
+                Device used for computation.
 
-    Returns:
-        importance:
-            Array of shape (num_samples, num_features).
-    """
+        Returns:
+            importance:
+                Array of shape (num_samples, num_features).
+        """
 
-    if device is None:
-        device = next(model.parameters()).device
+        if device is None:
+            device = next(model.parameters()).device
 
-    model.eval()
+        model.eval()
 
-    if isinstance(X, np.ndarray):
-        X_tensor = torch.tensor(X, dtype=torch.float32, device=device)
-    else:
-        X_tensor = X.detach().clone().float().to(device)
+        if isinstance(X, np.ndarray):
+            X_tensor = torch.tensor(X, dtype=torch.float32, device=device)
+        else:
+            X_tensor = X.detach().clone().float().to(device)
 
-    X_tensor.requires_grad_(True)
+        X_tensor.requires_grad_(True)
 
-    output = model(X_tensor)
+        output = model(X_tensor)
 
-    # If model output has shape (batch_size, 1), flatten it.
-    output = output.view(output.shape[0], -1)
+        # If model output has shape (batch_size, 1), flatten it.
+        output = output.view(output.shape[0], -1)
 
-    # For regression, use the first output dimension.
-    selected_output = output[:, 0].sum()
+        # For regression, use the first output dimension.
+        selected_output = output[:, 0].sum()
 
-    model.zero_grad()
+        model.zero_grad()
 
-    selected_output.backward()
+        selected_output.backward()
 
-    gradients = X_tensor.grad.detach()
+        gradients = X_tensor.grad.detach()
 
-    importance = torch.abs(gradients * X_tensor)
+        importance = torch.abs(gradients * X_tensor)
 
-    return importance.cpu().numpy()
-```
+        return importance.cpu().numpy()
+    ```
 
 
 
 #### Visualizing Feature Importance
 
-```python
-def visualize_feature_importance(
-    importance,
-    feature_names=None,
-    top_k=20,
-    save_path="feature_importance.png"
-):
-    """
-    Plot the top-k most important features averaged across samples.
-    """
+??? note "Example"
 
-    avg_importance = np.mean(importance, axis=0)
+    ```python
+    def visualize_feature_importance(
+        importance,
+        feature_names=None,
+        top_k=20,
+        save_path="feature_importance.png"
+    ):
+        """
+        Plot the top-k most important features averaged across samples.
+        """
 
-    top_indices = np.argsort(avg_importance)[-top_k:][::-1]
+        avg_importance = np.mean(importance, axis=0)
 
-    top_scores = avg_importance[top_indices]
+        top_indices = np.argsort(avg_importance)[-top_k:][::-1]
 
-    if feature_names is None:
-        top_labels = [f"Feature {idx}" for idx in top_indices]
-    else:
-        top_labels = [feature_names[idx] for idx in top_indices]
+        top_scores = avg_importance[top_indices]
 
-    plt.figure(figsize=(10, 6))
-    plt.barh(range(top_k), top_scores)
-    plt.yticks(range(top_k), top_labels)
-    plt.xlabel("Average Importance Score")
-    plt.title(f"Top {top_k} Most Important Features")
-    plt.gca().invert_yaxis()
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=150)
-    plt.show()
-```
+        if feature_names is None:
+            top_labels = [f"Feature {idx}" for idx in top_indices]
+        else:
+            top_labels = [feature_names[idx] for idx in top_indices]
+
+        plt.figure(figsize=(10, 6))
+        plt.barh(range(top_k), top_scores)
+        plt.yticks(range(top_k), top_labels)
+        plt.xlabel("Average Importance Score")
+        plt.title(f"Top {top_k} Most Important Features")
+        plt.gca().invert_yaxis()
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150)
+        plt.show()
+    ```
 
 Example:
 
-```python
-importance_scores = compute_gradient_importance(
-    model,
-    X_test
-)
+??? note "Example"
 
-visualize_feature_importance(
-    importance_scores,
-    top_k=20
-)
-```
+    ```python
+    importance_scores = compute_gradient_importance(
+        model,
+        X_test
+    )
 
-
+    visualize_feature_importance(
+        importance_scores,
+        top_k=20
+    )
+    ```
 
 ### 8.2 Integrated Gradients
 
@@ -6141,8 +6035,7 @@ For a feature $x_i$, the integrated gradient is:
 
 $$
 IG_i(\mathbf{x})
-================
-
+=
 (x_i - x_i')
 \int_{\alpha=0}^{1}
 \frac{\partial f(\mathbf{x}' + \alpha(\mathbf{x}-\mathbf{x}'))}
@@ -6159,172 +6052,175 @@ where:
 For molecular fingerprints, a common baseline is the all-zero fingerprint.
 
 
-#### Corrected Integrated Gradients Function
+#### Integrated Gradients Function
 
-```python
-def integrated_gradients(
-    model,
-    X,
-    baseline=None,
-    steps=50,
-    device=None
-):
-    """
-    Compute Integrated Gradients for feature attribution.
+??? note "Example"
 
-    Args:
-        model:
-            Trained PyTorch model.
+    ```python
+    def integrated_gradients(
+        model,
+        X,
+        baseline=None,
+        steps=50,
+        device=None
+    ):
+        """
+        Compute Integrated Gradients for feature attribution.
 
-        X:
-            Input features with shape (num_samples, num_features).
+        Args:
+            model:
+                Trained PyTorch model.
 
-        baseline:
-            Baseline input. If None, uses zeros.
+            X:
+                Input features with shape (num_samples, num_features).
 
-        steps:
-            Number of interpolation steps.
+            baseline:
+                Baseline input. If None, uses zeros.
 
-    Returns:
-        attributions:
-            Array of feature attributions with same shape as X.
-    """
+            steps:
+                Number of interpolation steps.
 
-    if device is None:
-        device = next(model.parameters()).device
+        Returns:
+            attributions:
+                Array of feature attributions with same shape as X.
+        """
 
-    model.eval()
+        if device is None:
+            device = next(model.parameters()).device
 
-    if isinstance(X, np.ndarray):
-        X_tensor = torch.tensor(X, dtype=torch.float32, device=device)
-    else:
-        X_tensor = X.detach().clone().float().to(device)
+        model.eval()
 
-    if baseline is None:
-        baseline_tensor = torch.zeros_like(X_tensor)
-    else:
-        if isinstance(baseline, np.ndarray):
-            baseline_tensor = torch.tensor(
-                baseline,
-                dtype=torch.float32,
-                device=device
-            )
+        if isinstance(X, np.ndarray):
+            X_tensor = torch.tensor(X, dtype=torch.float32, device=device)
         else:
-            baseline_tensor = baseline.detach().clone().float().to(device)
+            X_tensor = X.detach().clone().float().to(device)
 
-    total_gradients = torch.zeros_like(X_tensor)
+        if baseline is None:
+            baseline_tensor = torch.zeros_like(X_tensor)
+        else:
+            if isinstance(baseline, np.ndarray):
+                baseline_tensor = torch.tensor(
+                    baseline,
+                    dtype=torch.float32,
+                    device=device
+                )
+            else:
+                baseline_tensor = baseline.detach().clone().float().to(device)
 
-    for alpha in torch.linspace(0, 1, steps, device=device):
-        interpolated = baseline_tensor + alpha * (X_tensor - baseline_tensor)
-        interpolated.requires_grad_(True)
+        total_gradients = torch.zeros_like(X_tensor)
 
-        output = model(interpolated)
-        output = output.view(output.shape[0], -1)
+        for alpha in torch.linspace(0, 1, steps, device=device):
+            interpolated = baseline_tensor + alpha * (X_tensor - baseline_tensor)
+            interpolated.requires_grad_(True)
 
-        selected_output = output[:, 0].sum()
+            output = model(interpolated)
+            output = output.view(output.shape[0], -1)
 
-        model.zero_grad()
+            selected_output = output[:, 0].sum()
 
-        selected_output.backward()
+            model.zero_grad()
 
-        total_gradients += interpolated.grad.detach()
+            selected_output.backward()
 
-    avg_gradients = total_gradients / steps
+            total_gradients += interpolated.grad.detach()
 
-    attributions = (X_tensor - baseline_tensor) * avg_gradients
+        avg_gradients = total_gradients / steps
 
-    return attributions.detach().cpu().numpy()
-```
+        attributions = (X_tensor - baseline_tensor) * avg_gradients
+
+        return attributions.detach().cpu().numpy()
+    ```
 
 
-
-#### Explaining One Molecular Prediction
+#### Explaining a Molecular Prediction
 
 This example explains a prediction from a fingerprint-based model.
 
-```python
-from rdkit import Chem
-from rdkit.Chem import AllChem, Draw
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem import AllChem, Draw
 
 
-def explain_prediction(
-    model,
-    smiles,
-    radius=2,
-    n_bits=2048,
-    method="integrated_gradients",
-    device=None
-):
-    """
-    Explain a single molecular prediction using fingerprint attributions.
-    """
+    def explain_prediction(
+        model,
+        smiles,
+        radius=2,
+        n_bits=2048,
+        method="integrated_gradients",
+        device=None
+    ):
+        """
+        Explain a single molecular prediction using fingerprint attributions.
+        """
 
-    if device is None:
-        device = next(model.parameters()).device
+        if device is None:
+            device = next(model.parameters()).device
 
-    mol = Chem.MolFromSmiles(smiles)
+        mol = Chem.MolFromSmiles(smiles)
 
-    if mol is None:
-        raise ValueError(f"Invalid SMILES string: {smiles}")
+        if mol is None:
+            raise ValueError(f"Invalid SMILES string: {smiles}")
 
-    fp = AllChem.GetMorganFingerprintAsBitVect(
-        mol,
-        radius,
-        nBits=n_bits
-    )
-
-    X = np.asarray(fp, dtype=np.float32).reshape(1, -1)
-
-    model.eval()
-
-    with torch.no_grad():
-        X_tensor = torch.tensor(X, dtype=torch.float32, device=device)
-        prediction = model(X_tensor).view(-1)[0].item()
-
-    if method == "integrated_gradients":
-        importance = integrated_gradients(
-            model,
-            X,
-            steps=50,
-            device=device
+        fp = AllChem.GetMorganFingerprintAsBitVect(
+            mol,
+            radius,
+            nBits=n_bits
         )
-    elif method == "gradients":
-        importance = compute_gradient_importance(
-            model,
-            X,
-            device=device
+
+        X = np.asarray(fp, dtype=np.float32).reshape(1, -1)
+
+        model.eval()
+
+        with torch.no_grad():
+            X_tensor = torch.tensor(X, dtype=torch.float32, device=device)
+            prediction = model(X_tensor).view(-1)[0].item()
+
+        if method == "integrated_gradients":
+            importance = integrated_gradients(
+                model,
+                X,
+                steps=50,
+                device=device
+            )
+        elif method == "gradients":
+            importance = compute_gradient_importance(
+                model,
+                X,
+                device=device
+            )
+        else:
+            raise ValueError("method must be 'integrated_gradients' or 'gradients'")
+
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+        img = Draw.MolToImage(mol, size=(400, 400))
+        axes[0].imshow(img)
+        axes[0].axis("off")
+        axes[0].set_title(f"Prediction: {prediction:.3f}")
+
+        top_k = 30
+        scores = importance[0]
+        top_indices = np.argsort(np.abs(scores))[-top_k:][::-1]
+
+        axes[1].barh(
+            range(top_k),
+            scores[top_indices]
         )
-    else:
-        raise ValueError("method must be 'integrated_gradients' or 'gradients'")
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+        axes[1].set_yticks(range(top_k))
+        axes[1].set_yticklabels([f"Bit {i}" for i in top_indices])
+        axes[1].invert_yaxis()
+        axes[1].set_xlabel("Attribution Score")
+        axes[1].set_title("Top Fingerprint Attributions")
 
-    img = Draw.MolToImage(mol, size=(400, 400))
-    axes[0].imshow(img)
-    axes[0].axis("off")
-    axes[0].set_title(f"Prediction: {prediction:.3f}")
+        plt.tight_layout()
+        plt.savefig("molecular_explanation.png", dpi=150)
+        plt.show()
 
-    top_k = 30
-    scores = importance[0]
-    top_indices = np.argsort(np.abs(scores))[-top_k:][::-1]
-
-    axes[1].barh(
-        range(top_k),
-        scores[top_indices]
-    )
-
-    axes[1].set_yticks(range(top_k))
-    axes[1].set_yticklabels([f"Bit {i}" for i in top_indices])
-    axes[1].invert_yaxis()
-    axes[1].set_xlabel("Attribution Score")
-    axes[1].set_title("Top Fingerprint Attributions")
-
-    plt.tight_layout()
-    plt.savefig("molecular_explanation.png", dpi=150)
-    plt.show()
-
-    return prediction, importance
-```
+        return prediction, importance
+    ```
 
 Important note: fingerprint bits are hashed. A high-importance bit may correspond to several possible molecular 
 fragments. For chemically detailed interpretation, use RDKit bit information during fingerprint generation.
@@ -6345,124 +6241,128 @@ $$
 For molecular fingerprints, the optimized input is not guaranteed to correspond to a valid molecule. Therefore, this method 
 should be interpreted as identifying abstract feature patterns, not generating real chemical structures.
 
-#### Corrected Activation Maximization
+#### Activation Maximization
 
-```python
-import torch.optim as optim
+??? note "Example"
+
+    ```python
+    import torch.optim as optim
 
 
-def activation_maximization(
-    model,
-    layer_name,
-    neuron_idx,
-    input_shape=(1, 2048),
-    iterations=500,
-    learning_rate=0.05,
-    device=None
-):
-    """
-    Find a fingerprint-like input that maximizes one neuron activation.
+    def activation_maximization(
+        model,
+        layer_name,
+        neuron_idx,
+        input_shape=(1, 2048),
+        iterations=500,
+        learning_rate=0.05,
+        device=None
+    ):
+        """
+        Find a fingerprint-like input that maximizes one neuron activation.
 
-    Args:
-        model:
-            Trained PyTorch model.
+        Args:
+            model:
+                Trained PyTorch model.
 
-        layer_name:
-            Name of the layer to inspect. Use dict(model.named_modules())
-            to see valid names.
+            layer_name:
+                Name of the layer to inspect. Use dict(model.named_modules())
+                to see valid names.
 
-        neuron_idx:
-            Index of the neuron in the selected layer.
+            neuron_idx:
+                Index of the neuron in the selected layer.
 
-    Returns:
-        optimized_input:
-            NumPy array with shape input_shape.
-    """
+        Returns:
+            optimized_input:
+                NumPy array with shape input_shape.
+        """
 
-    if device is None:
-        device = next(model.parameters()).device
+        if device is None:
+            device = next(model.parameters()).device
 
-    model.eval()
+        model.eval()
 
-    modules = dict(model.named_modules())
+        modules = dict(model.named_modules())
 
-    if layer_name not in modules:
-        raise ValueError(
-            f"Layer '{layer_name}' not found. "
-            f"Available layers: {list(modules.keys())}"
-        )
-
-    activations = {}
-
-    def hook_fn(module, module_input, module_output):
-        activations["target"] = module_output
-
-    hook_handle = modules[layer_name].register_forward_hook(hook_fn)
-
-    optimized_input = torch.rand(
-        input_shape,
-        dtype=torch.float32,
-        device=device,
-        requires_grad=True
-    )
-
-    optimizer = optim.Adam(
-        [optimized_input],
-        lr=learning_rate
-    )
-
-    for iteration in range(iterations):
-        optimizer.zero_grad()
-
-        _ = model(optimized_input)
-
-        activation_tensor = activations["target"]
-
-        if activation_tensor.ndim == 2:
-            target_activation = activation_tensor[0, neuron_idx]
-        else:
-            target_activation = activation_tensor.flatten()[neuron_idx]
-
-        # Maximize activation by minimizing its negative.
-        loss = -target_activation
-
-        loss.backward()
-
-        optimizer.step()
-
-        with torch.no_grad():
-            optimized_input.clamp_(0.0, 1.0)
-
-        if (iteration + 1) % 100 == 0:
-            print(
-                f"Iteration {iteration + 1}, "
-                f"Activation: {target_activation.item():.4f}"
+        if layer_name not in modules:
+            raise ValueError(
+                f"Layer '{layer_name}' not found. "
+                f"Available layers: {list(modules.keys())}"
             )
 
-    hook_handle.remove()
+        activations = {}
 
-    return optimized_input.detach().cpu().numpy()
-```
+        def hook_fn(module, module_input, module_output):
+            activations["target"] = module_output
+
+        hook_handle = modules[layer_name].register_forward_hook(hook_fn)
+
+        optimized_input = torch.rand(
+            input_shape,
+            dtype=torch.float32,
+            device=device,
+            requires_grad=True
+        )
+
+        optimizer = optim.Adam(
+            [optimized_input],
+            lr=learning_rate
+        )
+
+        for iteration in range(iterations):
+            optimizer.zero_grad()
+
+            _ = model(optimized_input)
+
+            activation_tensor = activations["target"]
+
+            if activation_tensor.ndim == 2:
+                target_activation = activation_tensor[0, neuron_idx]
+            else:
+                target_activation = activation_tensor.flatten()[neuron_idx]
+
+            # Maximize activation by minimizing its negative.
+            loss = -target_activation
+
+            loss.backward()
+
+            optimizer.step()
+
+            with torch.no_grad():
+                optimized_input.clamp_(0.0, 1.0)
+
+            if (iteration + 1) % 100 == 0:
+                print(
+                    f"Iteration {iteration + 1}, "
+                    f"Activation: {target_activation.item():.4f}"
+                )
+
+        hook_handle.remove()
+
+        return optimized_input.detach().cpu().numpy()
+    ```
 
 Example:
 
-```python
-print(dict(model.named_modules()).keys())
+??? note "Example"
 
-optimal_fp = activation_maximization(
-    model,
-    layer_name="network.4",
-    neuron_idx=42,
-    input_shape=(1, 2048),
-    iterations=500
-)
+    ```python
+    print(dict(model.named_modules()).keys())
 
-print("First 20 optimized values:")
-print(optimal_fp[0, :20])
+    optimal_fp = activation_maximization(
+        model,
+        layer_name="network.4",
+        neuron_idx=42,
+        input_shape=(1, 2048),
+        iterations=500
+    )
 
-print("Number of active bits above 0.5:")
-print(np.sum(optimal_fp > 0.5))
-```
+    print("First 20 optimized values:")
+    print(optimal_fp[0, :20])
+
+    print("Number of active bits above 0.5:")
+    print(np.sum(optimal_fp > 0.5))
+    ```
 
 
 ### 8.4 Attention Visualization for SMILES Models
@@ -6474,69 +6374,71 @@ which parts of a sequence influenced the model.
 
 
 
-#### Corrected Attention Visualization
+#### Attention Visualization
 
-```python
-def visualize_attention(
-    model,
-    smiles,
-    tokenizer,
-    max_length=100,
-    device=None,
-    save_path="attention_visualization.png"
-):
-    """
-    Visualize attention weights for an LSTM-attention SMILES model.
+??? note "Example"
 
-    The model is expected to return:
-        prediction, attention_weights
-    """
+    ```python
+    def visualize_attention(
+        model,
+        smiles,
+        tokenizer,
+        max_length=100,
+        device=None,
+        save_path="attention_visualization.png"
+    ):
+        """
+        Visualize attention weights for an LSTM-attention SMILES model.
 
-    if device is None:
-        device = next(model.parameters()).device
+        The model is expected to return:
+            prediction, attention_weights
+        """
 
-    model.eval()
+        if device is None:
+            device = next(model.parameters()).device
 
-    tokens = tokenizer.tokenize(smiles)
-    encoded = tokenizer.encode(smiles, max_length=max_length)
+        model.eval()
 
-    X = torch.tensor(
-        [encoded],
-        dtype=torch.long,
-        device=device
-    )
+        tokens = tokenizer.tokenize(smiles)
+        encoded = tokenizer.encode(smiles, max_length=max_length)
 
-    with torch.no_grad():
-        prediction, attention_weights = model(X)
+        X = torch.tensor(
+            [encoded],
+            dtype=torch.long,
+            device=device
+        )
 
-    attention = attention_weights[0].squeeze(-1).detach().cpu().numpy()
+        with torch.no_grad():
+            prediction, attention_weights = model(X)
 
-    # Keep only real SMILES tokens, not padding.
-    attention = attention[:len(tokens)]
+        attention = attention_weights[0].squeeze(-1).detach().cpu().numpy()
 
-    plt.figure(figsize=(max(8, len(tokens) * 0.4), 4))
+        # Keep only real SMILES tokens, not padding.
+        attention = attention[:len(tokens)]
 
-    plt.bar(range(len(tokens)), attention)
+        plt.figure(figsize=(max(8, len(tokens) * 0.4), 4))
 
-    plt.xticks(
-        range(len(tokens)),
-        tokens,
-        rotation=45
-    )
+        plt.bar(range(len(tokens)), attention)
 
-    plt.xlabel("SMILES Token")
-    plt.ylabel("Attention Weight")
-    plt.title(
-        f"Attention Weights for {smiles}\n"
-        f"Prediction: {prediction.view(-1)[0].item():.3f}"
-    )
+        plt.xticks(
+            range(len(tokens)),
+            tokens,
+            rotation=45
+        )
 
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=150)
-    plt.show()
+        plt.xlabel("SMILES Token")
+        plt.ylabel("Attention Weight")
+        plt.title(
+            f"Attention Weights for {smiles}\n"
+            f"Prediction: {prediction.view(-1)[0].item():.3f}"
+        )
 
-    return prediction.view(-1)[0].item(), attention
-```
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150)
+        plt.show()
+
+        return prediction.view(-1)[0].item(), attention
+    ```
 
 Example:
 
@@ -6621,170 +6523,148 @@ Typical workflow:
 6. Select best configuration
 ```
 
-#### Corrected Optuna Example
+#### Optuna Example
 
-```python
-import optuna
-import torch
-import torch.nn as nn
-import torch.optim as optim
+??? note "Example"
 
-from torch.utils.data import DataLoader
-from sklearn.metrics import mean_squared_error
+    ```python
+    import optuna
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
 
-# Optional visualization
-from optuna.visualization import (
-    plot_optimization_history,
-    plot_param_importances
-)
+    from torch.utils.data import DataLoader
+    from sklearn.metrics import mean_squared_error
 
-
-def objective(trial, X_train, y_train, X_val, y_val):
-    """
-    Objective function for Optuna hyperparameter optimization.
-    """
-
-    device = torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
+    # Optional visualization
+    from optuna.visualization import (
+        plot_optimization_history,
+        plot_param_importances
     )
 
-    # Hyperparameter search space
 
-    config = {
-        "hidden_dim_1":
-            trial.suggest_int(
-                "hidden_dim_1",
-                256,
-                1024,
-                step=128
-            ),
+    def objective(trial, X_train, y_train, X_val, y_val):
+        """
+        Objective function for Optuna hyperparameter optimization.
+        """
 
-        "hidden_dim_2":
-            trial.suggest_int(
-                "hidden_dim_2",
-                128,
-                512,
-                step=64
-            ),
+        device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
 
-        "hidden_dim_3":
-            trial.suggest_int(
-                "hidden_dim_3",
-                64,
-                256,
-                step=64
-            ),
+        # Hyperparameter search space
 
-        "dropout_rate":
-            trial.suggest_float(
-                "dropout_rate",
-                0.1,
-                0.5
-            ),
+        config = {
+            "hidden_dim_1":
+                trial.suggest_int(
+                    "hidden_dim_1",
+                    256,
+                    1024,
+                    step=128
+                ),
 
-        "learning_rate":
-            trial.suggest_float(
-                "learning_rate",
-                1e-5,
-                1e-2,
-                log=True
-            ),
+            "hidden_dim_2":
+                trial.suggest_int(
+                    "hidden_dim_2",
+                    128,
+                    512,
+                    step=64
+                ),
 
-        "batch_size":
-            trial.suggest_categorical(
-                "batch_size",
-                [32, 64, 128]
-            ),
+            "hidden_dim_3":
+                trial.suggest_int(
+                    "hidden_dim_3",
+                    64,
+                    256,
+                    step=64
+                ),
 
-        "weight_decay":
-            trial.suggest_float(
-                "weight_decay",
-                1e-6,
-                1e-3,
-                log=True
-            )
-    }
+            "dropout_rate":
+                trial.suggest_float(
+                    "dropout_rate",
+                    0.1,
+                    0.5
+                ),
 
-    # Create model
+            "learning_rate":
+                trial.suggest_float(
+                    "learning_rate",
+                    1e-5,
+                    1e-2,
+                    log=True
+                ),
 
-    model = MolecularFNN(
-        input_dim=X_train.shape[1],
-        hidden_dims=[
-            config["hidden_dim_1"],
-            config["hidden_dim_2"],
-            config["hidden_dim_3"]
-        ],
-        output_dim=1,
-        dropout_rate=config["dropout_rate"]
-    ).to(device)
+            "batch_size":
+                trial.suggest_categorical(
+                    "batch_size",
+                    [32, 64, 128]
+                ),
 
-    # Data loaders
+            "weight_decay":
+                trial.suggest_float(
+                    "weight_decay",
+                    1e-6,
+                    1e-3,
+                    log=True
+                )
+        }
 
-    train_dataset = BBBDataset(X_train, y_train)
-    val_dataset = BBBDataset(X_val, y_val)
+        # Create model
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=config["batch_size"],
-        shuffle=True
-    )
+        model = MolecularFNN(
+            input_dim=X_train.shape[1],
+            hidden_dims=[
+                config["hidden_dim_1"],
+                config["hidden_dim_2"],
+                config["hidden_dim_3"]
+            ],
+            output_dim=1,
+            dropout_rate=config["dropout_rate"]
+        ).to(device)
 
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=config["batch_size"],
-        shuffle=False
-    )
+        # Data loaders
 
-    # Optimizer and loss
+        train_dataset = BBBDataset(X_train, y_train)
+        val_dataset = BBBDataset(X_val, y_val)
 
-    optimizer = optim.Adam(
-        model.parameters(),
-        lr=config["learning_rate"],
-        weight_decay=config["weight_decay"]
-    )
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=config["batch_size"],
+            shuffle=True
+        )
 
-    criterion = nn.MSELoss()
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=config["batch_size"],
+            shuffle=False
+        )
 
-    # Training loop
+        # Optimizer and loss
 
-    num_epochs = 50
+        optimizer = optim.Adam(
+            model.parameters(),
+            lr=config["learning_rate"],
+            weight_decay=config["weight_decay"]
+        )
 
-    for epoch in range(num_epochs):
+        criterion = nn.MSELoss()
 
-        # Training
+        # Training loop
 
-        model.train()
+        num_epochs = 50
 
-        for batch_x, batch_y in train_loader:
+        for epoch in range(num_epochs):
 
-            batch_x = batch_x.to(device)
-            batch_y = batch_y.to(device)
+            # Training
 
-            optimizer.zero_grad()
+            model.train()
 
-            predictions = model(batch_x)
-
-            loss = criterion(
-                predictions.squeeze(),
-                batch_y.squeeze()
-            )
-
-            loss.backward()
-
-            optimizer.step()
-
-        # Validation
-
-        model.eval()
-
-        val_loss = 0.0
-
-        with torch.no_grad():
-
-            for batch_x, batch_y in val_loader:
+            for batch_x, batch_y in train_loader:
 
                 batch_x = batch_x.to(device)
                 batch_y = batch_y.to(device)
+
+                optimizer.zero_grad()
 
                 predictions = model(batch_x)
 
@@ -6793,54 +6673,82 @@ def objective(trial, X_train, y_train, X_val, y_val):
                     batch_y.squeeze()
                 )
 
-                val_loss += loss.item()
+                loss.backward()
 
-        val_loss /= len(val_loader)
+                optimizer.step()
 
-        # Report intermediate result
-        trial.report(val_loss, epoch)
+            # Validation
 
-        # Early pruning
-        if trial.should_prune():
-            raise optuna.TrialPruned()
+            model.eval()
 
-    return val_loss
-```
+            val_loss = 0.0
+
+            with torch.no_grad():
+
+                for batch_x, batch_y in val_loader:
+
+                    batch_x = batch_x.to(device)
+                    batch_y = batch_y.to(device)
+
+                    predictions = model(batch_x)
+
+                    loss = criterion(
+                        predictions.squeeze(),
+                        batch_y.squeeze()
+                    )
+
+                    val_loss += loss.item()
+
+            val_loss /= len(val_loader)
+
+            # Report intermediate result
+            trial.report(val_loss, epoch)
+
+            # Early pruning
+            if trial.should_prune():
+                raise optuna.TrialPruned()
+
+        return val_loss
+    ```
 
 
 #### Running the Optimization
 
-```python
-study = optuna.create_study(
-    direction="minimize",
-    pruner=optuna.pruners.MedianPruner(
-        n_startup_trials=5,
-        n_warmup_steps=10
+??? note "Example"
+
+    ```python
+    study = optuna.create_study(
+        direction="minimize",
+        pruner=optuna.pruners.MedianPruner(
+            n_startup_trials=5,
+            n_warmup_steps=10
+        )
     )
-)
 
-study.optimize(
-    lambda trial: objective(
-        trial,
-        X_train,
-        y_train,
-        X_val,
-        y_val
-    ),
-    n_trials=50,
-    timeout=7200
-)
+    study.optimize(
+        lambda trial: objective(
+            trial,
+            X_train,
+            y_train,
+            X_val,
+            y_val
+        ),
+        n_trials=50,
+        timeout=7200
+    )
 
-print("\nBest hyperparameters:")
+    print("\nBest hyperparameters:")
 
-for key, value in study.best_params.items():
-    print(f"  {key}: {value}")
+    for key, value in study.best_params.items():
+        print(f"  {key}: {value}")
 
-print(f"\nBest validation loss: {study.best_value:.4f}")
-```
+    print(f"\nBest validation loss: {study.best_value:.4f}")
+    ```
 
 
 #### Visualization
+
+??? note "Example"
 
 ```python
 # Optimization history
@@ -6906,176 +6814,178 @@ Before starting long training runs, verify that:
 A five-minute diagnostic check can save hours of debugging.
 
 
-#### Corrected Pre-Training Diagnostics
+#### Pre-Training Diagnostics
 
-```python
-def pre_training_diagnostics(
-    model,
-    train_loader,
-    device=None
-):
-    """
-    Run diagnostics before training.
-    """
+??? note "Example"
 
-    if device is None:
-        device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
+    ```python
+    def pre_training_diagnostics(
+        model,
+        train_loader,
+        device=None
+    ):
+        """
+        Run diagnostics before training.
+        """
 
-    print("=" * 70)
-    print("PRE-TRAINING DIAGNOSTICS")
-    print("=" * 70)
+        if device is None:
+            device = torch.device(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
 
-    model = model.to(device)
+        print("=" * 70)
+        print("PRE-TRAINING DIAGNOSTICS")
+        print("=" * 70)
 
-    # 1. Data loading check
+        model = model.to(device)
 
-    print("\n1. Data Loading Check:")
+        # 1. Data loading check
 
-    try:
-        batch_x, batch_y = next(iter(train_loader))
+        print("\n1. Data Loading Check:")
 
-        print(f"  ✓ X shape: {batch_x.shape}")
-        print(f"  ✓ Y shape: {batch_y.shape}")
+        try:
+            batch_x, batch_y = next(iter(train_loader))
 
-        print(
-            f"  ✓ X range: "
-            f"[{batch_x.min():.4f}, {batch_x.max():.4f}]"
-        )
+            print(f"  ✓ X shape: {batch_x.shape}")
+            print(f"  ✓ Y shape: {batch_y.shape}")
 
-        print(
-            f"  ✓ Y range: "
-            f"[{batch_y.min():.4f}, {batch_y.max():.4f}]"
-        )
+            print(
+                f"  ✓ X range: "
+                f"[{batch_x.min():.4f}, {batch_x.max():.4f}]"
+            )
 
-        print(
-            f"  ✓ NaN in X: "
-            f"{torch.isnan(batch_x).any().item()}"
-        )
+            print(
+                f"  ✓ Y range: "
+                f"[{batch_y.min():.4f}, {batch_y.max():.4f}]"
+            )
 
-        print(
-            f"  ✓ NaN in Y: "
-            f"{torch.isnan(batch_y).any().item()}"
-        )
+            print(
+                f"  ✓ NaN in X: "
+                f"{torch.isnan(batch_x).any().item()}"
+            )
 
-    except Exception as e:
-        print(f"  ✗ Data loading failed: {e}")
-        return False
+            print(
+                f"  ✓ NaN in Y: "
+                f"{torch.isnan(batch_y).any().item()}"
+            )
 
-    # 2. Forward pass check
+        except Exception as e:
+            print(f"  ✗ Data loading failed: {e}")
+            return False
 
-    print("\n2. Forward Pass Check:")
+        # 2. Forward pass check
 
-    try:
-        model.eval()
+        print("\n2. Forward Pass Check:")
 
-        with torch.no_grad():
+        try:
+            model.eval()
+
+            with torch.no_grad():
+
+                batch_x = batch_x.to(device)
+
+                output = model(batch_x)
+
+            print(f"  ✓ Output shape: {output.shape}")
+
+            print(
+                f"  ✓ Output range: "
+                f"[{output.min():.4f}, {output.max():.4f}]"
+            )
+
+            print(
+                f"  ✓ NaN in output: "
+                f"{torch.isnan(output).any().item()}"
+            )
+
+        except Exception as e:
+            print(f"  ✗ Forward pass failed: {e}")
+            return False
+
+        # 3. Backward pass check
+
+        print("\n3. Backward Pass Check:")
+
+        try:
+
+            model.train()
 
             batch_x = batch_x.to(device)
+            batch_y = batch_y.to(device)
+
+            criterion = nn.MSELoss()
+
+            optimizer = optim.Adam(
+                model.parameters(),
+                lr=0.001
+            )
+
+            optimizer.zero_grad()
 
             output = model(batch_x)
 
-        print(f"  ✓ Output shape: {output.shape}")
+            loss = criterion(
+                output.squeeze(),
+                batch_y.squeeze()
+            )
 
-        print(
-            f"  ✓ Output range: "
-            f"[{output.min():.4f}, {output.max():.4f}]"
+            loss.backward()
+
+            print(f"  ✓ Loss: {loss.item():.6f}")
+
+            print(
+                f"  ✓ Finite loss: "
+                f"{torch.isfinite(loss).item()}"
+            )
+
+            max_grad = 0.0
+            has_gradients = False
+
+            for param in model.parameters():
+
+                if param.grad is not None:
+
+                    has_gradients = True
+
+                    grad_max = param.grad.abs().max().item()
+
+                    max_grad = max(max_grad, grad_max)
+
+            print(f"  ✓ Gradients computed: {has_gradients}")
+            print(f"  ✓ Max gradient: {max_grad:.6f}")
+
+            optimizer.step()
+
+            print("  ✓ Optimizer step successful")
+
+        except Exception as e:
+            print(f"  ✗ Backward pass failed: {e}")
+            return False
+
+        # 4. Parameter check
+
+        print("\n4. Parameter Statistics:")
+
+        total_params = sum(
+            p.numel()
+            for p in model.parameters()
         )
 
-        print(
-            f"  ✓ NaN in output: "
-            f"{torch.isnan(output).any().item()}"
+        trainable_params = sum(
+            p.numel()
+            for p in model.parameters()
+            if p.requires_grad
         )
 
-    except Exception as e:
-        print(f"  ✗ Forward pass failed: {e}")
-        return False
+        print(f"  ✓ Total parameters: {total_params:,}")
+        print(f"  ✓ Trainable parameters: {trainable_params:,}")
 
-    # 3. Backward pass check
+        print("\n" + "=" * 70)
+        print("ALL CHECKS PASSED")
+        print("=" * 70)
 
-    print("\n3. Backward Pass Check:")
-
-    try:
-
-        model.train()
-
-        batch_x = batch_x.to(device)
-        batch_y = batch_y.to(device)
-
-        criterion = nn.MSELoss()
-
-        optimizer = optim.Adam(
-            model.parameters(),
-            lr=0.001
-        )
-
-        optimizer.zero_grad()
-
-        output = model(batch_x)
-
-        loss = criterion(
-            output.squeeze(),
-            batch_y.squeeze()
-        )
-
-        loss.backward()
-
-        print(f"  ✓ Loss: {loss.item():.6f}")
-
-        print(
-            f"  ✓ Finite loss: "
-            f"{torch.isfinite(loss).item()}"
-        )
-
-        max_grad = 0.0
-        has_gradients = False
-
-        for param in model.parameters():
-
-            if param.grad is not None:
-
-                has_gradients = True
-
-                grad_max = param.grad.abs().max().item()
-
-                max_grad = max(max_grad, grad_max)
-
-        print(f"  ✓ Gradients computed: {has_gradients}")
-        print(f"  ✓ Max gradient: {max_grad:.6f}")
-
-        optimizer.step()
-
-        print("  ✓ Optimizer step successful")
-
-    except Exception as e:
-        print(f"  ✗ Backward pass failed: {e}")
-        return False
-
-    # 4. Parameter check
-
-    print("\n4. Parameter Statistics:")
-
-    total_params = sum(
-        p.numel()
-        for p in model.parameters()
-    )
-
-    trainable_params = sum(
-        p.numel()
-        for p in model.parameters()
-        if p.requires_grad
-    )
-
-    print(f"  ✓ Total parameters: {total_params:,}")
-    print(f"  ✓ Trainable parameters: {trainable_params:,}")
-
-    print("\n" + "=" * 70)
-    print("ALL CHECKS PASSED")
-    print("=" * 70)
-
-    return True
-```
+        return True
+    ```
 
 Usage:
 
@@ -7112,118 +7022,120 @@ When training fails, debugging a single batch is often the fastest way to identi
 
 
 
-#### Corrected Training-Step Debugger
+#### Training-Step Debugger
 
-```python
-def debug_training_step(
-    model,
-    batch_x,
-    batch_y,
-    criterion,
-    optimizer
-):
-    """
-    Debug one complete training step.
-    """
+??? note "Example"
 
-    print("\n" + "=" * 70)
-    print("DEBUGGING TRAINING STEP")
-    print("=" * 70)
+    ```python
+    def debug_training_step(
+        model,
+        batch_x,
+        batch_y,
+        criterion,
+        optimizer
+    ):
+        """
+        Debug one complete training step.
+        """
 
-    # Input diagnostics
+        print("\n" + "=" * 70)
+        print("DEBUGGING TRAINING STEP")
+        print("=" * 70)
 
-    print("\n1. Input Statistics")
+        # Input diagnostics
 
-    print(f"  X shape: {batch_x.shape}")
-    print(f"  Y shape: {batch_y.shape}")
+        print("\n1. Input Statistics")
 
-    print(
-        f"  X range: "
-        f"[{batch_x.min():.4f}, {batch_x.max():.4f}]"
-    )
+        print(f"  X shape: {batch_x.shape}")
+        print(f"  Y shape: {batch_y.shape}")
 
-    print(
-        f"  Y range: "
-        f"[{batch_y.min():.4f}, {batch_y.max():.4f}]"
-    )
+        print(
+            f"  X range: "
+            f"[{batch_x.min():.4f}, {batch_x.max():.4f}]"
+        )
 
-    print(
-        f"  NaN in X: "
-        f"{torch.isnan(batch_x).any().item()}"
-    )
+        print(
+            f"  Y range: "
+            f"[{batch_y.min():.4f}, {batch_y.max():.4f}]"
+        )
 
-    print(
-        f"  NaN in Y: "
-        f"{torch.isnan(batch_y).any().item()}"
-    )
+        print(
+            f"  NaN in X: "
+            f"{torch.isnan(batch_x).any().item()}"
+        )
 
-    # Forward pass
+        print(
+            f"  NaN in Y: "
+            f"{torch.isnan(batch_y).any().item()}"
+        )
 
-    print("\n2. Forward Pass")
+        # Forward pass
 
-    model.train()
-    optimizer.zero_grad()
-    output = model(batch_x)
+        print("\n2. Forward Pass")
 
-    print(f"  Output shape: {output.shape}")
+        model.train()
+        optimizer.zero_grad()
+        output = model(batch_x)
 
-    print(
-        f"  Output range: "
-        f"[{output.min():.4f}, {output.max():.4f}]"
-    )
+        print(f"  Output shape: {output.shape}")
 
-    # Loss computation
+        print(
+            f"  Output range: "
+            f"[{output.min():.4f}, {output.max():.4f}]"
+        )
 
-    print("\n3. Loss")
+        # Loss computation
 
-    loss = criterion(
-        output.squeeze(),
-        batch_y.squeeze()
-    )
+        print("\n3. Loss")
 
-    print(f"  Loss: {loss.item():.6f}")
+        loss = criterion(
+            output.squeeze(),
+            batch_y.squeeze()
+        )
 
-    # Backward pass
+        print(f"  Loss: {loss.item():.6f}")
 
-    print("\n4. Gradient Statistics")
+        # Backward pass
 
-    loss.backward()
+        print("\n4. Gradient Statistics")
 
-    for name, param in model.named_parameters():
+        loss.backward()
 
-        if param.grad is not None:
+        for name, param in model.named_parameters():
 
-            grad_norm = param.grad.norm().item()
+            if param.grad is not None:
 
-            print(
-                f"  {name:<30} "
-                f"Gradient norm: {grad_norm:.6f}"
-            )
+                grad_norm = param.grad.norm().item()
 
-    # Optimizer step
+                print(
+                    f"  {name:<30} "
+                    f"Gradient norm: {grad_norm:.6f}"
+                )
 
-    print("\n5. Optimizer Step")
+        # Optimizer step
 
-    optimizer.step()
+        print("\n5. Optimizer Step")
 
-    print("  ✓ Parameters updated")
+        optimizer.step()
 
-    # Loss after update
+        print("  ✓ Parameters updated")
 
-    print("\n6. Post-Update Check")
+        # Loss after update
 
-    new_output = model(batch_x)
+        print("\n6. Post-Update Check")
 
-    new_loss = criterion(
-        new_output.squeeze(),
-        batch_y.squeeze()
-    )
+        new_output = model(batch_x)
 
-    print(f"  Previous loss: {loss.item():.6f}")
-    print(f"  New loss:      {new_loss.item():.6f}")
+        new_loss = criterion(
+            new_output.squeeze(),
+            batch_y.squeeze()
+        )
 
-    print("\n" + "=" * 70)
-```
+        print(f"  Previous loss: {loss.item():.6f}")
+        print(f"  New loss:      {new_loss.item():.6f}")
+
+        print("\n" + "=" * 70)
+    ```
 
 Usage:
 
