@@ -62,63 +62,139 @@ for GPU acceleration, automatic differentiation, and deep learning models.
 
 ### Matrix Multiplication Example
 
-```python
-import torch
-import numpy as np
+??? note "Example"
 
-# MATRIX MULTIPLICATION WITH PYTORCH AND NUMPY
+    ```python
+    import torch
+    import numpy as np
 
-# Create matrices with PyTorch
-A_torch = torch.tensor([
-    [1.0, 2.0],
-    [3.0, 4.0]
-])
+    # MATRIX MULTIPLICATION WITH PYTORCH AND NUMPY
 
-B_torch = torch.tensor([
-    [5.0, 6.0],
-    [7.0, 8.0]
-])
+    # Create matrices with PyTorch
+    A_torch = torch.tensor([
+        [1.0, 2.0],
+        [3.0, 4.0]
+    ])
 
-# Create matrices with NumPy
-A_numpy = np.array([
-    [1.0, 2.0],
-    [3.0, 4.0]
-])
+    B_torch = torch.tensor([
+        [5.0, 6.0],
+        [7.0, 8.0]
+    ])
 
-B_numpy = np.array([
-    [5.0, 6.0],
-    [7.0, 8.0]
-])
+    # Create matrices with NumPy
+    A_numpy = np.array([
+        [1.0, 2.0],
+        [3.0, 4.0]
+    ])
 
-# MATRIX MULTIPLICATION
-# Mathematical expression:
-# C = AB
-# C_ij = Σ_k A_ik B_kj
+    B_numpy = np.array([
+        [5.0, 6.0],
+        [7.0, 8.0]
+    ])
 
-# PyTorch version
-C_torch = torch.matmul(A_torch, B_torch)
+    # MATRIX MULTIPLICATION
+    # Mathematical expression:
+    # C = AB
+    # C_ij = Σ_k A_ik B_kj
 
-# NumPy version
-C_numpy = np.matmul(A_numpy, B_numpy)
+    # PyTorch version
+    C_torch = torch.matmul(A_torch, B_torch)
 
-# Alternative NumPy syntax
-C_numpy_alt = A_numpy @ B_numpy
+    # NumPy version
+    C_numpy = np.matmul(A_numpy, B_numpy)
 
-print("PyTorch matrix multiplication:")
-print(C_torch)
+    # Alternative NumPy syntax
+    C_numpy_alt = A_numpy @ B_numpy
 
-print("\nNumPy matrix multiplication:")
-print(C_numpy)
+    print("PyTorch matrix multiplication:")
+    print(C_torch)
 
-print("\nNumPy matrix multiplication using @ operator:")
-print(C_numpy_alt)
-```
+    print("\nNumPy matrix multiplication:")
+    print(C_numpy)
 
-You can add the following subsection after the matrix multiplication section and before moving to the next major topic.
+    print("\nNumPy matrix multiplication using @ operator:")
+    print(C_numpy_alt)
+    ```
+
+You can add the following subsection after the matrix multiplication section and before 
+moving to the next major topic.
+
+PyTorch can take advantage of Graphics Processing Units (GPUs), which are specialized processors designed to 
+perform large numbers of numerical operations in parallel. GPUs are particularly efficient for workloads 
+involving matrix and tensor computations, such as the matrix multiplications, vector operations, and 
+convolutions commonly used in deep learning. Because thousands of GPU cores can execute arithmetic operations 
+simultaneously, tasks such as matrix-matrix multiplication can be performed much faster on a GPU than on a 
+traditional CPU.
+
+??? note "Example"
+
+    ```python
+    import torch
+    import time
+
+    # Matrix-Matrix Multiplication: CPU vs GPU
+
+    # Matrix dimensions
+    N = 10000
+
+    print(f"Creating two {N} x {N} matrices...")
+
+    # Create matrices on CPU
+    A_cpu = torch.randn(N, N, dtype=torch.float32)
+    B_cpu = torch.randn(N, N, dtype=torch.float32)
+
+    # CPU Multiplication
+    print("\nPerforming matrix multiplication on CPU...")
+    start_cpu = time.perf_counter()
+    C_cpu = torch.matmul(A_cpu, B_cpu)
+    end_cpu = time.perf_counter()
+    cpu_time = end_cpu - start_cpu
+    print(f"CPU time: {cpu_time:.4f} seconds")
+
+    # GPU Multiplication
+    if torch.cuda.is_available():
+
+        device = torch.device("cuda")
+
+        print(f"\nUsing GPU: {torch.cuda.get_device_name(0)}")
+
+        # Copy matrices to GPU
+        A_gpu = A_cpu.to(device)
+        B_gpu = B_cpu.to(device)
+
+        # Warm-up run
+        _ = torch.matmul(A_gpu, B_gpu)
+        torch.cuda.synchronize()
+
+        print("Performing matrix multiplication on GPU...")
+
+        start_gpu = time.perf_counter()
+        C_gpu = torch.matmul(A_gpu, B_gpu)
+        # Wait until GPU finishes
+        torch.cuda.synchronize()
+        end_gpu = time.perf_counter()
+        gpu_time = end_gpu - start_gpu
+        print(f"GPU time: {gpu_time:.4f} seconds")
+        print(f"Speedup: {cpu_time / gpu_time:.2f}x")
+
+        # Verify correctness
+        C_gpu_cpu = C_gpu.cpu()
+
+        max_difference = torch.max(
+            torch.abs(C_cpu - C_gpu_cpu)
+        )
+
+        print(f"Maximum difference: {max_difference:.6e}")
+
+    else:
+        print("\nCUDA GPU not available.")
+    ```
+
 
 ### Singular Value Decomposition (SVD)
 
-Singular Value Decomposition (SVD) is one of the most important matrix factorization techniques in linear algebra and machine learning. It decomposes a matrix into orthogonal components and reveals its intrinsic geometric structure.
+Singular Value Decomposition (SVD) is one of the most important matrix factorization techniques in linear algebra and machine 
+learning. It decomposes a matrix into orthogonal components and reveals its intrinsic geometric structure.
 
 Given a matrix $A \in \mathbb{R}^{m \times n}$, the Singular Value Decomposition is:
 
@@ -236,7 +312,6 @@ a compact and interpretable representation of matrices while preserving the most
 
 Optimization is the process of finding model parameters that minimize a loss function. Most 
 machine learning algorithms rely on optimization techniques such as gradient descent.
-
 
 
 ### Taylor Series and Local Approximations

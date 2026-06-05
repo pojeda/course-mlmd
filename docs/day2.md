@@ -2260,21 +2260,13 @@ set_seed(42)
 - Perfect scores → Check for data leakage!
 
 
-
-
-
-
 ## 10. Additional Resources
 
 ### Books
-- "Hands-On Machine Learning" - Aurélien Géron
+- "Hands-On Machine Learning with Scikit-Learn, Keras, and TensorFlow" - Aurélien Géron
 - "Pattern Recognition and Machine Learning" - Christopher Bishop
 - "Deep Learning" - Goodfellow, Bengio, and Courville
 
-### Online Courses
-- Andrew Ng's Machine Learning (Coursera)
-- Fast.ai Practical Deep Learning
-- Stanford CS229 (Machine Learning)
 
 ### Documentation
 - Scikit-learn: https://scikit-learn.org/
