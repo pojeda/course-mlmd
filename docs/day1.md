@@ -16,46 +16,48 @@ network activations, and transformations are typically represented using vectors
 
 ### Example: Vector Operations in PyTorch
 
-```python
-import torch
-import numpy as np
+??? note "Example"
 
-# VECTOR OPERATIONS WITH PYTORCH AND NUMPY
+    ```python
+    import torch
+    import numpy as np
 
-# Create vectors with PyTorch
-x_torch = torch.tensor([1.0, 2.0, 3.0])
-y_torch = torch.tensor([4.0, 5.0, 6.0])
+    # VECTOR OPERATIONS WITH PYTORCH AND NUMPY
 
-# Create vectors with NumPy
-x_numpy = np.array([1.0, 2.0, 3.0])
-y_numpy = np.array([4.0, 5.0, 6.0])
+    # Create vectors with PyTorch
+    x_torch = torch.tensor([1.0, 2.0, 3.0])
+    y_torch = torch.tensor([4.0, 5.0, 6.0])
 
-# DOT PRODUCT
-# Mathematical expression:
-# x · y = Σ_i x_i y_i
+    # Create vectors with NumPy
+    x_numpy = np.array([1.0, 2.0, 3.0])
+    y_numpy = np.array([4.0, 5.0, 6.0])
 
-# PyTorch version
-dot_product_torch = torch.dot(x_torch, y_torch)
+    # DOT PRODUCT
+    # Mathematical expression:
+    # x · y = Σ_i x_i y_i
 
-# NumPy version
-dot_product_numpy = np.dot(x_numpy, y_numpy)
+    # PyTorch version
+    dot_product_torch = torch.dot(x_torch, y_torch)
 
-print("PyTorch dot product:", dot_product_torch)
-print("NumPy dot product:", dot_product_numpy)
+    # NumPy version
+    dot_product_numpy = np.dot(x_numpy, y_numpy)
 
-# VECTOR NORM
-# Euclidean norm:
-# ||x|| = sqrt(Σ_i x_i²)
+    print("PyTorch dot product:", dot_product_torch)
+    print("NumPy dot product:", dot_product_numpy)
 
-# PyTorch version
-norm_torch = torch.norm(x_torch)
+    # VECTOR NORM
+    # Euclidean norm:
+    # ||x|| = sqrt(Σ_i x_i²)
 
-# NumPy version
-norm_numpy = np.linalg.norm(x_numpy)
+    # PyTorch version
+    norm_torch = torch.norm(x_torch)
 
-print("\nPyTorch vector norm:", norm_torch)
-print("NumPy vector norm:", norm_numpy)
-```
+    # NumPy version
+    norm_numpy = np.linalg.norm(x_numpy)
+
+    print("\nPyTorch vector norm:", norm_torch)
+    print("NumPy vector norm:", norm_numpy)
+    ```
 
 One can use NumPy for scientific computing and preprocessing; use PyTorch tensors 
 for GPU acceleration, automatic differentiation, and deep learning models.
@@ -251,58 +253,60 @@ This produces the best rank-$k$ approximation of the matrix in the least-squares
 
 #### Example: Singular Value Decomposition in Python
 
-```python
-import numpy as np
-import torch
+??? note "Example"
 
-# MATRIX FOR SVD
-A_numpy = np.array([
-    [1.0, 2.0],
-    [3.0, 4.0],
-    [5.0, 6.0]
-])
+    ```python
+    import numpy as np
+    import torch
 
-A_torch = torch.tensor([
-    [1.0, 2.0],
-    [3.0, 4.0],
-    [5.0, 6.0]
-])
+    # MATRIX FOR SVD
+    A_numpy = np.array([
+        [1.0, 2.0],
+        [3.0, 4.0],
+        [5.0, 6.0]
+    ])
 
-# NUMPY SVD
-U_numpy, S_numpy, VT_numpy = np.linalg.svd(A_numpy)
+    A_torch = torch.tensor([
+        [1.0, 2.0],
+        [3.0, 4.0],
+        [5.0, 6.0]
+    ])
 
-print("NumPy SVD")
-print("\nU matrix:")
-print(U_numpy)
+    # NUMPY SVD
+    U_numpy, S_numpy, VT_numpy = np.linalg.svd(A_numpy)
 
-print("\nSingular values:")
-print(S_numpy)
+    print("NumPy SVD")
+    print("\nU matrix:")
+    print(U_numpy)
 
-print("\nV^T matrix:")
-print(VT_numpy)
+    print("\nSingular values:")
+    print(S_numpy)
 
-# PYTORCH SVD
-U_torch, S_torch, VT_torch = torch.linalg.svd(A_torch)
+    print("\nV^T matrix:")
+    print(VT_numpy)
 
-print("\n\nPyTorch SVD")
-print("\nU matrix:")
-print(U_torch)
+    # PYTORCH SVD
+    U_torch, S_torch, VT_torch = torch.linalg.svd(A_torch)
 
-print("\nSingular values:")
-print(S_torch)
+    print("\n\nPyTorch SVD")
+    print("\nU matrix:")
+    print(U_torch)
 
-print("\nV^T matrix:")
-print(VT_torch)
+    print("\nSingular values:")
+    print(S_torch)
 
-# RECONSTRUCT ORIGINAL MATRIX
-Sigma_numpy = np.zeros((3, 2))
-np.fill_diagonal(Sigma_numpy, S_numpy)
+    print("\nV^T matrix:")
+    print(VT_torch)
 
-A_reconstructed = U_numpy @ Sigma_numpy @ VT_numpy
+    # RECONSTRUCT ORIGINAL MATRIX
+    Sigma_numpy = np.zeros((3, 2))
+    np.fill_diagonal(Sigma_numpy, S_numpy)
 
-print("\nReconstructed matrix:")
-print(A_reconstructed)
-```
+    A_reconstructed = U_numpy @ Sigma_numpy @ VT_numpy
+
+    print("\nReconstructed matrix:")
+    print(A_reconstructed)
+    ```
 
 SVD is a fundamental tool in deep learning, scientific computing, and data analysis because it provides 
 a compact and interpretable representation of matrices while preserving the most important information in the data.
@@ -408,31 +412,33 @@ Where:
 
 #### Example: Gradient Descent in PyTorch
 
-```python
-import torch
+??? note "Example"
 
-# Parameter to optimize
-x = torch.tensor([5.0], requires_grad=True)
+    ```python
+    import torch
 
-learning_rate = 0.1
+    # Parameter to optimize
+    x = torch.tensor([5.0], requires_grad=True)
 
-for step in range(20):
+    learning_rate = 0.1
 
-    # Example loss function
-    loss = (x - 2) ** 2
+    for step in range(20):
 
-    # Compute gradients
-    loss.backward()
+        # Example loss function
+        loss = (x - 2) ** 2
 
-    # Update parameter
-    with torch.no_grad():
-        x -= learning_rate * x.grad
+        # Compute gradients
+        loss.backward()
 
-    # Reset gradients
-    x.grad.zero_()
+        # Update parameter
+        with torch.no_grad():
+            x -= learning_rate * x.grad
 
-    print(f"Step {step}: x = {x.item():.4f}, loss = {loss.item():.4f}")
-```
+        # Reset gradients
+        x.grad.zero_()
+
+        print(f"Step {step}: x = {x.item():.4f}, loss = {loss.item():.4f}")
+    ```
 
 ### Chain Rule
 
@@ -557,23 +563,25 @@ rule through layers of a neural network.
 
 #### Example: Chain Rule with PyTorch
 
-```python
-import torch
+??? note "Example"
 
-# VARIABLE WITH GRADIENT TRACKING
-x = torch.tensor(2.0, requires_grad=True)
+    ```python
+    import torch
 
-# COMPOSITE FUNCTION
-y = (3 * x + 1) ** 2
+    # VARIABLE WITH GRADIENT TRACKING
+    x = torch.tensor(2.0, requires_grad=True)
 
-# COMPUTE DERIVATIVE
-y.backward()
+    # COMPOSITE FUNCTION
+    y = (3 * x + 1) ** 2
 
-# RESULTS
-print("x =", x.item())
-print("y =", y.item())
-print("dy/dx =", x.grad.item())
-```
+    # COMPUTE DERIVATIVE
+    y.backward()
+
+    # RESULTS
+    print("x =", x.item())
+    print("y =", y.item())
+    print("dy/dx =", x.grad.item())
+    ```
 
 #### Mathematical Verification
 
@@ -639,17 +647,15 @@ There are two main approaches:
 
 #### Forward Mode
 
-Gradients are propagated from inputs to outputs.
+Gradients are propagated from inputs to outputs. It is efficient when:
 
-Efficient when:
 - The number of inputs is small
 - The number of outputs is large
 
 #### Reverse Mode
 
-Gradients are propagated backward from outputs to inputs.
+Gradients are propagated backward from outputs to inputs. It is efficient when:
 
-Efficient when:
 - The number of parameters is very large
 - The output is scalar
 
@@ -666,6 +672,7 @@ y = x^2 + 3x
 $$
 
 can be decomposed into elementary operations:
+
 - Multiplication
 - Addition
 
@@ -673,23 +680,25 @@ The framework stores intermediate values and computes derivatives automatically.
 
 #### Example: Automatic Differentiation with PyTorch
 
-```python
-import torch
+??? note "Example"
 
-# CREATE A TENSOR WITH GRADIENT TRACKING
-x = torch.tensor(2.0, requires_grad=True)
+    ```python
+    import torch
 
-# DEFINE A FUNCTION
-y = x**2 + 3*x + 1
+    # CREATE A TENSOR WITH GRADIENT TRACKING
+    x = torch.tensor(2.0, requires_grad=True)
 
-# COMPUTE DERIVATIVE dy/dx
-y.backward()
+    # DEFINE A FUNCTION
+    y = x**2 + 3*x + 1
 
-# PRINT RESULTS
-print("x =", x.item())
-print("y =", y.item())
-print("dy/dx =", x.grad.item())
-```
+    # COMPUTE DERIVATIVE dy/dx
+    y.backward()
+
+    # PRINT RESULTS
+    print("x =", x.item())
+    print("y =", y.item())
+    print("dy/dx =", x.grad.item())
+    ```
 
 #### Mathematical Verification
 
@@ -798,37 +807,42 @@ $$
 
 #### Example: Gaussian Distribution
 
-```python
-import torch
-import matplotlib.pyplot as plt
+??? note "Example"
 
-# Generate samples from a normal distribution
-samples = torch.normal(mean=0.0, std=1.0, size=(1000,))
+    ```python
+    import torch
+    import matplotlib.pyplot as plt
 
-plt.hist(samples.numpy(), bins=30)
+    # Generate samples from a normal distribution
+    samples = torch.normal(mean=0.0, std=1.0, size=(1000,))
 
-plt.xlabel("Value")
-plt.ylabel("Frequency")
-plt.title("Gaussian Distribution")
-plt.savefig("gaussian.png", dpi=300, bbox_inches="tight")
-plt.show()
-```
+    plt.hist(samples.numpy(), bins=30)
+
+    plt.xlabel("Value")
+    plt.ylabel("Frequency")
+    plt.title("Gaussian Distribution")
+    plt.savefig("gaussian.png", dpi=300, bbox_inches="tight")
+    plt.show()
+    ```
 
 ### Mean and Standard Deviation
 
-```python
-import torch
+??? note "Example"
 
-x = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
+    ```python
+    import torch
 
-print("Mean:", torch.mean(x))
-print("Standard deviation:", torch.std(x))
-```
+    x = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
+
+    print("Mean:", torch.mean(x))
+    print("Standard deviation:", torch.std(x))
+    ```
 
 
 ### Bayesian Inference
 
-Bayesian inference is a probabilistic framework for updating beliefs using observed data. It is based on Bayes' theorem, which relates prior knowledge to new evidence.
+Bayesian inference is a probabilistic framework for updating beliefs using observed data. It is 
+based on Bayes' theorem, which relates prior knowledge to new evidence.
 
 Bayes' theorem is given by:
 
@@ -878,9 +892,8 @@ These properties are especially important in scientific machine learning and dec
 
 #### Example: Coin Toss Inference
 
-Suppose we want to estimate the probability of obtaining heads in a coin toss.
+Suppose we want to estimate the probability of obtaining heads in a coin toss. If:
 
-If:
 - Prior belief: $P(\theta)$
 - Observed data: number of heads and tails
 
@@ -961,8 +974,8 @@ where:
 #### Intuition
 
 Gaussian Processes model smooth functions by assuming that nearby points have correlated outputs.
-
 Predictions include both:
+
 - A mean estimate
 - A predictive uncertainty
 
@@ -1017,69 +1030,63 @@ Gaussian Processes are commonly used in:
 
 #### Example: Gaussian Process Regression in Python
 
-```python
-import numpy as np
-import matplotlib.pyplot as plt
+??? note "Example"
 
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF
+    ```python
+    import numpy as np
+    import matplotlib.pyplot as plt
 
-# TRAINING DATA
-X = np.array([[1.0], [3.0], [5.0], [6.0], [8.0]])
-y = np.sin(X).ravel()
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import RBF
 
-# DEFINE KERNEL
-kernel = 1.0 * RBF(length_scale=1.0)
+    # TRAINING DATA
+    X = np.array([[1.0], [3.0], [5.0], [6.0], [8.0]])
+    y = np.sin(X).ravel()
 
-# CREATE GAUSSIAN PROCESS MODEL
-gp = GaussianProcessRegressor(kernel=kernel)
+    # DEFINE KERNEL
+    kernel = 1.0 * RBF(length_scale=1.0)
 
-# TRAIN MODEL
-gp.fit(X, y)
+    # CREATE GAUSSIAN PROCESS MODEL
+    gp = GaussianProcessRegressor(kernel=kernel)
 
-# TEST POINTS
-X_test = np.linspace(0, 10, 100).reshape(-1, 1)
+    # TRAIN MODEL
+    gp.fit(X, y)
 
-# PREDICTIONS
-y_pred, sigma = gp.predict(X_test, return_std=True)
+    # TEST POINTS
+    X_test = np.linspace(0, 10, 100).reshape(-1, 1)
 
-# PLOT RESULTS
-plt.figure(figsize=(8, 5))
+    # PREDICTIONS
+    y_pred, sigma = gp.predict(X_test, return_std=True)
 
-plt.plot(X, y, 'o', label='Training Data')
-plt.plot(X_test, y_pred, label='GP Mean Prediction')
+    # PLOT RESULTS
+    plt.figure(figsize=(8, 5))
 
-plt.fill_between(
-    X_test.ravel(),
-    y_pred - 2 * sigma,
-    y_pred + 2 * sigma,
-    alpha=0.3,
-    label='Uncertainty'
-)
+    plt.plot(X, y, 'o', label='Training Data')
+    plt.plot(X_test, y_pred, label='GP Mean Prediction')
 
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.legend()
+    plt.fill_between(
+        X_test.ravel(),
+        y_pred - 2 * sigma,
+        y_pred + 2 * sigma,
+        alpha=0.3,
+        label='Uncertainty'
+    )
 
-plt.show()
-```
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.legend()
+
+    plt.show()
+    ```
 
 This example demonstrates how Gaussian Processes provide both predictions and 
 uncertainty estimates, which is one of their main advantages over standard regression methods.
-
 
 
 ## 4. Information Theory
 
 Information theory provides mathematical tools for quantifying uncertainty 
 and information content in data.
-
-### Topics
-
-- Entropy
-- Cross-entropy
-- Kullback–Leibler divergence
-- Information content
 
 ### Entropy
 
@@ -1091,37 +1098,41 @@ $$
 
 ### Example: Entropy Calculation
 
-```python
-import torch
+??? note "Example"
 
-# Probability distribution
-p = torch.tensor([0.1, 0.3, 0.6])
+    ```python
+    import torch
 
-entropy = -torch.sum(p * torch.log2(p))
+    # Probability distribution
+    p = torch.tensor([0.1, 0.3, 0.6])
 
-print("Entropy:", entropy.item())
-```
+    entropy = -torch.sum(p * torch.log2(p))
+
+    print("Entropy:", entropy.item())
+    ```
 
 ### Cross-Entropy Loss Example
 
-```python
-import torch
-import torch.nn as nn
+??? note "Example"
 
-loss_function = nn.CrossEntropyLoss()
+    ```python
+    import torch
+    import torch.nn as nn
 
-# Predicted logits
-predictions = torch.tensor([
-    [2.0, 0.5, 0.3]
-])
+    loss_function = nn.CrossEntropyLoss()
 
-# Correct class
-labels = torch.tensor([0])
+    # Predicted logits
+    predictions = torch.tensor([
+        [2.0, 0.5, 0.3]
+    ])
 
-loss = loss_function(predictions, labels)
+    # Correct class
+    labels = torch.tensor([0])
 
-print("Cross-entropy loss:", loss.item())
-```
+    loss = loss_function(predictions, labels)
+
+    print("Cross-entropy loss:", loss.item())
+    ```
 
 
 
@@ -1217,7 +1228,6 @@ print(aggregated_features)
 ```
 
 The aggregation collects information from neighboring nodes.
-
 For example:
 
 * Node 0 receives information from Nodes 1 and 2,
@@ -1240,67 +1250,71 @@ lower-dimensional spaces while preserving important structure.
 
 ### Example: PCA with PyTorch and scikit-learn
 
-```python
-import torch
-import matplotlib.pyplot as plt
+??? note "Example"
 
-from sklearn.decomposition import PCA
+    ```python
+    import torch
+    import matplotlib.pyplot as plt
 
-# Random high-dimensional dataset
-X = torch.randn(100, 10)
+    from sklearn.decomposition import PCA
 
-# PCA projection
-pca = PCA(n_components=2)
+    # Random high-dimensional dataset
+    X = torch.randn(100, 10)
 
-X_reduced = pca.fit_transform(X.numpy())
+    # PCA projection
+    pca = PCA(n_components=2)
 
-# Visualization
-plt.scatter(X_reduced[:, 0], X_reduced[:, 1])
+    X_reduced = pca.fit_transform(X.numpy())
 
-plt.xlabel("Principal Component 1")
-plt.ylabel("Principal Component 2")
-plt.title("PCA Projection")
-plt.savefig("pca.png", dpi=300, bbox_inches="tight")
-plt.show()
-```
+    # Visualization
+    plt.scatter(X_reduced[:, 0], X_reduced[:, 1])
+
+    plt.xlabel("Principal Component 1")
+    plt.ylabel("Principal Component 2")
+    plt.title("PCA Projection")
+    plt.savefig("pca.png", dpi=300, bbox_inches="tight")
+    plt.show()
+    ```
 
 
 ## 7. Integrated Neural Network Example
 
 This example combines several mathematical concepts introduced during the course.
 
-```python
-import torch
-import torch.nn as nn
-import torch.optim as optim
+??? note "Example"
 
-# Generate synthetic dataset
-X = torch.randn(200, 5)
+    ```python
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
 
-y = (X.sum(dim=1) > 0).long()
+    # Generate synthetic dataset
+    X = torch.randn(200, 5)
 
-# Simple neural network
-model = nn.Sequential(
-    nn.Linear(5, 10),
-    nn.ReLU(),
-    nn.Linear(10, 2)
-)
+    y = (X.sum(dim=1) > 0).long()
 
-# Loss function and optimizer
-loss_function = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.01)
+    # Simple neural network
+    model = nn.Sequential(
+        nn.Linear(5, 10),
+        nn.ReLU(),
+        nn.Linear(10, 2)
+    )
 
-# Training loop
-for epoch in range(50):
+    # Loss function and optimizer
+    loss_function = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
 
-    predictions = model(X)
-    loss = loss_function(predictions, y)
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+    # Training loop
+    for epoch in range(50):
 
-    print(f"Epoch {epoch}: loss = {loss.item():.4f}")
-```
+        predictions = model(X)
+        loss = loss_function(predictions, y)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        print(f"Epoch {epoch}: loss = {loss.item():.4f}")
+    ```
 
 ## Summary
 
