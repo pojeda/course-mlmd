@@ -221,6 +221,22 @@ where:
         return A3, cache
     ```
 
+### Universal Approximation Theorem
+
+The Universal Approximation Theorem is a foundational result in neural network theory. It states that a feedforward neural 
+network with a single hidden layer containing a sufficient number of neurons and a non-linear activation function can 
+approximate any continuous function on a compact domain to arbitrary accuracy. Mathematically, for a continuous function 
+$f(x)$ and any error tolerance $\varepsilon > 0$, there exists a neural network $g(x)$ such that $|f(x) - g(x)| < \varepsilon$
+for all $x$ in the domain of interest. A typical neural network approximation can be written as
+
+$$
+g(x) = \sum_{i=1}^{N} a_i \, \sigma(\mathbf{w}_i^\top \mathbf{x} + b_i),
+$$
+
+where $\sigma$ is a non-linear activation function, $a_i$ are output weights, $\mathbf{w}_i$ are input weights, and $b_i$ 
+are biases. The theorem explains why neural networks are highly expressive models, although it does not guarantee efficient 
+training, optimal architectures, or the number of neurons required for a given problem.
+
 ### 1.3 Activation Functions
 
 Activation functions introduce non-linearity into neural networks, allowing them to learn complex and highly non-linear 

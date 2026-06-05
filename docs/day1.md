@@ -785,20 +785,8 @@ The Gaussian distribution has several important properties:
 
 #### Standard Normal Distribution
 
-A Gaussian distribution with:
-
-$$
-\mu = 0
-$$
-
-and
-
-$$
-\sigma^2 = 1
-$$
-
+A Gaussian distribution with $\mu = 0$ and $\sigma^2 = 1$
 is called the standard normal distribution.
-
 It is commonly written as:
 
 $$
@@ -1161,18 +1149,20 @@ Node 0 --- Node 1
 
 All nodes are connected to each other.
 
-```python
-import torch
+??? note "Example"
 
-# Simple graph adjacency matrix
-adjacency = torch.tensor([
-    [0, 1, 1],
-    [1, 0, 1],
-    [1, 1, 0]
-], dtype=torch.float32)
+    ```python
+    import torch
 
-print(adjacency)
-```
+    # Simple graph adjacency matrix
+    adjacency = torch.tensor([
+        [0, 1, 1],
+        [1, 0, 1],
+        [1, 1, 0]
+    ], dtype=torch.float32)
+
+    print(adjacency)
+    ```
 
 * `1` → nodes are connected
 * `0` → no connection
@@ -1191,18 +1181,20 @@ means:
 
 Each row corresponds to one node:
 
-```python
-import torch
+??? note "Example"
 
-# Example node features
-node_features = torch.tensor([
-    [1.0, 0.0], #node 0
-    [0.0, 1.0], #onde 1
-    [1.0, 1.0]  #node 2
-])
+    ```python
+    import torch
 
-print(node_features)
-```
+    # Example node features
+    node_features = torch.tensor([
+        [1.0, 0.0], #node 0
+        [0.0, 1.0], #onde 1
+        [1.0, 1.0]  #node 2
+    ])
+
+    print(node_features)
+    ```
 
 These features could represent:
 
