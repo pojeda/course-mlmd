@@ -235,7 +235,8 @@ $$
 
 where $\sigma$ is a non-linear activation function, $a_i$ are output weights, $\mathbf{w}_i$ are input weights, and $b_i$ 
 are biases. The theorem explains why neural networks are highly expressive models, although it does not guarantee efficient 
-training, optimal architectures, or the number of neurons required for a given problem.
+training, optimal architectures, or the number of neurons required for a given problem [Math. Control, Signals, and Systems 2, 
+303-314 (1989); Neural Networks 4, 251-257 (1991)].
 
 ### 1.3 Activation Functions
 
