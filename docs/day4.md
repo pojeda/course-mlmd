@@ -1937,7 +1937,7 @@ X_val_scaled = scaler.transform(X_val)
 X_test_scaled = scaler.transform(X_test)
 ```
 
-### Important Note
+##### Important Note
 
 Fingerprint vectors such as Morgan fingerprints are binary:
 
@@ -1993,7 +1993,40 @@ and similarly for the test set.
 For molecular datasets, scaffold-based splitting is often more reliable than random splitting because 
 structurally similar molecules may otherwise appear in multiple sets.
 
+##### Deduplication
 
+Deduplication is the process of identifying and removing duplicate or highly similar samples from a dataset before 
+training a machine learning model. This step improves data quality, reduces training bias, and helps prevent data 
+leakage between training, validation, and test sets. In molecular machine learning, duplicates may occur because the 
+same compound is stored in multiple databases or represented by different SMILES strings. Removing duplicates ensures 
+that model performance reflects true generalization rather than memorization. Deduplication is particularly important 
+when working with chemical datasets, where repeated molecules can artificially inflate evaluation metrics and lead 
+to overly optimistic conclusions.
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+
+    # Different SMILES representations of ethanol
+    smiles_list = [
+        "CCO",
+        "OCC",
+        "C(C)O"
+    ]
+
+    # Convert to canonical SMILES
+    canonical_smiles = set()
+
+    for smiles in smiles_list:
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is not None:
+            canonical_smiles.add(Chem.MolToSmiles(mol))
+
+    print("Unique molecules:")
+    for smiles in canonical_smiles:
+        print(smiles)
+    ```
 
 ### 2. Choosing an Appropriate Architecture
 
