@@ -1111,16 +1111,13 @@ it to zero.
 
 ## 5. Basic Graph Theory
 
-Graphs are widely used in machine learning for representing relationships between 
-objects. In chemistry, molecules can naturally be represented as graphs.
-
-### Topics
-
-- Nodes and edges
-- Adjacency matrices
-- Degree of nodes
-- Graph connectivity
-- Molecular graphs
+Graphs are widely used in machine learning for representing relationships between
+objects. A graph consists of nodes connected by edges, and can be represented
+algebraically as an adjacency matrix. Each node has a degree (the number of
+edges connected to it) and the overall structure of the graph is characterized
+by its connectivity. In chemistry, molecules are a natural application: atoms
+are represented as nodes and bonds as edges, forming molecular graphs that
+machine learning models can directly operate on.
 
 ### Example: Adjacency Matrix
 
@@ -1213,17 +1210,20 @@ For example:
 
 ## 6. Dimensionality Reduction
 
-Many scientific datasets contain high-dimensional data that can be difficult to 
-visualize or analyze directly. Dimensionality reduction techniques project the data into 
-lower-dimensional spaces while preserving important structure.
+Many scientific datasets contain high-dimensional data that can be difficult to
+visualize or analyze directly. Dimensionality reduction techniques address this
+by projecting data into lower-dimensional spaces while preserving important
+structure. Principal Component Analysis (PCA) is the most classical approach,
+finding the directions of maximum variance in the data and projecting onto them.
+The result is a latent space: a lower-dimensional representation that captures
+the essential structure of the original data.
 
-### Topics
-
-- High-dimensional spaces
-- Principal Component Analysis (PCA)
-- Latent spaces
-- Data visualization
-- Feature compression
+Dimensionality reduction has two main practical uses in machine learning. The
+first is data visualization: projecting high-dimensional data into two or three
+dimensions makes it possible to inspect structure, clusters, and outliers
+directly. The second is feature compression, where a lower-dimensional
+representation reduces computational cost and can improve generalization by
+removing noise and redundant information.
 
 ### Example: PCA with PyTorch and scikit-learn
 
@@ -1256,7 +1256,15 @@ lower-dimensional spaces while preserving important structure.
 
 ## 7. Integrated Neural Network Example
 
-This example combines several mathematical concepts introduced during the course.
+The following example combines several concepts introduced during the course.
+A neural network transforms an input through a sequence of linear layers and
+non-linear activation functions (here a ReLU) to produce predictions. The
+quality of those predictions is measured by a loss function, in this case
+cross-entropy, which quantifies the discrepancy between the predicted class
+probabilities and the true labels. To minimize the loss, the optimizer (Adam)
+updates the network's parameters using the gradients computed by
+backpropagation. This training loop, repeated over many epochs, is the core
+mechanism behind learning in deep neural networks.
 
 ??? note "Example"
 
