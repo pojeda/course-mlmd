@@ -306,7 +306,7 @@ minimizing cost and computational effort
 
 ## 2. The Machine Learning Workflow
 
-### 2.1 Defining the Machine Learning Problem
+### Defining the Machine Learning Problem
 
 A successful machine learning project begins with a clear and well-structured problem definition. Before 
 selecting algorithms or training models, it is important to establish the scientific objective and 
@@ -326,12 +326,12 @@ Example:
 > “Develop a binary classification model capable of predicting whether a molecule can cross the blood–brain barrier with an accuracy greater than 85%.”
 
 
-### 2.2 Data Collection and Preparation
+### Data Collection and Preparation
 
 High-quality data is one of the most important components of any machine learning workflow. The reliability 
 and performance of a model strongly depend on the quality, diversity, and consistency of the training data.
 
-#### Data Sources
+#### *Data Sources*
 
 Scientific datasets can originate from several different sources, including:
 
@@ -341,20 +341,17 @@ Scientific datasets can originate from several different sources, including:
 * **Public scientific databases**, including resources such as PubChem, ChEMBL, and Materials Project
 
 
-#### Data Quality Checks
+#### *Data Quality Checks*
 
 ??? note "Example"
 
     ```python
-    """ example: data preparation + feature engineering """
+    # example: data preparation + feature engineering
 
     import pandas as pd
     import numpy as np
-
-    """ 
-     1. Create a small example dataset
-    """ 
-
+ 
+    # 1. Create a small example dataset
     data = pd.DataFrame({
         "molecule_name": [
             "Ethanol",
@@ -388,65 +385,43 @@ Scientific datasets can originate from several different sources, including:
         ]
     })
 
-    """ Save dataset as CSV """
+    # Save dataset as CSV 
     data.to_csv("molecular_data.csv", index=False)
 
-    """ 
-     2. Load data
-    """ 
-
+    # 2. Load data
     data = pd.read_csv("molecular_data.csv")
 
     print("Original data:")
     print(data)
 
-    """ 
-     3. Check for missing values
-    """ 
-
+    # 3. Check for missing values
     print("\nMissing values:")
     print(data.isnull().sum())
 
-    """ 
-     4. Check for duplicates
-    """ 
-
+    # 4. Check for duplicates
     print("\nNumber of duplicate rows:")
     print(data.duplicated().sum())
 
-    """ Remove duplicate rows """
+    # Remove duplicate rows 
     data = data.drop_duplicates()
 
-    """ 
-     5. Check distributions
-    """ 
-
+    # 5. Check distributions
     print("\nSummary statistics:")
     print(data.describe())
 
-    """ 
-     6. Remove missing values
-    """ 
-
+    # 6. Remove missing values
     data = data.dropna(subset=["smiles", "property"])
 
-    """ 
-     7. Remove outliers using the 3-sigma rule
-    """ 
-
+    # 7. Remove outliers using the 3-sigma rule
     z_scores = np.abs(
         (data["property"] - data["property"].mean()) / data["property"].std()
     )
 
     data_clean = data[z_scores < 3].copy()
-
     print("\nCleaned data:")
     print(data_clean)
 
-    """ 
-     8. Feature engineering with RDKit
-    """ 
-
+    # 8. Feature engineering with RDKit
     from rdkit import Chem
     from rdkit.Chem import Descriptors
 
@@ -458,7 +433,7 @@ Scientific datasets can originate from several different sources, including:
 
         mol = Chem.MolFromSmiles(smiles)
 
-        """ Handle invalid molecules """
+        # Handle invalid molecules
         if mol is None:
             return None
 
@@ -473,11 +448,8 @@ Scientific datasets can originate from several different sources, including:
         }
 
         return features
-
-    """ 
-     9. Apply feature engineering to each molecule
-    """ 
-
+ 
+    # 9. Apply feature engineering to each molecule
     feature_rows = []
 
     for _, row in data_clean.iterrows():
@@ -491,7 +463,7 @@ Scientific datasets can originate from several different sources, including:
 
     features_df = pd.DataFrame(feature_rows)
 
-    """ Reorder columns """
+    # Reorder columns
     features_df = features_df[
         [
             "molecule_name",
@@ -510,10 +482,7 @@ Scientific datasets can originate from several different sources, including:
     print("\nFinal feature table:")
     print(features_df)
 
-    """ 
-     10. Save final processed dataset
-    """ 
-
+    # 10. Save final processed dataset
     features_df.to_csv("molecular_features.csv", index=False)
 
     print("\nProcessed dataset saved as molecular_features.csv")
