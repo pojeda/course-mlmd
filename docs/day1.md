@@ -320,17 +320,14 @@ machine learning algorithms rely on optimization techniques such as gradient des
 
 ### Taylor Series and Local Approximations
 
-Taylor expansions provide the mathematical foundation for understanding:
 
-* Gradient-based optimization
-* Newton's method
-* Second-order optimization
-* Local approximations of loss functions
-* Curvature and Hessians
-* Stability analysis
-
-In machine learning, optimization algorithms often rely on local approximations of functions, 
-and Taylor series explain why these approximations work.
+Taylor expansions provide the mathematical foundation for many core ideas in
+machine learning. Optimization algorithms rely on local approximations of
+functions, and Taylor series explain why these approximations work: gradient-based
+methods use the first-order term, Newton's method incorporates the second-order
+term, and more general second-order optimizers exploit curvature information
+through the Hessian matrix. Taylor expansions also underlie stability analysis
+and make precise what it means to approximate a loss function locally.
 
 Taylor series approximate a function locally around a point using derivatives.
 For a function $f(x)$ expanded around $x_0$:
@@ -358,7 +355,6 @@ f'(x_0)(x - x_0)
 $$
 
 This approximation forms the basis of gradient descent methods.
-
 The second-order approximation includes curvature information:
 
 $$
@@ -393,7 +389,6 @@ where:
 - $H$ is the Hessian matrix
 
 These approximations are fundamental in optimization algorithms used in machine learning.
-
 
 
 ### Gradient Descent Concept
@@ -463,60 +458,62 @@ $$
 
 The chain rule decomposes complex derivatives into products of simpler derivatives.
 
-#### Example
+#### Example: Gradient Descent in PyTorch
 
-Consider the function:
+??? note "Example"
 
-$$
-y = (3x + 1)^2
-$$
+    Consider the function:
 
-Define:
+    $$
+    y = (3x + 1)^2
+    $$
 
-$$
-u = 3x + 1
-$$
+    Define:
 
-Then:
+    $$
+    u = 3x + 1
+    $$
 
-$$
-y = u^2
-$$
+    Then:
 
-Using the chain rule:
+    $$
+    y = u^2
+    $$
 
-$$
-\frac{dy}{dx}
-=
-\frac{dy}{du}
-\frac{du}{dx}
-$$
+    Using the chain rule:
 
-Compute each derivative:
+    $$
+    \frac{dy}{dx}
+    =
+    \frac{dy}{du}
+    \frac{du}{dx}
+    $$
 
-$$
-\frac{dy}{du} = 2u
-$$
+    Compute each derivative:
 
-$$
-\frac{du}{dx} = 3
-$$
+    $$
+    \frac{dy}{du} = 2u
+    $$
 
-Substituting:
+    $$
+    \frac{du}{dx} = 3
+    $$
 
-$$
-\frac{dy}{dx}
-=
-2u \cdot 3
-$$
+    Substituting:
 
-Since $u = 3x + 1$:
+    $$
+    \frac{dy}{dx}
+    =
+    2u \cdot 3
+    $$
 
-$$
-\frac{dy}{dx}
-=
-6(3x + 1)
-$$
+    Since $u = 3x + 1$:
+
+    $$
+    \frac{dy}{dx}
+    =
+    6(3x + 1)
+    $$
 
 #### Chain Rule in Multiple Dimensions
 
@@ -550,16 +547,13 @@ This generalized form is heavily used in neural networks.
 
 #### Importance in Machine Learning
 
-The chain rule is essential for:
 
-- Backpropagation
-- Gradient descent
-- Automatic differentiation
-- Deep neural networks
-- Computational graphs
-
-Modern deep learning frameworks compute gradients by repeatedly applying the chain 
-rule through layers of a neural network.
+The chain rule is essential to modern deep learning. Frameworks such as PyTorch
+and TensorFlow compute gradients by repeatedly applying it through the layers of
+a neural network — a process known as backpropagation — which in turn enables
+gradient descent to update the network's parameters. This same mechanism
+underlies automatic differentiation, where computational graphs make the
+chain rule's repeated application explicit and efficient.
 
 #### Example: Chain Rule with PyTorch
 
@@ -583,88 +577,78 @@ rule through layers of a neural network.
     print("dy/dx =", x.grad.item())
     ```
 
-#### Mathematical Verification
+    **Mathematical Verification**
 
-The function is:
+    The function is:
 
-$$
-y = (3x + 1)^2
-$$
+    $$
+    y = (3x + 1)^2
+    $$
 
-Using the chain rule:
+    The derivative is:
 
-$$
-\frac{dy}{dx}
-=
-2(3x + 1)(3)
-$$
+    $$
+    \frac{dy}{dx}
+    =
+    2(3x + 1)(3)
+    $$
 
-For $x = 2$:
+    For $x = 2$:
 
-$$
-\frac{dy}{dx}
-=
-2(7)(3)
-=
-42
-$$
+    $$
+    \frac{dy}{dx}
+    =
+    2(7)(3)
+    =
+    42
+    $$
 
 ### Automatic Differentiation
-
-Automatic differentiation is a computational technique used to evaluate derivatives 
-efficiently and accurately. It is a core component of modern machine learning frameworks 
-such as PyTorch, TensorFlow, and JAX.
-
-Unlike symbolic differentiation, automatic differentiation does not manipulate mathematical 
-expressions symbolically. Unlike numerical differentiation, it does not rely on finite 
-difference approximations.
-
-Instead, automatic differentiation applies the chain rule systematically through a 
-sequence of elementary operations.
-
-Given a composite function:
-
-$$
-f(x) = f_3(f_2(f_1(x)))
-$$
-
-the chain rule states:
-
-$$
-\frac{df}{dx}
-=
-\frac{df_3}{df_2}
-\frac{df_2}{df_1}
-\frac{df_1}{dx}
-$$
 
 Machine learning frameworks construct a computational graph that tracks operations and 
 automatically computes gradients during backpropagation.
 
+Automatic differentiation is a computational technique used to evaluate derivatives
+efficiently and accurately. It is a core component of modern machine learning
+frameworks such as PyTorch, TensorFlow, and JAX.
+
+Unlike symbolic differentiation, automatic differentiation does not manipulate
+mathematical expressions symbolically. Unlike numerical differentiation, it does
+not rely on finite difference approximations. Instead, it applies the chain rule
+systematically through a sequence of elementary operations.
+
+Given a composite function $f(x) = f_3(f_2(f_1(x)))$, let $u_1 = f_1(x)$,
+$u_2 = f_2(u_1)$, and $u_3 = f_3(u_2)$. The chain rule gives:
+
+$$
+\frac{du_3}{dx} = \frac{du_3}{du_2} \cdot \frac{du_2}{du_1} \cdot \frac{du_1}{dx}
+$$
+
+Machine learning frameworks construct a computational graph that tracks these
+elementary operations and their dependencies. Gradients are then computed by
+traversing this graph — either forward (forward-mode AD) or backward
+(reverse-mode AD, of which backpropagation is the most well-known application).
+
 #### Forward and Reverse Mode Differentiation
 
-There are two main approaches:
+Forward-mode automatic differentiation propagates derivatives from inputs to
+outputs alongside the computation itself. Each forward pass computes the
+derivative with respect to one input, making it efficient when the number of
+inputs is small relative to the number of outputs — the cost scales with the
+number of inputs.
 
-#### Forward Mode
-
-Gradients are propagated from inputs to outputs. It is efficient when:
-
-- The number of inputs is small
-- The number of outputs is large
-
-#### Reverse Mode
-
-Gradients are propagated backward from outputs to inputs. It is efficient when:
-
-- The number of parameters is very large
-- The output is scalar
-
-Reverse-mode automatic differentiation is the foundation of backpropagation in deep learning.
+Reverse-mode automatic differentiation, by contrast, propagates derivatives
+backward from outputs to inputs. Each backward pass computes the derivative of
+one output with respect to all inputs simultaneously, so the cost scales with
+the number of outputs rather than the number of inputs. This makes reverse mode
+particularly efficient when the output is a scalar — as is the case with loss
+functions in deep learning — regardless of how many parameters the model has.
+Backpropagation is the most well-known application of reverse-mode automatic
+differentiation.
 
 #### Computational Graphs
 
 A computational graph represents mathematical operations as nodes connected by edges.
-
 For example:
 
 $$
@@ -700,27 +684,27 @@ The framework stores intermediate values and computes derivatives automatically.
     print("dy/dx =", x.grad.item())
     ```
 
-#### Mathematical Verification
+    **Mathematical Verification**
 
-The function is:
+    The function is:
 
-$$
-y = x^2 + 3x + 1
-$$
+    $$
+    y = x^2 + 3x + 1
+    $$
 
-Its analytical derivative is:
+    Its analytical derivative is:
 
-$$
-\frac{dy}{dx} = 2x + 3
-$$
+    $$
+    \frac{dy}{dx} = 2x + 3
+    $$
 
-For $x = 2$:
+    For $x = 2$:
 
-$$
-\frac{dy}{dx} = 2(2) + 3 = 7
-$$
+    $$
+    \frac{dy}{dx} = 2(2) + 3 = 7
+    $$
 
-The value computed using automatic differentiation matches the analytical result.
+    The value computed using automatic differentiation matches the analytical result.
 
 #### Importance in Machine Learning
 
@@ -869,25 +853,27 @@ $$
 
 #### Advantages of Bayesian Methods
 
-Bayesian approaches provide:
+Bayesian approaches treat model parameters as probability distributions rather
+than fixed values, which means predictions are inherently probabilistic. This
+enables uncertainty quantification and the incorporation of prior knowledge
+directly into the model. As a consequence, Bayesian methods tend to be more
+robust when data is limited, since the prior regularizes the solution in a
+principled way. These properties make Bayesian approaches especially valuable
+in scientific machine learning and decision-making under uncertainty, where
+knowing how confident a model is matters as much as the prediction itself.
 
-- Uncertainty quantification
-- Robustness with limited data
-- Probabilistic predictions
-- Incorporation of prior knowledge
+??? note "Example"
 
-These properties are especially important in scientific machine learning and decision-making under uncertainty.
+    **Coin Toss Inference**
 
-#### Example: Coin Toss Inference
+    Suppose we want to estimate the probability of obtaining heads in a coin toss. If:
 
-Suppose we want to estimate the probability of obtaining heads in a coin toss. If:
+    - Prior belief: $P(\theta)$
+    - Observed data: number of heads and tails
 
-- Prior belief: $P(\theta)$
-- Observed data: number of heads and tails
+    then Bayesian inference computes the posterior probability distribution over $\theta$.
 
-then Bayesian inference computes the posterior probability distribution over $\theta$.
-
-As more observations are collected, the posterior becomes more concentrated around the true probability.
+    As more observations are collected, the posterior becomes more concentrated around the true probability.
 
 #### Applications in Machine Learning
 
@@ -997,12 +983,7 @@ Gaussian Processes provide:
 #### Limitations
 
 Gaussian Processes scale poorly with dataset size because they require inversion of the covariance matrix:
-
-$$
-\mathcal{O}(n^3)
-$$
-
-where $n$ is the number of training samples.
+$\mathcal{O}(n^3)$ where $n$ is the number of training samples.
 
 #### Applications in Machine Learning
 
@@ -1078,11 +1059,15 @@ and information content in data.
 
 ### Entropy
 
-Entropy measures uncertainty:
+Entropy measures the uncertainty of a probability distribution $p$. For a discrete
+random variable $X$, it is defined as:
 
 $$
 H(X) = -\sum_i p(x_i) \log p(x_i)
 $$
+
+A uniform distribution maximizes entropy, while a deterministic outcome reduces
+it to zero.
 
 ### Example: Entropy Calculation
 
