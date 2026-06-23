@@ -4,11 +4,9 @@
 
 Before exploring applications in molecular science and materials research, this introductory section is designed to build a strong 
 foundation in the core principles of machine learning. Whether you are revisiting familiar concepts or encountering them for the 
-first time, these fundamentals will prepare you for the more advanced topics covered throughout Days 1–.
+first time, these fundamentals will prepare you for the more advanced topics covered throughout this course.
 
 ## Learning Objectives
-
-By the end of Day 0, you will be able to:
 
 * Explain the fundamental principles of machine learning
 * Differentiate among the main types of learning tasks
@@ -20,7 +18,7 @@ By the end of Day 0, you will be able to:
 
 ## 1. What Is Machine Learning?
 
-### 1.1 Definition
+### Definition
 
 Machine learning is a branch of artificial intelligence focused on developing algorithms that learn patterns directly from data. Rather 
 than explicitly programming a computer with a fixed set of rules, we provide examples and allow the model to infer the underlying relationships 
@@ -38,7 +36,7 @@ Rules + Data → Output
 Data + Desired Output → Learned Model
 ```
 
-## 1.2 Why Use Machine Learning in Science?
+### Why Use Machine Learning in Science?
 
 Machine learning has become an essential tool in molecular and materials science because it enables 
 researchers to extract valuable insights from large and complex datasets. By learning directly 
@@ -53,9 +51,9 @@ hypothesis generation
 * **Speed up scientific discovery** by dramatically reducing the time required for screening and analysis
 * **Handle high-dimensional problems** that are difficult or impossible to address using conventional techniques
 
-### 1.3 Main Categories of Machine Learning
+### Main Categories of Machine Learning
 
-#### Supervised Learning
+#### *Supervised Learning*
 
 Supervised learning involves training a model using labeled data, where both the inputs and the 
 corresponding outputs are known. The goal is to learn the relationship between them in order to make 
