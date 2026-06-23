@@ -134,7 +134,7 @@ Common supervised learning tasks include:
     print("Predicted solubility:", prediction[0])
     ```
 
-#### Unsupervised Learning
+#### *Unsupervised Learning*
 
 Unsupervised learning focuses on analyzing data without predefined labels or target values. Instead of 
 learning from known answers, the algorithm explores the data to uncover hidden structures, relationships, and patterns.
@@ -210,7 +210,7 @@ majority of the dataset
     plt.show()
     ```
 
-#### Reinforcement Learning
+#### *Reinforcement Learning*
 
 Reinforcement learning is a machine learning approach in which an agent learns to make decisions 
 through interaction with an environment. By receiving rewards or penalties based on its actions, 
@@ -228,17 +228,12 @@ minimizing cost and computational effort
 ??? note "Example"
 
     ```python
-    """ Basic Reinforcement Learning Example for Molecular Optimization """
+    # Basic Reinforcement Learning Example for Molecular Optimization
 
     import random
 
-    """ 
-     Example molecules represented by simple properties
-     Each molecule has:
-     - size
-     - stability
-     - solubility
-    """ 
+    # Example molecules represented by simple properties
+    # Each molecule has: size, stability, and solubility
 
     molecule_space = [
         {"name": "Molecule A", "size": 2, "stability": 5, "solubility": 8},
@@ -248,57 +243,41 @@ minimizing cost and computational effort
         {"name": "Molecule E", "size": 4, "stability": 8, "solubility": 7},
     ]
 
-    """ 
-     Reward function
-     Goal:
-     Favor molecules with high stability and solubility
-    """ 
+    # Reward function: Favor molecules with high stability and solubility
 
     def evaluate_properties(molecule):
-
-        reward = (
-            molecule["stability"] +
-            molecule["solubility"]
-        )
-
+        reward = (molecule["stability"] + molecule["solubility"])
         return reward
 
-    """ 
-     Simple RL agent
-    """ 
+    # Simple RL agent that selects actions randomly.
+    # In a real agent, learn() would update a policy or value function.
 
     class RandomAgent:
 
         def select_action(self, state):
-
-            """ Randomly choose a new molecule """
+            # Randomly choose a new molecule from molecular space
             return random.choice(molecule_space)
 
         def learn(self, state, action, reward):
-
+            # Stub: a real agent would update its policy here using
+            # the (state, action, reward) transition.
             print(
                 f"Learning from transition:\n"
                 f"  {state['name']} -> {action['name']}\n"
                 f"  Reward = {reward}\n"
             )
 
-    """ 
-     Initialize agent
-    """ 
+    # Initialize agent and run the reinforcement learning loop.
 
     agent = RandomAgent()
-
     num_episodes = 5
-
-    """ 
-     Reinforcement learning loop
-    """ 
-
+ 
+    # Reinforcement learning loop
     for episode in range(num_episodes):
 
         print(f"\nEpisode {episode + 1}")
 
-        "" Start from a random molecule """
+        # Start from a random molecule
         state = random.choice(molecule_space)
 
         done = False
@@ -306,21 +285,20 @@ minimizing cost and computational effort
 
         while not done:
 
-            """ Agent proposes a molecular modification """
+            # agent proposes a new molecule
             new_molecule = agent.select_action(state)
 
-            """ Evaluate molecular properties """
+            # evaluate molecular properties of new molecule
             reward = evaluate_properties(new_molecule)
 
-            """ Agent learns from the reward """
+            # agent learns from the state, action, or reward
             agent.learn(state, new_molecule, reward)
 
-            """ Update current state """
+            # update current state
             state = new_molecule
-
             step += 1
 
-            """ Stop after a few optimization steps """
+            # Stop after a few optimization steps
             if step >= 3:
                 done = True
     ```
