@@ -499,29 +499,28 @@ structures, and perform tasks such as similarity analysis and feature engineerin
 chemistry, drug discovery, and materials science.
 
 
-### 2.3 Training, Validation, and Test Sets
+### Training, Validation, and Test Sets
 
 A fundamental principle in machine learning is that models must be evaluated on data they have never seen before.
 
 > **Critical principle:** Never test a model using the same data used for training.
 
 If the model is evaluated on training data, it may memorize examples instead of learning general patterns, leading to overfitting and poor performance on new data.
-
 To avoid this problem, datasets are usually divided into three parts:
 
-#### Training Set
+#### *Training Set*
 
 The **training set** is used to teach the model and learn patterns from the data.
 
-#### Validation Set
+#### *Validation Set*
 
 The **validation set** is used during development to tune hyperparameters, compare models, and monitor overfitting.
 
-#### Test Set
+#### *Test Set*
 
 The **test set** is used only for the final evaluation of the model on unseen data.
 
-### Typical Dataset Split
+#### *Typical Dataset Split*
 
 | Dataset        | Typical Fraction |
 | -------------- | ---------------- |
@@ -530,7 +529,7 @@ The **test set** is used only for the final evaluation of the model on unseen da
 | Test Set       | 15%              |
 
 
-### Conceptual Workflow
+#### *Conceptual Workflow*
 
 ```text
 Training Set   -> Learn patterns
@@ -541,19 +540,14 @@ Test Set       -> Final evaluation
 ??? note "Example"
 
     ```python
-    """ Basic example: training, validation, and test split """
+    # Basic example: training, validation, and test split 
 
     import numpy as np
     from sklearn.model_selection import train_test_split
 
-    """ 
-     1. Create a small example dataset
-    """ 
-
-    """
-     X = input features
-     y = target values
-    """
+    # 1. Create a small example dataset
+    # X = input features
+    # y = target values
 
     X = np.array([
         [1.0, 2.0],
@@ -570,10 +564,7 @@ Test Set       -> Final evaluation
 
     y = np.array([1, 1, 2, 2, 3, 3, 4, 4, 5, 5])
 
-    """ 
-     2. First split: training set and temporary set
-    """ 
-
+    # 2. First split: training set and temporary set
     X_train, X_temp, y_train, y_temp = train_test_split(
         X,
         y,
@@ -581,21 +572,15 @@ Test Set       -> Final evaluation
         random_state=42
     )
 
-    """ 
-     3. Second split: validation set and test set
-    """ 
-
+    # 3. Second split: validation set and test set
     X_val, X_test, y_val, y_test = train_test_split(
         X_temp,
         y_temp,
         test_size=0.50,
         random_state=42
     )
-
-    """ 
-     4. Print the results
-    """ 
-
+ 
+    # 4. Print the results
     print("Training set:")
     print("X_train:")
     print(X_train)
@@ -614,10 +599,7 @@ Test Set       -> Final evaluation
     print("y_test:")
     print(y_test)
 
-    """ 
-     5. Print the sizes
-    """ 
-
+    # 5. Print the sizes
     print("\nDataset sizes:")
     print("Training set size:", len(X_train))
     print("Validation set size:", len(X_val))
