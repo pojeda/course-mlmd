@@ -608,53 +608,61 @@ Test Set       -> Final evaluation
 
 ### Scaffold-Based Splitting
 
-In molecular machine learning, **scaffold-based splitting** divides datasets according to the core chemical 
-structure of molecules rather than randomly splitting individual samples.
+In molecular machine learning, **scaffold-based splitting** divides datasets
+according to the core structural framework of molecules rather than randomly
+assigning individual samples to splits.
 
-A molecular scaffold represents the main structural framework of a molecule, such as its ring systems and backbone.
+A molecular scaffold is the central skeleton of a molecule — typically its ring
+systems and the bonds connecting them (stripped of peripheral substituents).
+Molecules that share a scaffold are structurally similar and tend to have
+similar properties. This is precisely what makes random splitting problematic:
+if two molecules share a scaffold, a random split may place both in the training
+and test sets, allowing the model to effectively memorize structural patterns
+rather than learning to generalize. The result is overly optimistic performance
+estimates that do not reflect how the model would perform on genuinely novel
+chemical structures.
 
-This approach is important because molecules with similar scaffolds often have similar properties. With a random 
-split, very similar molecules may appear in both the training and test sets, leading to overly optimistic performance.
-
-Scaffold-based splitting provides a more realistic evaluation by ensuring that structurally related molecules 
-remain in the same subset.
-
+Scaffold-based splitting addresses this by grouping all molecules that share a
+scaffold into the same subset. The test set therefore contains scaffolds the
+model has never seen during training, providing a more realistic evaluation of
+generalization.
 
 ### Conceptual Example
 
 ```text
 Random Split:
-Train → Benzene
-Test  → Phenol
+  Train → Ibuprofen   (isobutylbenzene scaffold)
+  Test  → Ketoprofen  (isobutylbenzene scaffold)
 
-Very similar molecules appear in both sets
+  Both molecules share the same core scaffold:
+  the model has implicitly seen the test scaffold during training.
 ```
 
 ```text
 Scaffold Split:
-Train → Aromatic compounds
-Test  → Different chemical scaffolds
+  Train → Ibuprofen   (isobutylbenzene scaffold)
+  Test  → Penicillin  (thiazolidine-fused beta-lactam scaffold)
 
-Test molecules are structurally different
+  The test scaffold is structurally distinct from anything
+  seen during training, giving a more honest evaluation.
 ```
 
-This strategy is widely used in molecular property prediction, drug discovery, and materials science to 
-better evaluate model generalization to new chemical structures.
+This strategy is widely used in molecular property prediction, drug discovery,
+and materials science to evaluate how well a model generalizes to new regions
+of chemical space.
+
 
 ??? note "Example"
 
     ```python
-    """ example: scaffold-based train/test split """
+    # example: scaffold-based train/test split 
 
     import numpy as np
     from rdkit import Chem
     from rdkit.Chem.Scaffolds import MurckoScaffold
     from sklearn.model_selection import GroupShuffleSplit
 
-    """ 
-     1. Example molecules (SMILES strings)
-    """ 
-
+    # 1. Example molecules (SMILES strings)
     molecules = [
         "CCO",                  # Ethanol
         "CCCO",                 # Propanol
@@ -666,17 +674,10 @@ better evaluate model generalization to new chemical structures.
         "c1ccncc1"              # Pyridine
     ]
 
-    """
-     Example target property
-     (e.g., solubility or biological activity)
-    """
-
+    # Example target property (e.g., solubility or biological activity)
     y = np.array([1.2, 1.5, 0.3, 0.4, 2.1, 0.8, 1.7, 0.5])
 
-    """ 
-     2. Generate simple numerical features
-    """ 
-
+    # 2. Generate simple numerical features from each molecule
     X = []
 
     for smiles in molecules:
@@ -693,9 +694,7 @@ better evaluate model generalization to new chemical structures.
 
     X = np.array(X)
 
-    """ 
-     3. Define scaffold extraction function
-    """ 
+    # 3. Define scaffold extraction function
 
     def get_scaffold(smiles):
 
@@ -705,9 +704,7 @@ better evaluate model generalization to new chemical structures.
 
         return scaffold
 
-    """ 
-     4. Compute molecular scaffolds
-    """ 
+    # 4. Compute molecular scaffolds
 
     scaffolds = [get_scaffold(smiles) for smiles in molecules]
 
@@ -716,9 +713,8 @@ better evaluate model generalization to new chemical structures.
     for mol, scaffold in zip(molecules, scaffolds):
         print(f"{mol:35s} -> {scaffold}")
 
-    """ 
-     5. Perform scaffold-based split
-    """ 
+    
+    # 5. Perform scaffold-based split
 
     splitter = GroupShuffleSplit(
         n_splits=1,
@@ -726,38 +722,26 @@ better evaluate model generalization to new chemical structures.
         random_state=42
     )
 
-    train_idx, test_idx = next(
-        splitter.split(X, y, groups=scaffolds)
-    )
+    train_idx, test_idx = next( splitter.split(X, y, groups=scaffolds) )
 
-    """ 
-     6. Create training and test sets
-    """ 
+    # 6. Create training and test sets
 
     X_train, X_test = X[train_idx], X[test_idx]
     y_train, y_test = y[train_idx], y[test_idx]
 
     train_molecules = [molecules[i] for i in train_idx]
     test_molecules = [molecules[i] for i in test_idx]
-
-    """ 
-     7. Display results
-    """ 
-
+ 
+    # 7. Display results
     print("\nTraining molecules:")
-
     for mol in train_molecules:
         print(mol)
 
     print("\nTest molecules:")
-
     for mol in test_molecules:
         print(mol)
 
-    """ 
-     8. Dataset sizes
-    """ 
-
+    # 8. Dataset sizes
     print("\nDataset sizes:")
     print("Training set size:", len(X_train))
     print("Test set size:", len(X_test))
