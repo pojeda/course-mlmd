@@ -750,7 +750,7 @@ of chemical space.
 
 ## 3. Overfitting and Underfitting
 
-### 3.1 The Bias-Variance Tradeoff
+### *The Bias-Variance Tradeoff*
 
 
 **Underfitting (High Bias)**:
@@ -781,76 +781,42 @@ of chemical space.
 
     ```python
     
-    """ Underfitting vs Good Fit vs Overfitting """
-
+    # Underfitting vs Good Fit vs Overfitting
     import numpy as np
     import matplotlib.pyplot as plt
 
-    """ 
-     1. Generate synthetic dataset
-    """ 
-
-    """ Reproducibility """
+    # reproducibility
     np.random.seed(42)
 
-    """ Input variable """
+    # 1. Generate synthetic dataset
+
+    # Input variable 
     X = np.linspace(0, 10, 50)
 
-    """
-     True underlying relationship
-     Quadratic function + random noise
-    """
+    # True underlying relationship. Quadratic function + random noise
     y = 0.5 * X**2 - 2 * X + 3 + np.random.normal(0, 4, 50)
 
-    """ 
-     2. Train polynomial models
-    """ 
-
-    """ 
-     Underfitting model:
-     Degree 1 polynomial (linear model) 
-    """
-    underfit_model = np.poly1d(
-        np.polyfit(X, y, 1)
-    )
+    # 2. Train polynomial models
     
-    """
-     Good fit model:
-     Degree 2 polynomial (matches true relationship)
-    """
-    good_model = np.poly1d(
-        np.polyfit(X, y, 2)
-    )
+    # Underfitting model: Degree 1 polynomial (linear model) 
+    underfit_model = np.poly1d( np.polyfit(X, y, 1) )
+    
+    # Good fit model: Degree 2 polynomial (matches true relationship)
+    good_model = np.poly1d( np.polyfit(X, y, 2) )
 
-    """
-     Overfitting model:
-     Very high-degree polynomial
-    """
-    overfit_model = np.poly1d(
-        np.polyfit(X, y, 15)
-    )
+    # Overfitting model: Very high-degree polynomial
+    overfit_model = np.poly1d( np.polyfit(X, y, 15) )
 
-    """ 
-     3. Create smooth plotting grid
-    """ 
-
+    # 3. Create smooth plotting grid
     X_plot = np.linspace(0, 10, 500)
 
-    """ 
-     4. Visualize results
-    """ 
-
+    # 4. Visualize results
     plt.figure(figsize=(10, 6))
 
-    """ Original data points """
-    plt.scatter(
-        X,
-        y,
-        alpha=0.7,
-        label="Training Data"
-    )
+    # Original data points 
+    plt.scatter(X, y, alpha=0.7, label="Training Data")
 
-    """ Underfitting curve """
+    # Underfitting curve
     plt.plot(
         X_plot,
         underfit_model(X_plot),
@@ -859,7 +825,7 @@ of chemical space.
         label="Underfitting (Degree 1)"
     )
 
-    """ Good fit curve """
+    # Good fit curve 
     plt.plot(
         X_plot,
         good_model(X_plot),
@@ -867,7 +833,7 @@ of chemical space.
         label="Good Fit (Degree 2)"
     )
 
-    """ Overfitting curve """
+    # Overfitting curve
     plt.plot(
         X_plot,
         overfit_model(X_plot),
@@ -876,10 +842,7 @@ of chemical space.
         label="Overfitting (Degree 15)"
     )
 
-    """ 
-     5. Labels and formatting
-    """ 
-
+    # 5. Labels and formatting
     plt.xlabel("Input Feature")
     plt.ylabel("Target Value")
 
@@ -893,7 +856,7 @@ of chemical space.
     ```
 
 
-### 3.2 Detecting Overfitting
+### *Detecting Overfitting*
 
 A common way to detect overfitting is by analyzing **learning curves**, which show model performance on the training and validation sets as the amount of training data increases.
 
@@ -902,29 +865,30 @@ Typically, two curves are monitored:
 * **Training performance**
 * **Validation performance**
 
-### Interpreting Learning Curves
+![bias-variance](../images/learning_curve.png){: style="width: 600px;"}
+
+### *Interpreting Learning Curves*
 
 #### Overfitting
 
-* Very high training performance
-* Much lower validation performance
-* Large gap between the curves
-
-The model memorizes the training data instead of learning general patterns.
+Overfitting occurs when a model achieves very high performance on the training
+set but much lower performance on the validation set. The result is a large gap
+between the two curves. Rather than learning general patterns, the model
+memorizes the training data and fails to generalize to new examples.
 
 #### Underfitting
 
-* Poor performance on both training and validation data
-* Curves remain close together
+Underfitting occurs when a model performs poorly on both the training and
+validation sets. The two curves remain close together but at a low level of
+performance, indicating that the model is too simple to capture the underlying
+relationships in the data.
 
-The model is too simple to capture the underlying relationships.
+#### Good generalization
 
-#### Good Generalization
-
-* Strong performance on both datasets
-* Small gap between the curves
-
-The model generalizes well to unseen data.
+A well-fitted model achieves strong performance on both the training and
+validation sets, with only a small gap between the two curves. This small gap
+indicates that the model has learned general patterns rather than memorizing
+the training data, and is therefore able to generalize well to unseen examples.
 
 
 ```text
@@ -955,10 +919,7 @@ Validation accuracy → Similar and stable
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LinearRegression
 
-    # ---------------------------------------------------
     # 1. Generate example regression data
-    # ---------------------------------------------------
-
     np.random.seed(42)
 
     X = np.linspace(0, 10, 100).reshape(-1, 1)
@@ -970,9 +931,7 @@ Validation accuracy → Similar and stable
         + np.random.normal(0, 4, 100)
     )
 
-    # ---------------------------------------------------
     # 2. Define model
-    # ---------------------------------------------------
 
     # High-degree polynomial model
     # This model is intentionally complex
@@ -981,9 +940,7 @@ Validation accuracy → Similar and stable
         LinearRegression()
     )
 
-    # ---------------------------------------------------
     # 3. Compute learning curves
-    # ---------------------------------------------------
 
     train_sizes, train_scores, val_scores = learning_curve(
         model,
@@ -998,10 +955,7 @@ Validation accuracy → Similar and stable
     train_errors = -train_scores.mean(axis=1)
     val_errors = -val_scores.mean(axis=1)
 
-    # ---------------------------------------------------
     # 4. Plot learning curves
-    # ---------------------------------------------------
-
     plt.figure(figsize=(10, 6))
 
     plt.plot(
@@ -1027,10 +981,7 @@ Validation accuracy → Similar and stable
     plt.savefig("learning-curves.png", dpi=300, bbox_inches="tight")
     plt.show()
 
-    # ---------------------------------------------------
     # 5. Print values
-    # ---------------------------------------------------
-
     print("Training set sizes:", train_sizes)
     print("Training errors:", train_errors)
     print("Validation errors:", val_errors)
