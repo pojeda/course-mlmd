@@ -1,3 +1,5 @@
-# Welcome to the course "ML/MD" 
+## Course Overview
 
-The aim of this ONLINE course is to give an intro to Machine Learning.
+Welcome to the Machine Learning and Deep Learning for Biomolecular Systems and Material Science course. This 
+program will equip you with the knowledge and skills to apply cutting-edge ML techniques to molecular design, 
+property prediction, and materials discovery.
