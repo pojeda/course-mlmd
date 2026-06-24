@@ -987,10 +987,12 @@ Validation accuracy → Similar and stable
     print("Validation errors:", val_errors)
     ```
 
-### 3.3 Preventing Overfitting
+### *Preventing Overfitting*
 
 #### 1. Get More Data
+
 The most effective solution when possible:
+
 ```python
 # Data augmentation for molecules
 def augment_molecule(smiles):
@@ -1007,7 +1009,6 @@ def augment_molecule(smiles):
 
 #### 2. Regularization
 Add penalty for model complexity:
-
 
 **L1 Regularization (Lasso)**: Encourages sparsity by penalizing the absolute values of 
 model parameters, causing some coefficients to become exactly zero and effectively performing feature selection.
@@ -1085,6 +1086,120 @@ data point is eventually used for both training and validation. Cross-validation
 robust estimate of model performance and helps reduce the risk of overfitting or biased evaluations 
 caused by a single random split.
 
+#### 4. Feature Selection
+
+Feature selection is the process of identifying and retaining the most informative variables 
+in a dataset while removing irrelevant or redundant features. Reducing the number of features 
+can improve model performance, decrease computational cost, and help reduce overfitting. In 
+scientific machine learning applications, feature selection is especially important when working 
+with high-dimensional molecular or materials datasets containing many correlated descriptors.
+
+??? note "Example"
+
+    ```python 
+    # example: Feature selection with SelectKBest
+
+    import pandas as pd
+    import numpy as np
+
+    from sklearn.datasets import make_regression
+    from sklearn.model_selection import train_test_split
+    from sklearn.feature_selection import SelectKBest, f_regression
+
+    # 1. Generate synthetic regression dataset
+    X, y = make_regression(
+        n_samples=100,
+        n_features=20,
+        n_informative=8,
+        noise=10,
+        random_state=42
+    )
+
+    # 2. Create DataFrame with feature names
+    feature_names = [f"feature_{i}" for i in range(20)]
+
+    X = pd.DataFrame(X, columns=feature_names)
+
+    # 3. Split dataset into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42
+    )
+
+    # 4. Select the top 10 features
+    selector = SelectKBest(
+        score_func=f_regression,
+        k=10
+    )
+
+    X_train_selected = selector.fit_transform(
+        X_train,
+        y_train
+    )
+
+    X_test_selected = selector.transform(X_test)
+
+    # 5. Get selected feature names
+    selected_features = X.columns[
+        selector.get_support()
+    ]
+
+    print("Selected features:")
+    print(selected_features.tolist())
+
+    # 6. Display transformed dataset shapes
+    print("\nOriginal training shape:", X_train.shape)
+    print("Reduced training shape:", X_train_selected.shape)
+
+    print("\nOriginal test shape:", X_test.shape)
+    print("Reduced test shape:", X_test_selected.shape)
+    ```
+
+#### 5. Early Stopping (for Neural Networks)
+
+Early stopping is a regularization technique used to reduce overfitting during neural network training. 
+As training progresses, the model usually improves on the training data, but after a certain point its 
+performance on validation data may begin to deteriorate. Early stopping monitors validation performance 
+and automatically stops training when no improvement is observed for a specified number of iterations. 
+This helps the model retain good generalization while avoiding unnecessary training.
+
+
+#### 6. Dropout (for Neural Networks)
+
+Dropout is a regularization technique used in neural networks to reduce overfitting and 
+improve generalization. During training, a fraction of neurons is randomly deactivated at each 
+iteration, preventing the network from relying too heavily on specific connections. This encourages 
+the model to learn more robust and distributed representations of the data. During evaluation and 
+prediction, all neurons are used normally.
+
+
+### *Addressing Underfitting*
+
+1. **Use a more complex model**: Add more features, use deeper networks
+2. **Remove regularization**: Reduce alpha/lambda values
+3. **Engineer better features**: Domain knowledge can help
+4. **Train longer**: Increase number of epochs/iterations
+5. **Check for errors**: Ensure data is preprocessed correctly
+
+
+## 4. Cross-Validation
+
+### *Why Cross-Validation?*
+
+Cross-validation is a model evaluation technique designed to provide a more reliable estimate of 
+model performance. Instead of relying on a single train-test split, the model is trained and evaluated 
+multiple times using different subsets of the data. This approach makes better use of limited datasets, 
+reduces dependence on a particular split, and helps identify problems such as overfitting and poor generalization.
+
+### *K-Fold Cross-Validation*
+
+In K-fold cross-validation, the dataset is divided into (K) equally sized subsets, called folds. The 
+model is trained using (K-1) folds and evaluated on the remaining fold. This process is repeated (K) 
+times so that each fold serves as the test set once. The final performance is computed as the average 
+across all folds, providing a more stable estimate of model accuracy.
+
 
 ![CV](../images/cross-validation.png){: style="width: 600px;"}
 
@@ -1139,155 +1254,15 @@ caused by a single random split.
     print(f"Cross-validation R²: {scores.mean():.3f} ± {scores.std():.3f}")
     ```
 
-The code:
+    The code:
 
-* generates a synthetic regression dataset,
-* trains a linear regression model,
-* evaluates it using 5-fold cross-validation,
-* and reports the mean and standard deviation of the (R^2) score across all folds.
-
-
+    * generates a synthetic regression dataset,
+    * trains a linear regression model,
+    * evaluates it using 5-fold cross-validation,
+    * and reports the mean and standard deviation of the (R^2) score across all folds.
 
 
-#### 4. Feature Selection
-
-Feature selection is the process of identifying and retaining the most informative variables 
-in a dataset while removing irrelevant or redundant features. Reducing the number of features 
-can improve model performance, decrease computational cost, and help reduce overfitting. In 
-scientific machine learning applications, feature selection is especially important when working 
-with high-dimensional molecular or materials datasets containing many correlated descriptors.
-
-??? note "Example"
-
-    ```python 
-    # example: Feature selection with SelectKBest
-
-    import pandas as pd
-    import numpy as np
-
-    from sklearn.datasets import make_regression
-    from sklearn.model_selection import train_test_split
-    from sklearn.feature_selection import SelectKBest, f_regression
-
-    # ---------------------------------------------------
-    # 1. Generate synthetic regression dataset
-    # ---------------------------------------------------
-
-    X, y = make_regression(
-        n_samples=100,
-        n_features=20,
-        n_informative=8,
-        noise=10,
-        random_state=42
-    )
-
-    # ---------------------------------------------------
-    # 2. Create DataFrame with feature names
-    # ---------------------------------------------------
-
-    feature_names = [f"feature_{i}" for i in range(20)]
-
-    X = pd.DataFrame(X, columns=feature_names)
-
-    # ---------------------------------------------------
-    # 3. Split dataset into training and testing sets
-    # ---------------------------------------------------
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42
-    )
-
-    # ---------------------------------------------------
-    # 4. Select the top 10 features
-    # ---------------------------------------------------
-
-    selector = SelectKBest(
-        score_func=f_regression,
-        k=10
-    )
-
-    X_train_selected = selector.fit_transform(
-        X_train,
-        y_train
-    )
-
-    X_test_selected = selector.transform(X_test)
-
-    # ---------------------------------------------------
-    # 5. Get selected feature names
-    # ---------------------------------------------------
-
-    selected_features = X.columns[
-        selector.get_support()
-    ]
-
-    print("Selected features:")
-    print(selected_features.tolist())
-
-    # ---------------------------------------------------
-    # 6. Display transformed dataset shapes
-    # ---------------------------------------------------
-
-    print("\nOriginal training shape:", X_train.shape)
-    print("Reduced training shape:", X_train_selected.shape)
-
-    print("\nOriginal test shape:", X_test.shape)
-    print("Reduced test shape:", X_test_selected.shape)
-    ```
-
-
-
-#### 5. Early Stopping (for Neural Networks)
-
-Early stopping is a regularization technique used to reduce overfitting during neural network training. 
-As training progresses, the model usually improves on the training data, but after a certain point its 
-performance on validation data may begin to deteriorate. Early stopping monitors validation performance 
-and automatically stops training when no improvement is observed for a specified number of iterations. 
-This helps the model retain good generalization while avoiding unnecessary training.
-
-
-#### 6. Dropout (for Neural Networks)
-
-Dropout is a regularization technique used in neural networks to reduce overfitting and 
-improve generalization. During training, a fraction of neurons is randomly deactivated at each 
-iteration, preventing the network from relying too heavily on specific connections. This encourages 
-the model to learn more robust and distributed representations of the data. During evaluation and 
-prediction, all neurons are used normally.
-
-
-
-### 3.4 Addressing Underfitting
-
-1. **Use a more complex model**: Add more features, use deeper networks
-2. **Remove regularization**: Reduce alpha/lambda values
-3. **Engineer better features**: Domain knowledge can help
-4. **Train longer**: Increase number of epochs/iterations
-5. **Check for errors**: Ensure data is preprocessed correctly
-
-
-
-## 4. Cross-Validation
-
-### 4.1 Why Cross-Validation?
-
-Cross-validation is a model evaluation technique designed to provide a more reliable estimate of 
-model performance. Instead of relying on a single train-test split, the model is trained and evaluated 
-multiple times using different subsets of the data. This approach makes better use of limited datasets, 
-reduces dependence on a particular split, and helps identify problems such as overfitting and poor generalization.
-
-
-### 4.2 K-Fold Cross-Validation
-
-In K-fold cross-validation, the dataset is divided into (K) equally sized subsets, called folds. The 
-model is trained using (K-1) folds and evaluated on the remaining fold. This process is repeated (K) 
-times so that each fold serves as the test set once. The final performance is computed as the average 
-across all folds, providing a more stable estimate of model accuracy.
-
-
-### 4.3 Stratified K-Fold
+### *Stratified K-Fold*
 
 Stratified K-fold cross-validation is commonly used for classification problems where class imbalance exists. 
 In this approach, each fold preserves approximately the same class distribution as the original dataset. 
@@ -1295,7 +1270,7 @@ This ensures that all classes are represented consistently during training and v
 more reliable performance estimates.
 
 
-### 4.4 Leave-One-Out Cross-Validation (LOOCV)
+### *Leave-One-Out Cross-Validation (LOOCV)*
 
 Leave-One-Out Cross-Validation is an extreme case of K-fold cross-validation in which each fold contains 
 only a single sample. The model is trained on all remaining data points and tested on the one excluded sample. 
@@ -1303,7 +1278,7 @@ This process is repeated for every sample in the dataset. LOOCV uses data very e
 computationally expensive for large datasets.
 
 
-### 4.5 Time Series Cross-Validation
+### *Time Series Cross-Validation*
 
 Time series cross-validation is specifically designed for temporal or sequential data. Unlike random splitting 
 methods, it preserves the chronological order of observations to avoid using future information during training. 
@@ -1311,10 +1286,9 @@ The model is trained on past data and evaluated on later time periods, providing
 predictive performance in forecasting tasks.
 
 
-
 ## 5. Model Evaluation Metrics
 
-### 5.1 Regression Metrics
+### *Regression Metrics*
 
 Regression metrics are used to evaluate how accurately a model predicts continuous numerical values. Different metrics 
 emphasize different aspects of prediction quality, such as average error magnitude, sensitivity to large errors, or the 
@@ -1436,7 +1410,7 @@ plt.axis('equal')
 plt.show()
 ```
 
-### 5.2 Classification Metrics
+### *Classification Metrics*
 
 Classification metrics are used to evaluate models that predict discrete categories or classes. Different metrics 
 emphasize different aspects of model performance, such as overall correctness, the ability to detect positive cases, 
@@ -1448,9 +1422,7 @@ applications where false positives and false negatives may have very different c
 
 A confusion matrix summarizes the predictions of a classification model by comparing predicted labels with 
 the true labels. It provides counts of correctly and incorrectly classified samples and serves as the basis 
-for many classification metrics.
-
-For binary classification:
+for many classification metrics. For binary classification:
 
 |                 | Predicted Positive  | Predicted Negative  |
 | --------------- | ------------------- | ------------------- |
@@ -1488,19 +1460,24 @@ $$
 \mathrm{Precision} = \frac{TP}{TP + FP}
 $$
 
-Recall, also called sensitivity, measures how many true positive cases are successfully identified:
+Recall, also called sensitivity, measures the fraction of actual positive cases
+that the model correctly identifies:
 
 $$
 \mathrm{Recall} = \frac{TP}{TP + FN}
 $$
 
-The F1-score combines precision and recall into a single metric using their harmonic mean:
+
+The F1-score combines precision and recall into a single metric using their
+harmonic mean:
 
 $$
 F_1 = 2 \cdot \frac{\mathrm{Precision} \cdot \mathrm{Recall}}{\mathrm{Precision} + \mathrm{Recall}}
 $$
 
-The F1-score is particularly useful when balancing false positives and false negatives is important.
+
+The F1-score is particularly useful when classes are imbalanced or when both
+false positives and false negatives carry significant cost.
 
 ```python
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
@@ -1556,10 +1533,7 @@ classification performance, while an AUC near 0.5 suggests random guessing.
         roc_auc_score
     )
 
-    # ---------------------------------------------------
     # 1. Generate example classification dataset
-    # ---------------------------------------------------
-
     X, y = make_classification(
         n_samples=1000,
         n_features=10,
@@ -1568,10 +1542,7 @@ classification performance, while an AUC near 0.5 suggests random guessing.
         random_state=42
     )
 
-    # ---------------------------------------------------
     # 2. Split dataset into training and test sets
-    # ---------------------------------------------------
-
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         y,
@@ -1579,25 +1550,17 @@ classification performance, while an AUC near 0.5 suggests random guessing.
         random_state=42
     )
 
-    # ---------------------------------------------------
     # 3. Train classification model
-    # ---------------------------------------------------
-
     model = LogisticRegression()
 
     model.fit(X_train, y_train)
 
-    # ---------------------------------------------------
     # 4. Get probability predictions
-    # ---------------------------------------------------
 
     # Probability of belonging to class 1
     y_prob = model.predict_proba(X_test)[:, 1]
 
-    # ---------------------------------------------------
     # 5. Calculate ROC curve and AUC
-    # ---------------------------------------------------
-
     fpr, tpr, thresholds = roc_curve(
         y_test,
         y_prob
@@ -1610,10 +1573,7 @@ classification performance, while an AUC near 0.5 suggests random guessing.
 
     print(f"AUC score: {auc:.3f}")
 
-    # ---------------------------------------------------
     # 6. Plot ROC curve
-    # ---------------------------------------------------
-
     plt.figure(figsize=(8, 6))
 
     plt.plot(
@@ -1642,10 +1602,7 @@ classification performance, while an AUC near 0.5 suggests random guessing.
     plt.savefig("roc-curve.png", dpi=300, bbox_inches="tight")
     plt.show()
 
-    # ---------------------------------------------------
     # 7. AUC interpretation
-    # ---------------------------------------------------
-
     print("\nAUC Interpretation:")
     print("1.0  -> Perfect classifier")
     print("0.5  -> Random guessing")
@@ -1682,10 +1639,7 @@ PR curves are widely used in applications such as:
         average_precision_score
     )
 
-    # ---------------------------------------------------
     # 1. Generate example classification dataset
-    # ---------------------------------------------------
-
     # Imbalanced dataset
     X, y = make_classification(
         n_samples=1000,
@@ -1696,9 +1650,7 @@ PR curves are widely used in applications such as:
         random_state=42
     )
 
-    # ---------------------------------------------------
     # 2. Split dataset into training and test sets
-    # ---------------------------------------------------
 
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -1707,25 +1659,16 @@ PR curves are widely used in applications such as:
         random_state=42
     )
 
-    # ---------------------------------------------------
     # 3. Train classification model
-    # ---------------------------------------------------
-
     model = LogisticRegression()
 
     model.fit(X_train, y_train)
 
-    # ---------------------------------------------------
     # 4. Get probability predictions
-    # ---------------------------------------------------
-
     # Probability of belonging to class 1
     y_prob = model.predict_proba(X_test)[:, 1]
 
-    # ---------------------------------------------------
     # 5. Compute Precision-Recall curve
-    # ---------------------------------------------------
-
     precision, recall, thresholds = precision_recall_curve(
         y_test,
         y_prob
@@ -1739,10 +1682,7 @@ PR curves are widely used in applications such as:
 
     print(f"Average Precision (AP): {ap:.3f}")
 
-    # ---------------------------------------------------
     # 6. Plot Precision-Recall curve
-    # ---------------------------------------------------
-
     plt.figure(figsize=(8, 6))
 
     plt.plot(
@@ -1764,10 +1704,7 @@ PR curves are widely used in applications such as:
 
     plt.show()
 
-    # ---------------------------------------------------
     # 7. Interpretation
-    # ---------------------------------------------------
-
     print("\nInterpretation:")
     print("- High precision means few false positives")
     print("- High recall means few false negatives")
@@ -1775,7 +1712,7 @@ PR curves are widely used in applications such as:
     print("  for imbalanced datasets")
     ```
 
-### 5.3 Choosing the Right Metric
+### *Choosing the Right Metric*
 
 **For Regression**:
 - MAE: Easy to interpret, robust to outliers
@@ -1795,7 +1732,7 @@ PR curves are widely used in applications such as:
 
 ## 6. Hyperparameter Tuning
 
-### 6.1 What are Hyperparameters?
+### *What are Hyperparameters?*
 
 Parameters set before training (not learned from data):
 - Learning rate
@@ -1804,7 +1741,7 @@ Parameters set before training (not learned from data):
 - Number of trees in random forest
 - Kernel parameters in SVM
 
-### 6.2 Grid Search
+### *Grid Search*
 
 Try all combinations in a grid:
 
@@ -1839,7 +1776,7 @@ print(f"Best CV score: {grid_search.best_score_:.3f}")
 best_model = grid_search.best_estimator_
 ```
 
-### 6.3 Random Search
+### *Random Search*
 
 Sample random combinations (more efficient):
 
@@ -1873,7 +1810,7 @@ print(f"Best parameters: {random_search.best_params_}")
 print(f"Best CV score: {random_search.best_score_:.3f}")
 ```
 
-### 6.4 Bayesian Optimization
+### *Bayesian Optimization*
 
 Intelligent search using previous results:
 
@@ -1906,8 +1843,6 @@ print(f"Best parameters: {bayes_search.best_params_}")
 print(f"Best CV score: {bayes_search.best_score_:.3f}")
 ```
 
-
-
 ## 7. Neural Networks Basics
 
 Neural networks are machine learning models inspired by the structure of the human brain and are composed of 
@@ -1926,7 +1861,7 @@ and avoid unstable updates.
 
 ## 8. Common Pitfalls and Best Practices
 
-### 8.1 Data Leakage
+### *Data Leakage*
 
 **Problem**: Information from test set influences training
 
@@ -1965,7 +1900,7 @@ pipeline = Pipeline([
 scores = cross_val_score(pipeline, X, y, cv=5)
 ```
 
-### 8.2 Not Using Validation Set
+### *Not Using Validation Set*
 
 **Problem**: Tuning hyperparameters on test set
 
@@ -2005,7 +1940,7 @@ model.fit(X_train, y_train)
 test_accuracy = model.score(X_test, y_test)
 ```
 
-### 8.3 Ignoring Class Imbalance
+### *Ignoring Class Imbalance*
 
 **Problem**: Poor performance on minority class
 
@@ -2039,7 +1974,7 @@ y_pred = model.predict(X_test)
 print(classification_report(y_test, y_pred))
 ```
 
-### 8.4 Not Checking for Errors
+### *Not Checking for Errors*
 
 ```python
 # Always validate your preprocessing
@@ -2070,7 +2005,7 @@ def validate_data(X, y):
 validate_data(X_train, y_train)
 ```
 
-### 8.5 Forgetting to Set Random Seeds
+### *Forgetting to Set Random Seeds*
 
 ```python
 # For reproducibility, set all random seeds
@@ -2089,14 +2024,10 @@ def set_seed(seed=42):
 set_seed(42)
 ```
 
-
-
-
-
-
 ## 9. Key Takeaways
 
-### Essential Concepts
+### *Essential Concepts*
+
 1. **Always split your data** before any preprocessing
 2. **Use cross-validation** for reliable performance estimates
 3. **Watch for overfitting**: Monitor both training and validation performance
@@ -2106,7 +2037,8 @@ set_seed(42)
 7. **Set random seeds** for reproducibility
 8. **Document everything**: Parameters, preprocessing steps, results
 
-### Machine Learning Workflow Summary
+### *Machine Learning Workflow Summary*
+
 ```
 1. Define Problem → 2. Collect Data → 3. Explore Data → 
 4. Preprocess → 5. Split Data → 6. Train Models → 
@@ -2114,7 +2046,8 @@ set_seed(42)
 9. Evaluate on Test Set → 10. Deploy/Iterate
 ```
 
-### Red Flags
+### *Red Flags*
+
 - Training accuracy >> Test accuracy → Overfitting
 - Both accuracies low → Underfitting
 - Test accuracy > Training accuracy → Data leakage
@@ -2129,7 +2062,6 @@ set_seed(42)
 - "Pattern Recognition and Machine Learning" - Christopher Bishop
 - "Deep Learning" - Goodfellow, Bengio, and Courville
 
-
 ### Documentation
 - Scikit-learn: https://scikit-learn.org/
 - PyTorch: https://pytorch.org/
@@ -2139,6 +2071,3 @@ set_seed(42)
 - Kaggle: https://kaggle.com/
 - Google Colab: https://colab.research.google.com/
 - Papers with Code: https://paperswithcode.com/
-
-
-
