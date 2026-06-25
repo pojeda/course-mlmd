@@ -252,7 +252,7 @@ invalid = "C CO"  # Space breaks it
 
 ### 2.2 SELFIES (Self-Referencing Embedded Strings)
 
-SELFIES is an alternative to SMILES that guarantees 100% valid molecules.
+SELFIES is an alternative to SMILES that guarantees 100% valid molecules (Mach. Learn Sci. Technol. 1, 045024, 2020).
 
 ??? note "Example"
 
@@ -275,7 +275,7 @@ SELFIES is an alternative to SMILES that guarantees 100% valid molecules.
     print(f"Valid molecule: {mol is not None}")
     ```
 
-### 2.2 Molecular Fingerprints
+### 2.3 Molecular Fingerprints
 
 Fingerprints are fixed-length binary or count vectors that encode molecular structure.
 
