@@ -1,4 +1,4 @@
-# Day 1: Foundations of Machine Learning for Molecular Systems
+# Foundations of Machine Learning for Molecular Systems
 
 ## Learning Objectives
 
@@ -9,12 +9,12 @@
 - Understand the unique challenges of applying ML to chemistry
 
 
-## 1. Introduction to ML in Molecular Sciences
+## 1. Introduction to ML in Molecular Systems
 
 ### 1.1 Why Machine Learning for Molecules?
 
-The chemical space is vast—estimates suggest there are 10^60 possible drug-like molecules, far 
-more than atoms in the universe. Traditional approaches to drug discovery and materials design involve:
+The chemical space is vast—estimates suggest there are $10^60$ possible drug-like molecules, far 
+more than atoms in the universe (Med. Res. Rev., 16, 3-50, 1996). Traditional approaches to drug discovery and materials design involve:
 
 - Synthesizing and testing compounds one by one (expensive, slow)
 - Running quantum mechanical calculations for each molecule (computationally expensive)
