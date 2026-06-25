@@ -133,7 +133,7 @@ the model and how efficiently it can learn.
 
 ### 2.1 SMILES (Simplified Molecular Input Line Entry System)
 
-SMILES is a text-based notation that represents molecular structure as a string.
+SMILES is a text-based notation that represents molecular structure as a string (J. Chem. Inf. Comput. Sci. 1988, 28, 1, 31–36).
 
 #### Basic SMILES Syntax
 
@@ -170,7 +170,7 @@ Naphthalene:    c1ccc2ccccc2c1
 **Stereochemistry**:
 ```
 (R)-Alanine:    N[C@@H](C)C(=O)O
-                  └─ @ indicates chirality
+                  └─ @ and @@ encode the two tetrahedral configurations
 ```
 
 #### Working with SMILES in Python
@@ -186,7 +186,7 @@ Naphthalene:    c1ccc2ccccc2c1
     smiles = "CC(=O)Oc1ccccc1C(=O)O"  # Aspirin
     mol = Chem.MolFromSmiles(smiles)
 
-    # Check validity
+    # heck validity
     if mol is None:
         print("Invalid SMILES!")
     else:
@@ -198,7 +198,7 @@ Naphthalene:    c1ccc2ccccc2c1
     plt.axis('off')
     plt.title('Aspirin')
     #plt.show()
-    plt.savefig('aspirine.png', dpi=300, bbox_inches='tight')
+    plt.savefig('aspirin.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     # Get canonical SMILES (standardized form)
@@ -225,20 +225,25 @@ Naphthalene:    c1ccc2ccccc2c1
 ```python
 # All represent ethanol:
 smiles_variants = ["CCO", "OCC", "C(O)C"]
-# Solution: Use canonical SMILES
+# Use canonical SMILES to obtain a unique, standardized representation
+# for storage and comparison:
+canonical = Chem.MolToSmiles(Chem.MolFromSmiles("OCC"))
+# -> 'CCO'
 ```
 
 - **No 3D information**: Only connectivity, not geometry
+  Stereoisomers that differ only in 3D arrangement require explicit
+  stereochemistry notation (@ / @@) and still carry no coordinate information.
 
 ```python
-# Both are C3H8O but different 3D shapes:
-propanol = "CCCO"      # Linear
-isopropanol = "CC(O)C"  # Branched
+# Same connectivity, opposite chirality:
+l_alanine = "N[C@@H](C)C(=O)O"   # L-Alanine
+d_alanine  = "N[C@H](C)C(=O)O"   # D-Alanine
 ```
 
 - **Sequence-based**: Hard to capture graph structure directly
 
-- **Fragile**: Single character error invalidates entire SMILES
+- **Fragile**: A single character error invalidates entire SMILES
 
 ```python
 valid = "CCO"
