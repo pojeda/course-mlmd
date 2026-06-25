@@ -50,71 +50,80 @@ Machine learning has revolutionized our ability to:
 
 **COVID-19 Drug Repurposing**
 
-- ML models screened 6,000+ FDA-approved drugs against SARS-CoV-2
-- Identified Baricitinib (arthritis drug) as potential treatment
-- Approved by FDA for COVID-19 treatment in 2020
+During the COVID-19 pandemic, machine learning models screened more than 6,000
+FDA-approved drugs for activity against SARS-CoV-2. This approach identified
+Baricitinib, a drug originally approved for rheumatoid arthritis, as a promising
+candidate. It was subsequently authorized by the FDA for COVID-19 treatment in
+2020, making it one of the earliest examples of ML-assisted drug repurposing
+reaching clinical use.
 
 **Antibiotic Discovery**
 
-- ML identified Halicin, a novel antibiotic
-- Effective against drug-resistant bacteria
-- Different from existing antibiotics (discovered through ML, not traditional chemistry)
+In 2020, a machine learning model trained on known antibacterial compounds
+identified Halicin, a structurally novel antibiotic effective against several
+drug-resistant bacteria. Because Halicin was discovered by learning patterns
+from data rather than through traditional medicinal chemistry, its structure
+is distinct from existing antibiotics; demonstrating that ML can explore
+regions of chemical space that conventional approaches tend to overlook.
 
 **Materials Science**
 
-- ML accelerated discovery of solid electrolytes for batteries
-- Predicted thermal conductivity of materials 1000x faster than simulations
-- Identified new photovoltaic materials
+Machine learning has significantly accelerated materials discovery across
+several domains. In battery research, ML models have identified promising
+solid electrolyte candidates that would have taken far longer to find through
+simulation alone. Thermal conductivity predictions that once required
+computationally expensive simulations can now be made orders of magnitude
+faster, and ML has also been applied to the search for new photovoltaic
+materials with improved energy conversion properties.
 
 ### 1.3 Key Challenges in Molecular ML
 
 #### High Dimensionality
-Molecules exist in complex, high-dimensional spaces:
 
-- 3D coordinates for each atom
-- Electronic structure information
-- Conformational flexibility
-- Quantum mechanical properties
-
-**Solution**: Learn compact representations that capture essential features
+Molecules exist in complex, high-dimensional spaces: each atom contributes
+3D coordinates, electronic structure information, conformational degrees of
+freedom, and quantum mechanical properties. Training models directly on such
+representations is computationally intractable, so a key challenge is learning
+compact representations that retain the essential features of molecular
+structure.
 
 #### Data Scarcity
-Unlike computer vision (millions of labeled images), molecular datasets are small:
 
-- Typical drug dataset: 1,000 - 100,000 compounds
-- Experimental measurements are expensive and time-consuming
-- Many properties are difficult to measure accurately
+Unlike computer vision, where models can be trained on millions of labeled
+images, molecular datasets are typically small: a large drug discovery dataset
+may contain between 1,000 and 100,000 compounds, and experimental measurements
+are both expensive and time-consuming to obtain. Transfer learning, data
+augmentation, and semi-supervised learning are the main strategies used to
+compensate for limited labeled data.
 
-**Solution**: Transfer learning, data augmentation, semi-supervised learning
 
 #### Physical Constraints
-Models must respect fundamental laws:
 
-- Conservation of energy
-- Valence rules (atoms have specific bonding patterns)
-- Symmetries (rotation, translation, permutation)
-- Quantum mechanical principles
-
-**Solution**: Physics-informed neural networks, equivariant architectures
+Molecular machine learning models must respect fundamental physical constraints,
+including conservation of energy, atomic valence rules, and the symmetries of
+3D space — rotation, translation, and permutation of atoms. Models that violate
+these constraints produce physically meaningless predictions. Physics-informed
+neural networks and equivariant architectures address this by building the
+relevant symmetries directly into the model.
 
 #### Interpretability Requirements
-Black-box predictions aren't enough in science:
 
-- Need to understand WHY predictions work
-- Identify key molecular features
-- Generate hypotheses for experiments
-- Build trust with domain experts
+A prediction that a molecule has a certain property is only useful if the model
+can indicate which structural features drive that prediction, enabling
+researchers to generate hypotheses and build confidence in the results.
+Unlike many commercial applications, black-box predictions are insufficient in
+science. Attention mechanisms, feature importance analysis, and explainable AI
+methods are commonly used to make model decisions more transparent.
 
-**Solution**: Attention mechanisms, feature importance analysis, explainable AI
 
 #### Distribution Shift
-Models trained on one chemical space may fail on another:
 
-- Different molecular scaffolds
-- Novel functional groups
-- Extreme property values
-
-**Solution**: Domain adaptation, uncertainty quantification, active learning
+Models trained on one region of chemical space often fail when applied to
+another; a problem known as distribution shift. Novel scaffolds, unfamiliar
+functional groups, or property values outside the training range can all cause
+performance to degrade severely. Domain adaptation, uncertainty quantification,
+and active learning are the principal approaches for detecting and mitigating
+this failure mode.
 
 
 ## 2. Molecular Representations
