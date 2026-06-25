@@ -555,7 +555,7 @@ shared molecular features encoded in fingerprint vectors.
     print(f"Cosine similarity: {cosine:.3f}")
     ```
 
-## 3D Molecular Representations
+### 2.4 3D Molecular Representations
 
 While fingerprints and graph-based methods describe molecular connectivity, many molecular 
 properties also depend strongly on three-dimensional geometry. 3D molecular representations 
@@ -571,7 +571,7 @@ Common 3D representations include:
 * Atomic environments
 * Molecular conformations
 
-### Example: Generating 3D Coordinates with RDKit
+#### Example: Generating 3D Coordinates with RDKit
 
 ??? note "Example"
 
@@ -606,7 +606,7 @@ Common 3D representations include:
         )
     ```
 
-## Protein Representations
+### 2.5 Protein Representations
 
 Proteins are complex biological macromolecules that can be represented in several different 
 ways for machine learning applications. Depending on the problem, proteins may be described using 
@@ -623,7 +623,7 @@ Common protein representations include:
 * Graph representations
 * Atomic coordinate representations
 
-### Example: Loading a Protein Structure with ASE
+#### Example: Loading a Protein Structure with ASE
 
 ??? note "Example"
 
@@ -780,7 +780,7 @@ The Coulomb matrix representation is described in the PRL article x
     plt.show()
     ```
 
-### 2.3 Molecular Descriptors
+### 2.6 Molecular Descriptors
 
 Numerical features that capture molecular properties.
 
@@ -1075,7 +1075,7 @@ overall drug-like character of a compound.
     print(df_descriptors)
     ```
 
-### 2.4 Graph Representations
+### 2.7 Graph Representations
 
 Molecular graphs represent atoms as nodes and chemical bonds as edges, preserving 
 connectivity and atom-level information.
