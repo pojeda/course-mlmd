@@ -1752,7 +1752,6 @@ A QSAR workflow generally proceeds in three steps:
     import pubchempy as pcp
 
     # 1. Search compound by name
-
     results = pcp.get_compounds(
         "aspirin",
         "name"
@@ -1767,12 +1766,13 @@ A QSAR workflow generally proceeds in three steps:
 
     print("Compound Information\n")
     print(f"IUPAC Name:        {compound.iupac_name}")
-    print(f"SMILES:            {compound.isomeric_smiles}")
+    print(f"SMILES:            {compound.smiles}")
     print(f"Molecular Formula: {compound.molecular_formula}")
     print(f"Molecular Weight:  {compound.molecular_weight}")
 
     # 3. Retrieve selected properties
-
+    # Look up by CID to reuse the compound we already found
+    # (avoids a second name search).
     properties = pcp.get_properties(
         [
             "MolecularWeight",
@@ -1780,12 +1780,11 @@ A QSAR workflow generally proceeds in three steps:
             "TPSA",
             "Complexity"
         ],
-        "aspirin",
-        "name"
+        compound.cid,
+        "cid"
     )
 
     # 4. Display properties
-
     print("\nSelected Properties\n")
 
     for key, value in properties[0].items():
@@ -1804,10 +1803,11 @@ A QSAR workflow generally proceeds in three steps:
     from chembl_webresource_client.new_client import new_client
 
     # 1. Search for a molecule by name
-
     molecule = new_client.molecule
-
     results = molecule.search("aspirin")
+
+    if not results:
+        raise ValueError("No molecule found")
 
     aspirin = results[0]
 
@@ -1818,7 +1818,6 @@ A QSAR workflow generally proceeds in three steps:
     print("Molecular weight:", aspirin["molecule_properties"]["full_mwt"])
 
     # 2. Retrieve bioactivity data for aspirin
-
     activity = new_client.activity
 
     activities = activity.filter(
@@ -1838,10 +1837,14 @@ A QSAR workflow generally proceeds in three steps:
     print(df)
     ```
 
+### 4.2 Data preprocessing
 
-### 4.2 Data Preprocessing
+#### Molecular standardization
 
-#### Molecular Standardization
+A basic first step is to remove salts and counterions and return a canonical SMILES.
+Note that `SaltRemover` only strips a predefined list of common salts: it does not
+neutralize charges or normalize functional groups, so an isolated acetate anion or a
+zwitterion will remain charged.
 
 ??? note "Example"
 
@@ -1882,11 +1885,94 @@ A QSAR workflow generally proceeds in three steps:
     print(standardized)
     ```
 
+For a more complete and reproducible pipeline, RDKit's `rdMolStandardize` module
+handles fragment selection, functional-group normalization, and charge
+neutralization in a principled way. This is the recommended approach for preparing
+molecules pulled from public databases.
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+    from rdkit.Chem.MolStandardize import rdMolStandardize
+
+    def standardize(smiles):
+        """Normalize, keep the largest fragment, and neutralize charges."""
+
+        mol = Chem.MolFromSmiles(smiles)
+
+        if mol is None:
+            return None
+
+        # 1. Normalize functional groups and charge representations
+        normalizer = rdMolStandardize.Normalizer()
+        mol = normalizer.normalize(mol)
+
+        # 2. Keep only the largest fragment (removes salts/counterions)
+        fragment_chooser = rdMolStandardize.LargestFragmentChooser()
+        mol = fragment_chooser.choose(mol)
+
+        # 3. Neutralize charges where chemically reasonable
+        uncharger = rdMolStandardize.Uncharger()
+        mol = uncharger.uncharge(mol)
+
+        return Chem.MolToSmiles(mol)
+
+
+    smiles_list = [
+        "CC(=O)[O-].[Na+]",  # Sodium acetate -> acetic acid
+        "CCO",               # Ethanol
+        "[NH3+]CC[O-]"       # Zwitterion -> neutral form
+    ]
+
+    print([standardize(smiles) for smiles in smiles_list])
+    ```
+
+#### Removing duplicates
+
+Databases frequently contain the same compound under several different SMILES
+strings. Hashing each molecule to its InChIKey provides a canonical identifier
+that makes deduplication straightforward.
+
+??? note "Example"
+
+    ```python
+    from rdkit import Chem
+
+    def deduplicate(smiles_list):
+        """Return unique molecules, identified by InChIKey."""
+
+        seen = set()
+        unique = []
+
+        for smiles in smiles_list:
+            mol = Chem.MolFromSmiles(smiles)
+
+            if mol is None:
+                continue
+
+            inchikey = Chem.MolToInchiKey(mol)
+
+            if inchikey not in seen:
+                seen.add(inchikey)
+                unique.append(smiles)
+
+        return unique
+
+
+    # "CCO", "OCC", and "C(O)C" all represent ethanol
+    smiles_list = ["CCO", "OCC", "C(O)C", "c1ccccc1"]
+
+    print(deduplicate(smiles_list))
+    # -> ['CCO', 'c1ccccc1']
+    ```
+
 #### Train/Test Splitting
 
 ??? note "Example"
 
     ```python
+    from rdkit import Chem
     from sklearn.model_selection import train_test_split
 
     # Random split
@@ -1899,30 +1985,41 @@ A QSAR workflow generally proceeds in three steps:
     from collections import defaultdict
 
     def scaffold_split(smiles_list, test_size=0.2):
-        """Split by molecular scaffolds"""
+        """Split molecules by Bemis-Murcko scaffold."""
         scaffolds = defaultdict(list)
-        
+
         for idx, smiles in enumerate(smiles_list):
             mol = Chem.MolFromSmiles(smiles)
-            scaffold = MurckoScaffold.MurckoScaffoldSmiles(mol=mol, includeChirality=False)
+
+            if mol is None:
+                raise ValueError(f"Invalid SMILES string: {smiles}")
+
+            scaffold = MurckoScaffold.MurckoScaffoldSmiles(
+                mol=mol, includeChirality=False
+            )
             scaffolds[scaffold].append(idx)
-        
-        # Distribute scaffolds
-        scaffold_sets = sorted(list(scaffolds.values()), key=len, reverse=True)
-        
+
+        # Sort scaffold groups from largest to smallest
+        scaffold_sets = sorted(
+            scaffolds.values(), key=len, reverse=True
+        )
+
         n_total = len(smiles_list)
         n_test = int(n_total * test_size)
-        
+
         train_idx, test_idx = [], []
         train_count = 0
-        
+
+        # Greedily fill the training set; overflow goes to the test set.
+        # Whole scaffold groups are kept together, so no scaffold appears
+        # in both splits.
         for scaffold_set in scaffold_sets:
             if train_count + len(scaffold_set) <= n_total - n_test:
                 train_idx.extend(scaffold_set)
                 train_count += len(scaffold_set)
             else:
                 test_idx.extend(scaffold_set)
-        
+
         return train_idx, test_idx
     ```
 
