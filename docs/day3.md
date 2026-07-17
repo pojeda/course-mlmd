@@ -1307,17 +1307,17 @@ more commonly use a cutoff of around 8 Å between C$^{\alpha}$ atoms.
 
 ## 3. Traditional Machine Learning Methods
 
-Before deep learning, these methods were (and still are) workhorses of molecular ML.
+Before deep learning, these methods were (and still are) workhorses of molecular machine learning.
 
-### 3.1 Feature Engineering Principles
+### 3.1 Feature engineering principles
 
-**Domain Knowledge is Key**:
+**Domain knowledge is key**:
 
-- Choose descriptors relevant to property being predicted
+- Choose descriptors relevant to the property being predicted
 - For solubility: polarity, surface area, H-bond capacity
 - For toxicity: reactive functional groups, lipophilicity
 
-**Feature Scaling**:
+**Feature scaling**:
 
 ??? note "Example"
 
@@ -1352,7 +1352,11 @@ Before deep learning, these methods were (and still are) workhorses of molecular
     X_test_robust = robust_scaler.transform(X_test)
     ```
 
-**Feature Selection**:
+Note that the scaler is always fit on the training set only and then applied to
+the test set. Fitting on the full dataset would leak information from the test
+set into the model.
+
+**Feature selection**:
 
 ??? note "Example"
 
@@ -1405,7 +1409,7 @@ Before deep learning, these methods were (and still are) workhorses of molecular
     X_train_rfe = rfe_selector.fit_transform(X_train, y_train)
     X_test_rfe = rfe_selector.transform(X_test)
 
-    # Feature importance from model
+    # Feature importance from a fitted model
     importance_model = RandomForestRegressor(
         n_estimators=100,
         random_state=42
@@ -1413,6 +1417,8 @@ Before deep learning, these methods were (and still are) workhorses of molecular
 
     importance_model.fit(X_train, y_train)
 
+    # With prefit=True, the estimator is already fitted, so we call
+    # transform directly (without fitting the selector again).
     importance_selector = SelectFromModel(
         importance_model,
         prefit=True,
@@ -1425,14 +1431,17 @@ Before deep learning, these methods were (and still are) workhorses of molecular
 
 ### 3.2 Random Forests
 
-Ensemble of decision trees, each trained on random subset of data and features.
+An ensemble of decision trees, each trained on a random subset of the data and features.
 
-#### How it Works
+#### How it works
 
-1. **Bootstrap Sampling**: Create N random subsets of training data (with replacement)
-2. **Random Feature Selection**: At each split, consider random subset of features
-3. **Tree Building**: Build deep trees without pruning
-4. **Prediction**: Average predictions from all trees (regression) or vote (classification)
+1. **Bootstrap sampling**: Create N random subsets of the training data (with replacement)
+2. **Random feature selection**: At each split, consider a random subset of features
+3. **Tree building**: Build deep trees without pruning
+4. **Prediction**: Average the predictions from all trees (regression) or take a majority vote (classification)
+
+Averaging many decorrelated trees is what reduces variance: individual deep
+trees overfit, but their errors partially cancel when combined.
 
 ??? note "Example"
 
@@ -1445,7 +1454,6 @@ Ensemble of decision trees, each trained on random subset of data and features.
     import matplotlib.pyplot as plt
 
     # 1. Create example regression dataset
-
     X, y = make_regression(
         n_samples=500,
         n_features=12,
@@ -1455,7 +1463,6 @@ Ensemble of decision trees, each trained on random subset of data and features.
     )
 
     # 2. Train-test split
-
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         y,
@@ -1464,7 +1471,6 @@ Ensemble of decision trees, each trained on random subset of data and features.
     )
 
     # 3. Define random forest regressor
-
     rf_reg = RandomForestRegressor(
         n_estimators=100,
         max_depth=None,
@@ -1472,16 +1478,15 @@ Ensemble of decision trees, each trained on random subset of data and features.
         min_samples_leaf=1,
         max_features="sqrt",
         bootstrap=True,
+        oob_score=True,      # out-of-bag estimate (see note below)
         random_state=42,
         n_jobs=-1
     )
 
     # 4. Train model
-
     rf_reg.fit(X_train, y_train)
 
     # 5. Predict and evaluate
-
     y_pred = rf_reg.predict(X_test)
 
     r2 = r2_score(y_test, y_pred)
@@ -1489,9 +1494,9 @@ Ensemble of decision trees, each trained on random subset of data and features.
 
     print(f"Test R²: {r2:.3f}")
     print(f"Test MSE: {mse:.3f}")
+    print(f"Out-of-bag R²: {rf_reg.oob_score_:.3f}")
 
     # 6. Cross-validation
-
     cv_scores = cross_val_score(
         rf_reg,
         X,
@@ -1503,18 +1508,14 @@ Ensemble of decision trees, each trained on random subset of data and features.
     print(f"Cross-validation R²: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
 
     # 7. Feature importance
-
     importances = rf_reg.feature_importances_
-
     indices = np.argsort(importances)[::-1]
 
     print("\nFeature ranking:")
-
     for i, idx in enumerate(indices[:10]):
         print(f"{i + 1}. Feature {idx}: {importances[idx]:.4f}")
 
     # 8. Visualize feature importance
-
     plt.figure(figsize=(10, 6))
 
     plt.bar(
@@ -1536,19 +1537,51 @@ Ensemble of decision trees, each trained on random subset of data and features.
     plt.show()
     ```
 
+**Out-of-bag estimation**: Because each tree is trained on a bootstrap sample,
+roughly one-third of the training data is left out ("out of bag") for each tree.
+These held-out samples provide a built-in validation estimate at no extra cost,
+enabled with `oob_score=True` and read from `rf_reg.oob_score_`.
+
+**A note on feature importance**: The `feature_importances_` attribute reports
+impurity-based (Gini) importance, which is fast but biased toward high-cardinality
+and continuous features. For a more reliable ranking, use permutation importance,
+which measures the drop in performance when a feature's values are shuffled:
+
+??? note "Example"
+
+    ```python
+    from sklearn.inspection import permutation_importance
+
+    result = permutation_importance(
+        rf_reg,
+        X_test,
+        y_test,
+        n_repeats=10,
+        random_state=42,
+        n_jobs=-1
+    )
+
+    for idx in result.importances_mean.argsort()[::-1][:10]:
+        print(
+            f"Feature {idx}: "
+            f"{result.importances_mean[idx]:.4f} "
+            f"± {result.importances_std[idx]:.4f}"
+        )
+    ```
+
 **Advantages**:
 
 - Handles non-linear relationships
 - Robust to outliers
 - Provides feature importance
 - Little hyperparameter tuning needed
-- Resistant to overfitting (with enough trees)
+- Reduces variance relative to a single deep tree
 
 **Limitations**:
 
 - Can be slow for very large datasets
-- Not great for extrapolation
-- Black-box model (hard to interpret individual predictions)
+- Poor at extrapolation beyond the range of the training data
+- Hard to interpret individual predictions
 
 **Hyperparameter Tuning**:
 
@@ -1582,11 +1615,41 @@ Ensemble of decision trees, each trained on random subset of data and features.
 
 ### 3.3 Model Evaluation Metrics
 
-#### Regression Metrics
+#### Regression metrics
+
+For $n$ samples with true values $y_i$ and predictions $\hat{y}_i$, the most common
+regression metrics are defined as follows.
+
+The mean absolute error (MAE) is the average absolute deviation, in the same units
+as the target:
+
+$$
+\mathrm{MAE} = \frac{1}{n} \sum_{i=1}^{n} \left| y_i - \hat{y}_i \right|
+$$
+
+The root mean squared error (RMSE) also has the units of the target, but penalizes
+large errors more heavily because of the square:
+
+$$
+\mathrm{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} \left( y_i - \hat{y}_i \right)^2}
+$$
+
+The coefficient of determination $R^2$ measures the fraction of variance explained,
+relative to a baseline that always predicts the mean $\bar{y}$:
+
+$$
+R^2 = 1 - \frac{\sum_{i=1}^{n} \left( y_i - \hat{y}_i \right)^2}
+                {\sum_{i=1}^{n} \left( y_i - \bar{y} \right)^2}
+$$
+
+An $R^2$ of 1 indicates perfect predictions, while $R^2 = 0$ corresponds to a model
+no better than predicting the mean. Note that $R^2$ can be negative when the model
+performs worse than this baseline.
 
 ??? note "Example"
 
     ```python
+    import numpy as np
     from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
     # Mean Absolute Error
@@ -1602,12 +1665,15 @@ Ensemble of decision trees, each trained on random subset of data and features.
     print(f"R²: {r2:.3f}")
     ```
 
-### 3.4 (Quantitative Structure–Activity Relationship) QSAR
+### 3.4 QSAR (Quantitative Structure–Activity Relationship)
 
-QSAR models relate molecular structure to biological or chemical activity using numerical descriptors. Classical 
-QSAR workflows often combine molecular features with regression or classification algorithms.
+QSAR models relate molecular structure to biological or chemical activity using
+numerical descriptors. Because they operate on molecular descriptors or fingerprints
+rather than on raw structures, QSAR is considered a classical machine learning
+approach in cheminformatics, typically combining molecular features with regression
+or classification algorithms.
 
-Examples of QSAR applications:
+Typical QSAR applications include:
 
 * predicting drug activity,
 * toxicity prediction,
@@ -1615,22 +1681,20 @@ Examples of QSAR applications:
 * binding affinity prediction,
 * environmental risk assessment.
 
-In a QSAR workflow:
+A QSAR workflow generally proceeds in three steps:
 
 1. molecules are converted into descriptors or fingerprints,
-2. descriptors are used as ML input features,
-3. a regression or classification model predicts molecular properties.
-
-Yes. QSAR is commonly considered a **classical machine learning approach** in cheminformatics because it uses molecular descriptors or fingerprints to predict biological or chemical activity.
-
-#### QSAR Models
-
-QSAR models relate molecular structure to biological or chemical activity using numerical descriptors. Classical QSAR workflows often combine molecular features with regression or classification algorithms.
+2. the descriptors are used as input features,
+3. a regression or classification model predicts the target property.
 
 ??? note "Example"
 
     ```python
-    # QSAR regression example
+    # QSAR regression example.
+    # Note: this dataset is tiny and purely illustrative — with only a
+    # handful of molecules, the reported metrics are not statistically
+    # meaningful and serve only to demonstrate the workflow.
+
     import numpy as np
     import pandas as pd
 
@@ -1639,7 +1703,6 @@ QSAR models relate molecular structure to biological or chemical activity using 
     from sklearn.metrics import mean_squared_error, r2_score
 
     # 1. Example molecular descriptor dataset
-
     data = pd.DataFrame({
         "molecular_weight": [46.07, 60.05, 78.11, 180.16, 194.19, 151.16],
         "logP": [-0.31, -0.17, 2.13, 1.19, -0.07, 1.35],
@@ -1652,7 +1715,6 @@ QSAR models relate molecular structure to biological or chemical activity using 
     y = data["activity"]
 
     # 2. Split data
-
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         y,
@@ -1661,7 +1723,6 @@ QSAR models relate molecular structure to biological or chemical activity using 
     )
 
     # 3. Train QSAR model
-
     model = RandomForestRegressor(
         n_estimators=100,
         random_state=42
@@ -1670,7 +1731,6 @@ QSAR models relate molecular structure to biological or chemical activity using 
     model.fit(X_train, y_train)
 
     # 4. Predict and evaluate
-
     y_pred = model.predict(X_test)
 
     print("Predicted activity:", y_pred)
