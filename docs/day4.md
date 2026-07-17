@@ -4,7 +4,6 @@
 
 *Course Module : Neural Networks and Deep Learning Applications*
 
-
 ## 1. Deep Learning Fundamentals
 
 ### 1.1 Why Deep Learning for Molecules?
@@ -26,8 +25,6 @@ only limited labeled data are available.
 unified framework.
 * **Multi-Task Learning:** A single model can simultaneously predict multiple molecular properties while sharing learned 
 representations across related tasks.
-
-
 
 ### Examples
 
