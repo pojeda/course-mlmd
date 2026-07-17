@@ -2023,9 +2023,22 @@ that makes deduplication straightforward.
         return train_idx, test_idx
     ```
 
-## 5. Practical Exercise: Solubility Prediction
+## 5. Practical Example: Solubility Prediction
 
-### Complete Workflow
+This example ties together the descriptors, models, and evaluation metrics from the
+previous sections in a complete workflow. The task is aqueous solubility prediction on
+the ESOL (Delaney) dataset, a standard benchmark of 1128 small molecules
+(Delaney, J. Chem. Inf. Comput. Sci. 2004, 44, 1000–1005). The target is the base-10
+logarithm of aqueous solubility,
+
+$$
+y = \log_{10} S,
+$$
+
+where $S$ is the solubility in mol/L. Working in log space is standard, since solubility
+spans many orders of magnitude.
+
+### Complete workflow
 
 ??? note "Example"
 
@@ -2033,14 +2046,13 @@ that makes deduplication straightforward.
     import pandas as pd
     import numpy as np
     from rdkit import Chem
-    from rdkit.Chem import Descriptors, AllChem
-    from sklearn.model_selection import train_test_split
+    from rdkit.Chem import Descriptors
+    from sklearn.model_selection import train_test_split, cross_val_score
     from sklearn.ensemble import RandomForestRegressor
-    from sklearn.preprocessing import StandardScaler
     from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
     import matplotlib.pyplot as plt
 
-    # Step 1: Load Data
+    # Step 1: Load data
     url = "https://raw.githubusercontent.com/deepchem/deepchem/master/datasets/delaney-processed.csv"
     df = pd.read_csv(url)
     print(f"Dataset size: {len(df)}")
@@ -2050,7 +2062,7 @@ that makes deduplication straightforward.
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             return None
-        
+
         return {
             'MW': Descriptors.MolWt(mol),
             'LogP': Descriptors.MolLogP(mol),
@@ -2061,45 +2073,66 @@ that makes deduplication straightforward.
             'NumAromaticRings': Descriptors.NumAromaticRings(mol),
             'NumRings': Descriptors.RingCount(mol),
             'MolMR': Descriptors.MolMR(mol),
-            'FractionCSP3': Descriptors.FractionCSP3(mol)
+            'FractionCSP3': Descriptors.FractionCSP3(mol),
         }
 
-    desc_list = [calculate_descriptors(s) for s in df['smiles']]
-    X_desc = pd.DataFrame([d for d in desc_list if d is not None])
-    y = df['measured log solubility in mols per litre'].values[:len(X_desc)]
+    # Build features and targets together so that they stay aligned even if
+    # some SMILES fail to parse. (Slicing y with [:len(X)] would silently
+    # mispair rows whenever a molecule in the middle is dropped.)
+    target_col = 'measured log solubility in mols per litre'
 
-    # Step 3: Train-Test Split
+    records, targets, valid_smiles = [], [], []
+    for smiles, solubility in zip(df['smiles'], df[target_col]):
+        descriptors = calculate_descriptors(smiles)
+        if descriptors is not None:
+            records.append(descriptors)
+            targets.append(solubility)
+            valid_smiles.append(smiles)
+
+    X_desc = pd.DataFrame(records)
+    y = np.array(targets)
+
+    print(f"Valid molecules: {len(X_desc)}")
+
+    # Step 3: Train-test split
     X_train, X_test, y_train, y_test = train_test_split(
         X_desc, y, test_size=0.2, random_state=42
     )
 
-    # Step 4: Scale Features
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-
-    # Step 5: Train Model
+    # Step 4: Train model
+    # Note: feature scaling is intentionally omitted here. Random forests
+    # are invariant to monotonic per-feature rescaling, so standardization
+    # has no effect. Scaling matters for linear models, SVMs, k-NN, and
+    # neural networks, but not for tree-based models.
     model = RandomForestRegressor(n_estimators=100, random_state=42)
-    model.fit(X_train_scaled, y_train)
+    model.fit(X_train, y_train)
 
-    # Step 6: Evaluate
-    y_pred = model.predict(X_test_scaled)
+    # Step 5: Evaluate
+    y_pred = model.predict(X_test)
 
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     mae = mean_absolute_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
 
-    print(f"\nResults:")
+    print("\nResults (random split):")
     print(f"RMSE: {rmse:.3f}")
     print(f"MAE:  {mae:.3f}")
     print(f"R²:   {r2:.3f}")
 
+    # Step 6: Cross-validation (more stable than a single split)
+    cv_scores = cross_val_score(model, X_desc, y, cv=5, scoring="r2")
+    print(f"\n5-fold CV R²: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
+
     # Step 7: Visualize
     plt.figure(figsize=(8, 8))
     plt.scatter(y_test, y_pred, alpha=0.5)
-    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
-    plt.xlabel('True Solubility (log M)')
-    plt.ylabel('Predicted Solubility (log M)')
+    plt.plot(
+        [y_test.min(), y_test.max()],
+        [y_test.min(), y_test.max()],
+        'r--', lw=2
+    )
+    plt.xlabel('True solubility (log M)')
+    plt.ylabel('Predicted solubility (log M)')
     plt.title(f'Predictions (R² = {r2:.3f})')
     plt.axis('equal')
     plt.tight_layout()
@@ -2114,18 +2147,48 @@ that makes deduplication straightforward.
         'importance': importances
     }).sort_values('importance', ascending=False)
 
-    print("\nTop 5 Most Important Features:")
+    print("\nTop 5 most important features:")
     print(feature_importance_df.head())
     ```
 
-**Expected Results**:
+**Expected results (random split)**:
 
 - Test RMSE: ~0.7-0.9 log units
 - R²: ~0.75-0.85
 - Key features: LogP, molecular weight, polar surface area
 
+### A more realistic evaluation: scaffold split
 
-## 6. Example with SELFIES
+A random split lets molecules with the same scaffold appear in both training and test
+sets, which inflates performance. Evaluating on a scaffold split (where whole scaffold
+groups are held out) estimates how well the model generalizes to genuinely new chemical
+series. Scaffold-split scores are typically lower than random-split scores, and are the
+more honest number to report.
+
+??? note "Example"
+
+    ```python
+    # Reuses the scaffold_split function from Section 4.2.
+    from rdkit import Chem  # noqa: F401  (used inside scaffold_split)
+
+    train_idx, test_idx = scaffold_split(valid_smiles, test_size=0.2)
+
+    X_arr = X_desc.to_numpy()
+    X_train_s, X_test_s = X_arr[train_idx], X_arr[test_idx]
+    y_train_s, y_test_s = y[train_idx], y[test_idx]
+
+    model_s = RandomForestRegressor(n_estimators=100, random_state=42)
+    model_s.fit(X_train_s, y_train_s)
+
+    y_pred_s = model_s.predict(X_test_s)
+
+    print("Results (scaffold split):")
+    print(f"RMSE: {np.sqrt(mean_squared_error(y_test_s, y_pred_s)):.3f}")
+    print(f"MAE:  {mean_absolute_error(y_test_s, y_pred_s):.3f}")
+    print(f"R²:   {r2_score(y_test_s, y_pred_s):.3f}")
+    ```
+
+## 6. Practical Example: working with SELFIES
 
 ??? note "Example"
 
