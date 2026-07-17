@@ -2212,18 +2212,17 @@ more honest number to report.
     # Lipophilicity (logP - octanol/water partition coefficient)
     logp = Crippen.MolLogP(mol)
     print(f"LogP: {logp:.2f}")
-    # LogP > 5: Too lipophilic (Lipinski's Rule of Five)
+    # LogP > 5: too lipophilic (Lipinski's rule of five)
 
-    # Polar Surface Area
+    # Topological polar surface area
     tpsa = Descriptors.TPSA(mol)
-    print(f"TPSA: {tpsa:.2f} Ų")
-    # TPSA < 140: Likely to cross blood-brain barrier
+    print(f"TPSA: {tpsa:.2f} Å²")
+    # TPSA <= 140 Å²: associated with good oral bioavailability (Veber rule).
+    # Blood-brain barrier penetration typically requires TPSA below ~90 Å².
 
     # Molar Refractivity
     mr = Crippen.MolMR(mol)
     print(f"Molar Refractivity: {mr:.2f}")
-
-    ####
 
     # Hydrogen bond donors and acceptors
     h_donors = Descriptors.NumHDonors(mol)
@@ -2244,8 +2243,6 @@ more honest number to report.
     frac_sp3 = Descriptors.FractionCSP3(mol)
     print(f"Fraction Csp3: {frac_sp3:.2f}")
 
-    ####
-
     from rdkit.Chem import GraphDescriptors
 
     # Balaban J index (molecular branching)
@@ -2257,8 +2254,6 @@ more honest number to report.
     # Chi indices (connectivity)
     chi0 = GraphDescriptors.Chi0(mol)
     chi1 = GraphDescriptors.Chi1(mol)
-
-    ####
 
     from rdkit.Chem import AllChem, Descriptors3D
 
@@ -2273,13 +2268,12 @@ more honest number to report.
     inertial_shape = Descriptors3D.InertialShapeFactor(mol_3d)
     radius_of_gyration = Descriptors3D.RadiusOfGyration(mol_3d)
 
-    print(f"Radius of Gyration: {radius_of_gyration:.2f} Ų")
-
-    ####
+    # Radius of gyration is a length, so its unit is Å (not Å²)
+    print(f"Radius of Gyration: {radius_of_gyration:.2f} Å")
 
     def lipinski_rule_of_five(mol):
         """
-        Predicts if molecule is drug-like
+        Estimate oral drug-likeness using Lipinski's rule of five.
         Rules:
         - MW <= 500
         - LogP <= 5
@@ -2290,62 +2284,63 @@ more honest number to report.
         logp = Crippen.MolLogP(mol)
         hbd = Descriptors.NumHDonors(mol)
         hba = Descriptors.NumHAcceptors(mol)
-        
+
         violations = 0
         if mw > 500: violations += 1
         if logp > 5: violations += 1
         if hbd > 5: violations += 1
         if hba > 10: violations += 1
-        
+
         return violations <= 1  # Allow 1 violation
 
     is_druglike = lipinski_rule_of_five(mol)
-    print(f"Passes Lipinski's Rule: {is_druglike}")
+    print(f"Passes Lipinski's rule: {is_druglike}")
 
-    ####
 
     from rdkit.Chem import QED
 
     qed_score = QED.qed(mol)
     print(f"QED Score: {qed_score:.3f}")
     # Range: [0, 1], higher is more drug-like
-    # Based on 8 molecular properties
+    # Combines several molecular properties into a single score
 
-    ####
 
+    # Synthetic accessibility score.
+    # Note: sascorer lives in RDKit's Contrib directory, which must be
+    # present in the installation (it ships with the standard conda build).
     from rdkit.Chem import RDConfig
-    import sys
-    sys.path.append(f'{RDConfig.RDContribDir}/SA_Score')
+    import sys, os
+    sys.path.append(os.path.join(RDConfig.RDContribDir, 'SA_Score'))
     import sascorer
 
     sa_score = sascorer.calculateScore(mol)
     print(f"SA Score: {sa_score:.2f}")
     # Range: [1, 10]
-    # 1: Easy to synthesize
-    # 10: Difficult to synthesize
+    # 1: easy to synthesize
+    # 10: difficult to synthesize
 
-    ####
 
     def calculate_molecular_descriptors(selfies_str):
         """
-        Comprehensive descriptor calculation from SELFIES
+        Comprehensive descriptor calculation from a SELFIES string.
         """
-        # Convert SELFIES to SMILES then to molecule
+        # Convert SELFIES to SMILES, then to a molecule
         smiles = sf.decoder(selfies_str)
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             return None
-        
-        # Add hydrogens for accurate calculations
-        mol = Chem.AddHs(mol)
-        
+
+        # Note: explicit hydrogens are not added here. The 2D descriptors
+        # below (MW, TPSA, H-bond counts, ring counts, QED, ...) already
+        # account for implicit hydrogens, so AddHs would not change them.
+
         descriptors = {
             # Physical
             'MW': Descriptors.MolWt(mol),
             'LogP': Crippen.MolLogP(mol),
             'TPSA': Descriptors.TPSA(mol),
             'MolMR': Crippen.MolMR(mol),
-            
+
             # Structural
             'NumHDonors': Descriptors.NumHDonors(mol),
             'NumHAcceptors': Descriptors.NumHAcceptors(mol),
@@ -2355,32 +2350,32 @@ more honest number to report.
             'NumSaturatedRings': Descriptors.NumSaturatedRings(mol),
             'NumAliphaticRings': Descriptors.NumAliphaticRings(mol),
             'RingCount': Descriptors.RingCount(mol),
-            
+
             # Complexity
             'BertzCT': GraphDescriptors.BertzCT(mol),
             'NumBridgeheadAtoms': Descriptors.NumBridgeheadAtoms(mol),
             'NumSpiroAtoms': Descriptors.NumSpiroAtoms(mol),
-            
-            # Electronic
+
+            # Surface area and charge (VSA) descriptors
             'LabuteASA': Descriptors.LabuteASA(mol),
             'PEOE_VSA1': Descriptors.PEOE_VSA1(mol),
-            
+
             # Counts
-            'NumCarbon': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 6]),
-            'NumNitrogen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 7]),
-            'NumOxygen': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 8]),
-            'NumHalogens': len([atom for atom in mol.GetAtoms() if atom.GetAtomicNum() in [9, 17, 35, 53]]),
-            
+            'NumCarbon': sum(atom.GetAtomicNum() == 6 for atom in mol.GetAtoms()),
+            'NumNitrogen': sum(atom.GetAtomicNum() == 7 for atom in mol.GetAtoms()),
+            'NumOxygen': sum(atom.GetAtomicNum() == 8 for atom in mol.GetAtoms()),
+            'NumHalogens': sum(atom.GetAtomicNum() in [9, 17, 35, 53] for atom in mol.GetAtoms()),
+
             # Saturation
             'FractionCsp3': Descriptors.FractionCSP3(mol),
-            
+
             # Drug-likeness
             'QED': QED.qed(mol),
         }
-        
+
         return descriptors
 
-    # Example usage - Convert SMILES to SELFIES first
+    # Example usage - convert SMILES to SELFIES first
     smiles_list = ["CCO", "CC(=O)Oc1ccccc1C(=O)O", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"]
     selfies_list = [sf.encoder(s) for s in smiles_list]
 
@@ -2399,18 +2394,18 @@ more honest number to report.
 
     print(df_descriptors)
 
-    ####
-
     import networkx as nx
 
     def mol_to_graph(selfies_str):
-        """Convert SELFIES molecule to NetworkX graph"""
+        """Convert a SELFIES molecule to a NetworkX graph."""
         smiles = sf.decoder(selfies_str)
         mol = Chem.MolFromSmiles(smiles)
-        
-        # Create graph
+
+        if mol is None:
+            raise ValueError(f"Could not parse molecule from SELFIES: {selfies_str}")
+
         G = nx.Graph()
-        
+
         # Add nodes (atoms)
         for atom in mol.GetAtoms():
             G.add_node(
@@ -2423,7 +2418,7 @@ more honest number to report.
                 hybridization=str(atom.GetHybridization()),
                 is_aromatic=atom.GetIsAromatic()
             )
-        
+
         # Add edges (bonds)
         for bond in mol.GetBonds():
             G.add_edge(
@@ -2433,7 +2428,7 @@ more honest number to report.
                 is_conjugated=bond.GetIsConjugated(),
                 is_aromatic=bond.GetIsAromatic()
             )
-        
+
         return G
 
     # Example
@@ -2444,25 +2439,31 @@ more honest number to report.
     print(f"Edges: {G.number_of_edges()}")
     print(f"Node features: {G.nodes[0]}")
 
-
-    ####
-
     def get_adjacency_matrix(selfies_str, max_atoms=50):
-        """Get adjacency matrix with padding from SELFIES"""
+        """Get a padded adjacency matrix from a SELFIES string."""
         smiles = sf.decoder(selfies_str)
         mol = Chem.MolFromSmiles(smiles)
+
+        if mol is None:
+            raise ValueError(f"Could not parse molecule from SELFIES: {selfies_str}")
+
         num_atoms = mol.GetNumAtoms()
-        
+
+        if num_atoms > max_atoms:
+            raise ValueError(
+                f"Molecule contains {num_atoms} atoms but max_atoms={max_atoms}"
+            )
+
         # Initialize matrix
-        adj_matrix = np.zeros((max_atoms, max_atoms))
-        
+        adj_matrix = np.zeros((max_atoms, max_atoms), dtype=int)
+
         # Fill adjacency matrix
         for bond in mol.GetBonds():
             i = bond.GetBeginAtomIdx()
             j = bond.GetEndAtomIdx()
             adj_matrix[i, j] = 1
             adj_matrix[j, i] = 1  # Symmetric
-        
+
         return adj_matrix, num_atoms
 
     selfies_ethanol = sf.encoder("CCO")
@@ -2472,11 +2473,13 @@ more honest number to report.
     print(f"Actual atoms: {n_atoms}")
     ```
 
-## 7. Practical Exercise: Complete ML Pipeline
+## 7. Practical Example: A complete ML Pipeline
 
 ### Task
-Build a complete machine learning pipeline to predict molecular solubility. The dataset can be downloaded from:
-J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10.1021/ci034243x)
+
+Build a complete machine learning pipeline to predict molecular solubility. The dataset is
+the ESOL (Delaney) set (J. Chem. Inf. Comput. Sci. 2004, 44, 1000–1005,
+[link](https://pubs.acs.org/doi/10.1021/ci034243x)).
 
 ### Dataset
 
@@ -2492,25 +2495,31 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
     import numpy as np
 
-    # Load data - adjust column name for target variable
-    data = pd.read_csv('esol.csv')
+    # Load data. Here we use the processed ESOL file from DeepChem.
+    # If you use a different source, adjust the column names below to match
+    # (check data.columns.tolist() after loading).
+    url = "https://raw.githubusercontent.com/deepchem/deepchem/master/datasets/delaney-processed.csv"
+    data = pd.read_csv(url)
+
+    smiles_col = "smiles"
+    target_col = "measured log solubility in mols per litre"
 
     print(f"Dataset size: {len(data)}")
     print(data.head())
     print(f"Column names: {data.columns.tolist()}")
     ```
 
-### Step 1: Feature Engineering
+### Step 1: Feature engineering
 
 ??? note "Example"
 
     ```python
     def calculate_molecular_features(smiles):
-        """Calculate molecular descriptors from SMILES"""
+        """Calculate molecular descriptors from a SMILES string."""
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             return None
-        
+
         features = {
             'MolWt': Descriptors.MolWt(mol),
             'LogP': Descriptors.MolLogP(mol),
@@ -2521,12 +2530,13 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
             'TPSA': Descriptors.TPSA(mol),
             'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
             'NumRings': Descriptors.RingCount(mol),
-            'NumSaturatedRings': Descriptors.NumSaturatedRings(mol)
+            'NumSaturatedRings': Descriptors.NumSaturatedRings(mol),
         }
-        
+
         return features
 
-    # Calculate features for all molecules
+    # Calculate features for all molecules, tracking valid rows so that
+    # X and y stay aligned even when a SMILES fails to parse.
     features_list = []
     valid_indices = []
 
@@ -2536,7 +2546,6 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
             features_list.append(features)
             valid_indices.append(idx)
 
-    # Create feature DataFrame
     X = pd.DataFrame(features_list)
     # Use the correct column name for solubility
     y = data.loc[valid_indices, 'measured log(solubility:mol/L)'].values
@@ -2565,18 +2574,17 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     print(f"Min: {y.min():.3f}")
     print(f"Max: {y.max():.3f}")
 
-    # Visualize correlations
+    # Visualize feature-target correlations
     import matplotlib.pyplot as plt
-    import seaborn as sns
 
     plt.figure(figsize=(10, 8))
     correlations = X.corrwith(pd.Series(y, index=X.index))
     correlations.sort_values().plot(kind='barh')
-    plt.xlabel('Correlation with Solubility')
-    plt.title('Feature Correlations')
+    plt.xlabel('Correlation with solubility')
+    plt.title('Feature-target correlations')
     plt.tight_layout()
     #plt.show()
-    plt.savefig('feature_importance.png', dpi=300, bbox_inches='tight')
+    plt.savefig('feature_correlations.png', dpi=300, bbox_inches='tight')
     plt.close()
     ```
 
@@ -2599,7 +2607,11 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
 ??? note "Example"
 
     ```python
-    # Standardize features
+    # Standardize features.
+    # Scaling is needed here because the model comparison below includes
+    # Ridge, Lasso, and SVR, which are sensitive to feature scale.
+    # (Tree-based models such as random forests are not, but scaling them
+    # does no harm.)
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
@@ -2620,7 +2632,7 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
         'Lasso': Lasso(alpha=0.1),
         'Random Forest': RandomForestRegressor(n_estimators=100, random_state=42),
         'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
-        'SVR': SVR(kernel='rbf', C=1.0)
+        'SVR': SVR(kernel='rbf', C=1.0),
     }
 
     # Cross-validation
@@ -2628,8 +2640,10 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     cv_results = {}
 
     for name, model in models.items():
-        scores = cross_val_score(model, X_train_scaled, y_train, cv=5, 
-                                scoring='r2', n_jobs=-1)
+        scores = cross_val_score(
+            model, X_train_scaled, y_train,
+            cv=5, scoring='r2', n_jobs=-1
+        )
         cv_results[name] = scores
         print(f"{name:20s}: R² = {scores.mean():.3f} ± {scores.std():.3f}")
 
@@ -2639,23 +2653,23 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     print(f"\nBest model: {best_model_name}")
     ```
 
-### Step 6: Hyperparameter Tuning
+### Step 6: Hyperparameter tuning
 
 ??? note "Example"
 
     ```python
     from sklearn.model_selection import RandomizedSearchCV
 
-    # Tune the best model (Random Forest in this example)
+    # Tune the best model (shown here for Random Forest)
     if best_model_name == 'Random Forest':
         param_distributions = {
             'n_estimators': [100, 200, 500],
             'max_depth': [10, 20, 30, None],
             'min_samples_split': [2, 5, 10],
             'min_samples_leaf': [1, 2, 4],
-            'max_features': ['sqrt', 'log2', 0.5, 1.0, None]  # Changed: removed 'auto', added valid options
+            'max_features': ['sqrt', 'log2', 0.5, 1.0],
         }
-        
+
         random_search = RandomizedSearchCV(
             RandomForestRegressor(random_state=42),
             param_distributions,
@@ -2666,24 +2680,24 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
             random_state=42,
             verbose=1
         )
-        
+
         random_search.fit(X_train_scaled, y_train)
-        
+
         print(f"\nBest parameters: {random_search.best_params_}")
         print(f"Best CV R²: {random_search.best_score_:.3f}")
-        
+
         best_model = random_search.best_estimator_
     ```
 
-### Step 7: Final Evaluation
+### Step 7: Final evaluation
 
 ??? note "Example"
 
     ```python
-    # Train on full training set
+    # Train on the full training set
     best_model.fit(X_train_scaled, y_train)
 
-    # Predict on test set
+    # Predict
     y_pred_train = best_model.predict(X_train_scaled)
     y_pred_test = best_model.predict(X_test_scaled)
 
@@ -2696,18 +2710,18 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test))
     test_mae = mean_absolute_error(y_test, y_pred_test)
 
-    print("\nFinal Results:")
-    print(f"Training   - R²: {train_r2:.3f}, RMSE: {train_rmse:.3f}, MAE: {train_mae:.3f}")
-    print(f"Test       - R²: {test_r2:.3f}, RMSE: {test_rmse:.3f}, MAE: {test_mae:.3f}")
+    print("\nFinal results:")
+    print(f"Training - R²: {train_r2:.3f}, RMSE: {train_rmse:.3f}, MAE: {train_mae:.3f}")
+    print(f"Test     - R²: {test_r2:.3f}, RMSE: {test_rmse:.3f}, MAE: {test_mae:.3f}")
 
     # Check for overfitting
     if train_r2 - test_r2 > 0.1:
-        print("\nWarning: Possible overfitting detected!")
+        print("\nWarning: possible overfitting detected.")
     else:
-        print("\nModel generalizes well!")
+        print("\nModel generalizes well.")
     ```
 
-### Step 8: Visualization and Analysis
+### Step 8: Visualization and analysis
 
 ??? note "Example"
 
@@ -2717,20 +2731,20 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
 
     # Training set
     axes[0].scatter(y_train, y_pred_train, alpha=0.5)
-    axes[0].plot([y_train.min(), y_train.max()], 
-                [y_train.min(), y_train.max()], 'r--', lw=2)
-    axes[0].set_xlabel('True Solubility')
-    axes[0].set_ylabel('Predicted Solubility')
-    axes[0].set_title(f'Training Set (R² = {train_r2:.3f})')
+    axes[0].plot([y_train.min(), y_train.max()],
+                 [y_train.min(), y_train.max()], 'r--', lw=2)
+    axes[0].set_xlabel('True solubility')
+    axes[0].set_ylabel('Predicted solubility')
+    axes[0].set_title(f'Training set (R² = {train_r2:.3f})')
     axes[0].axis('equal')
 
     # Test set
     axes[1].scatter(y_test, y_pred_test, alpha=0.5)
-    axes[1].plot([y_test.min(), y_test.max()], 
-                [y_test.min(), y_test.max()], 'r--', lw=2)
-    axes[1].set_xlabel('True Solubility')
-    axes[1].set_ylabel('Predicted Solubility')
-    axes[1].set_title(f'Test Set (R² = {test_r2:.3f})')
+    axes[1].plot([y_test.min(), y_test.max()],
+                 [y_test.min(), y_test.max()], 'r--', lw=2)
+    axes[1].set_xlabel('True solubility')
+    axes[1].set_ylabel('Predicted solubility')
+    axes[1].set_title(f'Test set (R² = {test_r2:.3f})')
     axes[1].axis('equal')
 
     plt.tight_layout()
@@ -2744,14 +2758,14 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
             'feature': X.columns,
             'importance': best_model.feature_importances_
         }).sort_values('importance', ascending=False)
-        
-        print("\nTop 5 Most Important Features:")
+
+        print("\nTop 5 most important features:")
         print(importances.head())
-        
+
         plt.figure(figsize=(10, 6))
-        importances.plot(x='feature', y='importance', kind='barh')
+        importances.plot(x='feature', y='importance', kind='barh', legend=False)
         plt.xlabel('Importance')
-        plt.title('Feature Importance')
+        plt.title('Feature importance')
         plt.tight_layout()
         #plt.show()
         plt.savefig('best_feature_importance.png', dpi=300, bbox_inches='tight')
@@ -2765,20 +2779,20 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     plt.subplot(131)
     plt.scatter(y_pred_test, residuals, alpha=0.5)
     plt.axhline(y=0, color='r', linestyle='--')
-    plt.xlabel('Predicted Values')
+    plt.xlabel('Predicted values')
     plt.ylabel('Residuals')
-    plt.title('Residual Plot')
+    plt.title('Residual plot')
 
     plt.subplot(132)
     plt.hist(residuals, bins=30, edgecolor='black')
     plt.xlabel('Residuals')
     plt.ylabel('Frequency')
-    plt.title('Residual Distribution')
+    plt.title('Residual distribution')
 
     plt.subplot(133)
     from scipy import stats
     stats.probplot(residuals, dist="norm", plot=plt)
-    plt.title('Q-Q Plot')
+    plt.title('Q-Q plot')
 
     plt.tight_layout()
     #plt.show()
@@ -2786,7 +2800,7 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     plt.close()
     ```
 
-### Step 9: Model Persistence
+### Step 9: Model persistence
 
 ??? note "Example"
 
@@ -2797,13 +2811,13 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     joblib.dump(best_model, 'solubility_model.pkl')
     joblib.dump(scaler, 'solubility_scaler.pkl')
 
-    print("\nModel saved successfully!")
+    print("\nModel saved successfully.")
 
-    # Load and use model
+    # Load and use the model
     loaded_model = joblib.load('solubility_model.pkl')
     loaded_scaler = joblib.load('solubility_scaler.pkl')
 
-    # Make prediction for new molecule
+    # Make a prediction for a new molecule
     new_smiles = "CCO"  # Ethanol
     new_features = calculate_molecular_features(new_smiles)
     new_X = pd.DataFrame([new_features])
@@ -2813,7 +2827,10 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
     ```
 
-## 8. Practical example: QM9
+## 8. Practical Example: QM9 dataset
+
+QM9 is a standard quantum-chemistry benchmark of ~134,000 small organic molecules with
+DFT-computed properties. Here we predict the HOMO energy with a random forest.
 
 ??? note "Example"
 
@@ -2831,7 +2848,6 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
     # 1. Load QM9 dataset
-
     tasks, datasets, transformers = dc.molnet.load_qm9(
         featurizer="ECFP",
         splitter="random"
@@ -2843,14 +2859,12 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     print(tasks)
 
     # 2. Select target property
-
     target_name = "homo"
     target_index = tasks.index(target_name)
 
     # DeepChem datasets store:
-    # X = molecular features
-    # y = target values
-
+    #   X = molecular features
+    #   y = target values (already normalized by the transformer, see note)
     X_train = train_dataset.X
     y_train = train_dataset.y[:, target_index]
 
@@ -2865,7 +2879,6 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     print("Test shape:", X_test.shape)
 
     # 3. Train classical ML model
-
     model = RandomForestRegressor(
         n_estimators=100,
         max_depth=None,
@@ -2876,7 +2889,6 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     model.fit(X_train, y_train)
 
     # 4. Validate model
-
     y_valid_pred = model.predict(X_valid)
 
     valid_mae = mean_absolute_error(y_valid, y_valid_pred)
@@ -2889,7 +2901,6 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     print(f"R²:   {valid_r2:.4f}")
 
     # 5. Final test evaluation
-
     y_test_pred = model.predict(X_test)
 
     test_mae = mean_absolute_error(y_test, y_test_pred)
@@ -2902,7 +2913,6 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     print(f"R²:   {test_r2:.4f}")
 
     # 6. Compare true vs predicted values
-
     results = pd.DataFrame({
         "true_homo": y_test[:10],
         "predicted_homo": y_test_pred[:10]
@@ -2911,6 +2921,21 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     print("\nExample predictions:")
     print(results)
     ```
+
+Two points are worth keeping in mind when interpreting these results:
+
+- **Normalized targets**: `dc.molnet.load_qm9` returns a `NormalizationTransformer` that
+  standardizes `y`, so `dataset.y` is expressed in standard-deviation units rather than in
+  Hartree. This does not affect $R^2$ (which is invariant under an affine rescaling of the
+  target), but the reported MAE and RMSE are in normalized units, not physical energies.
+  To report errors in Hartree, undo the transformation on the predictions and true values
+  using the returned `transformers` before computing the metrics.
+
+- **Representation limits**: ECFP is a topological fingerprint that encodes connectivity but
+  no 3D geometry or electronic structure. HOMO energies depend on both, so a fingerprint-based
+  model is inherently limited for this target. Representations that capture geometry (such as
+  the Coulomb matrix, or 3D/graph neural network features) are generally far more suitable for
+  electronic properties.
 
 ## 8. Key Takeaways
 
