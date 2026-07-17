@@ -13,8 +13,9 @@
 
 ### 1.1 Why Machine Learning for Molecules?
 
-The chemical space is vast—estimates suggest there are $10^60$ possible drug-like molecules, far 
-more than atoms in the universe (Med. Res. Rev., 16, 3-50, 1996). Traditional approaches to drug discovery and materials design involve:
+The chemical space is vast—estimates suggest there are $10^{60}$ possible drug-like molecules, far 
+more than atoms in the universe (Med. Res. Rev., 16, 3-50, 1996). Traditional approaches to drug 
+discovery and materials design involve:
 
 - Synthesizing and testing compounds one by one (expensive, slow)
 - Running quantum mechanical calculations for each molecule (computationally expensive)
@@ -36,7 +37,7 @@ Machine learning has revolutionized our ability to:
 
 **Navigate Chemical Space Efficiently**
 
-- Explore 10^60 possible molecules intelligently
+- Explore $10^{60}$ possible molecules intelligently
 - Focus experimental resources on most promising candidates
 - Find novel scaffolds outside known chemistry
 
@@ -651,7 +652,7 @@ This example demonstrates how atomistic protein structures can be loaded and man
 [ASE (Atomic Simulation Environment)](https://wiki.fysik.dtu.dk/ase) for 
 scientific computing and machine learning workflows.
 
-The Coulomb matrix representation is described in the PRL article x
+The Coulomb matrix representation is described in PRL 108, 058301 (2012):
 
 ??? note "Example"
 
