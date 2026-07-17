@@ -129,7 +129,7 @@ this failure mode.
 
 ## 2. Molecular Representations
 
-The choice of molecular representation is crucial—it determines what information is available to 
+The choice of molecular representation is crucial; it determines what information is available to
 the model and how efficiently it can learn.
 
 ### 2.1 SMILES (Simplified Molecular Input Line Entry System)
@@ -138,7 +138,7 @@ SMILES is a text-based notation that represents molecular structure as a string 
 
 #### Basic SMILES Syntax
 
-**Simple Molecules**:
+**Simple molecules**:
 ```
 Methane:    C
 Ethanol:    CCO
@@ -152,7 +152,7 @@ Isobutane:     CC(C)C
                └─ branch in parentheses
 ```
 
-**Double and Triple Bonds**:
+**Double and triple bonds**:
 ```
 Ethene:     C=C
 Ethyne:     C#C
@@ -162,7 +162,7 @@ CO2:        O=C=O
 **Rings**:
 ```
 Cyclohexane:    C1CCCCC1
-                └─ matching numbers close ring
+                └─ matching numbers close the ring
 
 Naphthalene:    c1ccc2ccccc2c1
                 └─ fused rings
@@ -206,7 +206,10 @@ Naphthalene:    c1ccc2ccccc2c1
     canonical_smiles = Chem.MolToSmiles(mol)
     print(f"Canonical SMILES: {canonical_smiles}")
 
-    # Generate randomized SMILES (useful for data augmentation)
+    # Generate randomized SMILES (useful for data augmentation).
+    # doRandom=True randomizes the atom order on each call, so every
+    # iteration yields a different valid string. (canonical=False alone
+    # would return the same non-canonical string every time.)
     for i in range(5):
         random_smiles = Chem.MolToSmiles(mol, doRandom=True)
         print(f"Random SMILES {i+1}: {random_smiles}")
@@ -221,7 +224,7 @@ Naphthalene:    c1ccc2ccccc2c1
 
 #### Limitations of SMILES
 
-- **Not unique**: Same molecule can have multiple SMILES representations
+- **Not unique**: The same molecule can have multiple valid SMILES strings.
 
 ```python
 # All represent ethanol:
@@ -232,19 +235,24 @@ canonical = Chem.MolToSmiles(Chem.MolFromSmiles("OCC"))
 # -> 'CCO'
 ```
 
-- **No 3D information**: Only connectivity, not geometry
-  Stereoisomers that differ only in 3D arrangement require explicit
-  stereochemistry notation (@ / @@) and still carry no coordinate information.
+- **No 3D information**: SMILES encodes connectivity but not geometry. Stereoisomers that differ only in 3D arrangement require explicit stereochemistry notation (@ / @@), and even then the string carries no atomic coordinates.
 
 ```python
-# Same connectivity, opposite chirality:
-l_alanine = "N[C@@H](C)C(=O)O"   # L-Alanine
-d_alanine  = "N[C@H](C)C(=O)O"   # D-Alanine
+# Same connectivity, opposite chirality (mirror images).
+# The @ / @@ tags encode the two configurations at the stereocenter;
+# swapping them inverts the chirality. SMILES still stores no coordinates.
+alanine_a = "N[C@@H](C)C(=O)O"
+alanine_b = "N[C@H](C)C(=O)O"
+# RDKit can assign the CIP (R/S) label:
+#   from rdkit import Chem
+#   m = Chem.MolFromSmiles(alanine_a)
+#   Chem.AssignStereochemistry(m, cleanIt=True, force=True)
+#   print(m.GetAtomWithIdx(1).GetPropsAsDict().get("_CIPCode"))
 ```
 
-- **Sequence-based**: Hard to capture graph structure directly
+- **Sequence-based**: Hard to capture graph structure directly.
 
-- **Fragile**: A single character error invalidates entire SMILES
+- **Fragile**: A single character error invalidates the entire SMILES string.
 
 ```python
 valid = "CCO"
@@ -280,20 +288,19 @@ SELFIES is an alternative to SMILES that guarantees 100% valid molecules (Mach. 
 
 Fingerprints are fixed-length binary or count vectors that encode molecular structure.
 
+#### Morgan fingerprints (ECFP, Extended-Connectivity Fingerprints)
 
-#### Morgan Fingerprints (ECFP - Extended Connectivity Fingerprints)
-
-Morgan fingerprints, also known as Extended Connectivity Fingerprints (ECFP), are one 
-of the most widely used molecular representations in cheminformatics and molecular machine 
-learning. They describe a molecule by examining the local chemical environment around each 
-atom. Instead of representing the molecule as a whole structure, Morgan fingerprints break 
+Morgan fingerprints, also known as Extended-Connectivity Fingerprints (ECFP), are one
+of the most widely used molecular representations in cheminformatics and molecular machine
+learning. They describe a molecule by examining the local chemical environment around each
+atom. Instead of representing the molecule as a whole structure, Morgan fingerprints break
 it into many small circular neighborhoods centered on individual atoms.
 
-The main idea is that each atom is first assigned an identifier based on its local properties, 
-such as atom type, bonding pattern, and connectivity. The algorithm then expands outward step 
-by step, collecting information from neighboring atoms at increasing radii. These local environments 
-are converted into numerical identifiers and stored in a fixed-length fingerprint vector. The 
-final result is a numerical representation that can be used for similarity search, clustering, 
+The main idea is that each atom is first assigned an identifier based on its local properties,
+such as atom type, bonding pattern, and connectivity. The algorithm then expands outward step
+by step, collecting information from neighboring atoms at increasing radii. These local environments
+are converted into numerical identifiers and stored in a fixed-length fingerprint vector. The
+final result is a numerical representation that can be used for similarity search, clustering,
 classification, regression, or other machine learning tasks.
 
 **Algorithm**:
@@ -311,30 +318,20 @@ classification, regression, or other machine learning tasks.
     from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
     import numpy as np
 
-    # 
     # 1. Create molecule from SMILES
-    # 
-
     smiles = "CCO"  # Ethanol
-
     mol = Chem.MolFromSmiles(smiles)
 
     if mol is None:
         raise ValueError("Invalid SMILES string")
 
-    # 
     # 2. Create Morgan fingerprint generator
-    # 
-
     morgan_gen = GetMorganGenerator(
         radius=2,
         fpSize=2048
     )
 
-    # 
     # 3. Generate Morgan fingerprint as a bit vector
-    # 
-
     morgan_fp = morgan_gen.GetFingerprint(mol)
 
     # Convert bit vector to NumPy array
@@ -344,10 +341,7 @@ classification, regression, or other machine learning tasks.
     print("Fingerprint shape:", fp_array.shape)
     print("Number of set bits:", int(fp_array.sum()))
 
-    # 
     # 4. Generate Morgan count fingerprint
-    # 
-
     count_fp_array = morgan_gen.GetCountFingerprintAsNumPy(mol)
 
     print("\nMorgan count fingerprint")
@@ -356,8 +350,8 @@ classification, regression, or other machine learning tasks.
     print("Number of nonzero features:", np.count_nonzero(count_fp_array))
     ```
 
-A bit fingerprint stores whether a molecular feature is present or absent. A count fingerprint stores 
-how many times each feature appears. For many introductory examples, bit fingerprints are easier to explain, 
+A bit fingerprint stores whether a molecular feature is present or absent. A count fingerprint stores
+how many times each feature appears. For many introductory examples, bit fingerprints are easier to explain,
 while count fingerprints can provide more detailed information for machine learning.
 
 **Parameters**:
@@ -376,10 +370,11 @@ while count fingerprints can provide more detailed information for machine learn
 
 #### MACCS Keys
 
-MACCS keys are fixed-length structural fingerprints composed of 166 predefined chemical 
-patterns commonly found in molecular structures. Each bit in the fingerprint indicates the 
-presence or absence of a specific substructure, functional group, or bonding pattern, making 
-MACCS keys useful for molecular similarity analysis, clustering, and cheminformatics applications.
+MACCS keys are structural fingerprints based on 166 predefined chemical patterns
+commonly found in molecular structures. Each bit indicates the presence or absence of a
+specific substructure, functional group, or bonding pattern, making MACCS keys useful for
+molecular similarity analysis, clustering, and cheminformatics applications. Note that RDKit
+returns a 167-bit vector, since index 0 is unused and the 166 defined keys occupy indices 1–166.
 
 ??? note "Example"
 
@@ -389,26 +384,20 @@ MACCS keys useful for molecular similarity analysis, clustering, and cheminforma
     import numpy as np
 
     # 1. Create molecule
-
     mol = Chem.MolFromSmiles("CCO")  # Ethanol
 
     # 2. Generate MACCS fingerprint
-
     maccs = MACCSkeys.GenMACCSKeys(mol)
 
+    # RDKit returns 167 bits (index 0 unused; 166 defined keys)
     print(f"MACCS keys length: {len(maccs)}")
 
-    # 
-    # 3. Example structural features
-
-    # Each bit corresponds to a predefined feature:
-    # Bit 1   -> Contains isotope
-    # Bit 44  -> Contains C-O bond
-    # Bit 79  -> Contains aromatic ring
-    # etc.
+    # 3. Structural feature interpretation
+    # Each bit flags a predefined substructure pattern (element types,
+    # ring systems, functional groups, connectivity motifs, and so on).
+    # The exact SMARTS definitions are part of RDKit's MACCS key set.
 
     # 4. Convert fingerprint to NumPy array
-
     maccs_array = np.array(
         list(maccs.ToBitString()),
         dtype=int
@@ -420,19 +409,19 @@ MACCS keys useful for molecular similarity analysis, clustering, and cheminforma
 
 **Advantages**:
 
-- Interpretable: Each bit has defined meaning
-- Compact: Only 166 bits
+- Interpretable: Each bit has a defined meaning
+- Compact: 167-bit vector (166 defined keys)
 - Good for similarity searching
 
 **Limitations**:
 
-- Fixed features: Can't capture novel patterns
+- Fixed features: Cannot capture patterns outside the predefined key set
 - Less flexible than Morgan fingerprints
 
 #### RDKit Fingerprints
 
-RDKit fingerprints are topological molecular fingerprints that encode structural information 
-by analyzing atom paths and bond connectivity within a molecule. They are commonly used for 
+RDKit fingerprints are topological molecular fingerprints that encode structural information
+by analyzing atom paths and bond connectivity within a molecule. They are commonly used for
 molecular similarity searches, clustering, and cheminformatics machine learning applications.
 
 ??? note "Example"
@@ -446,7 +435,6 @@ molecular similarity searches, clustering, and cheminformatics machine learning 
     mol = Chem.MolFromSmiles("CCO")  # Ethanol
 
     # 2. Generate RDKit fingerprint
-
     rdkit_fp = RDKFingerprint(
         mol,
         fpSize=2048,
@@ -458,7 +446,6 @@ molecular similarity searches, clustering, and cheminformatics machine learning 
     # when generating structural patterns
 
     # 3. Convert to NumPy array
-
     fp_array = np.array(
         list(rdkit_fp.ToBitString()),
         dtype=int
@@ -468,11 +455,10 @@ molecular similarity searches, clustering, and cheminformatics machine learning 
     print("Number of active bits:", fp_array.sum())
     ```
 
-
 ### Atom Pair and Topological Torsion Fingerprints
 
-Atom pair fingerprints encode distances between atom pairs, while topological torsion fingerprints 
-capture sequential four-atom connectivity patterns.
+Atom pair fingerprints encode topological distances between pairs of atoms, while topological
+torsion fingerprints capture sequential four-atom connectivity patterns.
 
 ??? note "Example"
 
@@ -484,14 +470,12 @@ capture sequential four-atom connectivity patterns.
     mol = Chem.MolFromSmiles("CCO")  # Ethanol
 
     # Atom pair fingerprint
-
     atom_pairs = rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(
         mol,
         nBits=2048
     )
 
     # Topological torsion fingerprint
-
     torsions = rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(
         mol,
         nBits=2048
@@ -503,7 +487,7 @@ capture sequential four-atom connectivity patterns.
 
 #### Comparing Molecules with Fingerprints
 
-Fingerprint similarity metrics quantify structural similarity between molecules by comparing 
+Fingerprint similarity metrics quantify structural similarity between molecules by comparing
 shared molecular features encoded in fingerprint vectors.
 
 ??? note "Example"
@@ -514,7 +498,6 @@ shared molecular features encoded in fingerprint vectors.
     from rdkit import DataStructs
 
     # 1. Create molecules
-
     mol1 = Chem.MolFromSmiles("CCO")        # Ethanol
     mol2 = Chem.MolFromSmiles("CCCO")       # Propanol
     mol3 = Chem.MolFromSmiles("c1ccccc1")   # Benzene
@@ -558,10 +541,10 @@ shared molecular features encoded in fingerprint vectors.
 
 ### 2.4 3D Molecular Representations
 
-While fingerprints and graph-based methods describe molecular connectivity, many molecular 
-properties also depend strongly on three-dimensional geometry. 3D molecular representations 
-include spatial information such as atomic coordinates, bond distances, angles, and molecular 
-conformations. These representations are especially important for applications involving 
+While fingerprints and graph-based methods describe molecular connectivity, many molecular
+properties also depend strongly on three-dimensional geometry. 3D molecular representations
+include spatial information such as atomic coordinates, bond distances, angles, and molecular
+conformations. These representations are especially important for applications involving
 molecular dynamics, docking, quantum chemistry, protein-ligand interactions, and materials modeling.
 
 Common 3D representations include:
@@ -576,7 +559,7 @@ Common 3D representations include:
 
 ??? note "Example"
 
-    ```python 
+    ```python
     from rdkit import Chem
     from rdkit.Chem import AllChem
 
@@ -586,8 +569,8 @@ Common 3D representations include:
     # Add hydrogen atoms
     mol = Chem.AddHs(mol)
 
-    # Generate 3D conformation
-    AllChem.EmbedMolecule(mol)
+    # Generate 3D conformation (fixed seed for reproducibility)
+    AllChem.EmbedMolecule(mol, randomSeed=42)
 
     # Optimize geometry
     AllChem.UFFOptimizeMolecule(mol)
@@ -609,10 +592,10 @@ Common 3D representations include:
 
 ### 2.5 Protein Representations
 
-Proteins are complex biological macromolecules that can be represented in several different 
-ways for machine learning applications. Depending on the problem, proteins may be described using 
-amino acid sequences, structural information, residue contact maps, graphs, embeddings, or atomistic 
-coordinates. Choosing an appropriate representation is essential for tasks such as protein 
+Proteins are complex biological macromolecules that can be represented in several different
+ways for machine learning applications. Depending on the problem, proteins may be described using
+amino acid sequences, structural information, residue contact maps, graphs, embeddings, or atomistic
+coordinates. Choosing an appropriate representation is essential for tasks such as protein
 structure prediction, molecular dynamics, function prediction, and protein-ligand interaction modeling.
 
 Common protein representations include:
@@ -628,7 +611,7 @@ Common protein representations include:
 
 ??? note "Example"
 
-    ```python 
+    ```python
     from ase.io import read
 
     # Load protein structure from PDB file
@@ -648,8 +631,8 @@ Common protein representations include:
         )
     ```
 
-This example demonstrates how atomistic protein structures can be loaded and manipulated using 
-[ASE (Atomic Simulation Environment)](https://wiki.fysik.dtu.dk/ase) for 
+This example demonstrates how atomistic protein structures can be loaded and manipulated using
+[ASE (Atomic Simulation Environment)](https://wiki.fysik.dtu.dk/ase) for
 scientific computing and machine learning workflows.
 
 The Coulomb matrix representation is described in PRL 108, 058301 (2012):
@@ -667,7 +650,7 @@ The Coulomb matrix representation is described in PRL 108, 058301 (2012):
     # N, CA, C, O, N, CA, C, O
     #
     # In a real protein, these coordinates would usually come
-    # from a PDB file.
+    # from a PDB file. (CA is a carbon, so it appears as "C" below.)
 
     atom_symbols = np.array([
         "N", "C", "C", "O",
@@ -743,7 +726,6 @@ The Coulomb matrix representation is described in PRL 108, 058301 (2012):
 
     print("\nFeature vector shape:", feature_vector.shape)
 
-
     # 4. Optional: use the sorted eigenvalues as a compact representation
     # Eigenvalues are useful because they provide a fixed-length
     # summary of the matrix and are invariant to atom ordering.
@@ -772,7 +754,7 @@ The Coulomb matrix representation is described in PRL 108, 058301 (2012):
         labels=atom_symbols
     )
 
-    plt.title("Coulomb Matrix for a Protein-Like Fragment")
+    plt.title("Coulomb matrix for a protein-like fragment")
     plt.xlabel("Atom index")
     plt.ylabel("Atom index")
 
@@ -785,11 +767,11 @@ The Coulomb matrix representation is described in PRL 108, 058301 (2012):
 
 Numerical features that capture molecular properties.
 
-#### Types of Descriptors
+#### Types of descriptors
 
-**1. Physical Descriptors**
+**1. Physical descriptors**
 
-Physical descriptors quantify fundamental molecular properties related to size, 
+Physical descriptors quantify fundamental molecular properties related to size,
 polarity, hydrophobicity, and intermolecular interactions in chemical systems.
 
 ??? note "Example"
@@ -798,48 +780,38 @@ polarity, hydrophobicity, and intermolecular interactions in chemical systems.
     from rdkit import Chem
     from rdkit.Chem import Descriptors, Crippen
 
-    # 1. Create molecule
-
-    # Aspirin
+    # 1. Create molecule (Aspirin)
     mol = Chem.MolFromSmiles(
         "CC(=O)Oc1ccccc1C(=O)O"
     )
 
     # 2. Molecular weight
-
     mw = Descriptors.MolWt(mol)
-
     print(f"Molecular Weight: {mw:.2f} g/mol")
 
     # 3. Lipophilicity (LogP)
-
     # Octanol/water partition coefficient
     logp = Crippen.MolLogP(mol)
-
     print(f"LogP: {logp:.2f}")
 
     # Lipinski guideline:
     # LogP > 5 may indicate excessive lipophilicity
 
     # 4. Topological Polar Surface Area (TPSA)
-
     tpsa = Descriptors.TPSA(mol)
-
     print(f"TPSA: {tpsa:.2f} Å²")
 
     # Lower TPSA values are often associated with
     # better membrane permeability
 
     # 5. Molar Refractivity
-
     mr = Crippen.MolMR(mol)
-
     print(f"Molar Refractivity: {mr:.2f}")
     ```
 
-**2. Structural Descriptors**
+**2. Structural descriptors**
 
-Structural descriptors characterize molecular topology, flexibility, ring systems, 
+Structural descriptors characterize molecular topology, flexibility, ring systems,
 hydrogen bonding capacity, and atomic connectivity patterns influencing chemical behavior.
 
 ??? note "Example"
@@ -848,48 +820,36 @@ hydrogen bonding capacity, and atomic connectivity patterns influencing chemical
     from rdkit import Chem
     from rdkit.Chem import Descriptors
 
-    # 1. Create molecule
-
-    # Aspirin
+    # 1. Create molecule (Aspirin)
     mol = Chem.MolFromSmiles(
         "CC(=O)Oc1ccccc1C(=O)O"
     )
 
     # 2. Hydrogen bond donors and acceptors
-
     h_donors = Descriptors.NumHDonors(mol)
     h_acceptors = Descriptors.NumHAcceptors(mol)
-
     print(f"H-Bond Donors: {h_donors}")
     print(f"H-Bond Acceptors: {h_acceptors}")
 
-    # 3. Rotatable bonds
-
-    # Measures molecular flexibility
+    # 3. Rotatable bonds (measures molecular flexibility)
     rot_bonds = Descriptors.NumRotatableBonds(mol)
-
     print(f"Rotatable Bonds: {rot_bonds}")
 
     # 4. Ring information
-
     num_rings = Descriptors.RingCount(mol)
-
     aromatic_rings = Descriptors.NumAromaticRings(mol)
-
     print(f"Total Rings: {num_rings}")
     print(f"Aromatic Rings: {aromatic_rings}")
 
     # 5. Fraction of sp3 carbons
-
     # Indicates molecular saturation and 3D character
     frac_sp3 = Descriptors.FractionCSP3(mol)
-
     print(f"Fraction Csp3: {frac_sp3:.2f}")
     ```
 
-**3. Topological Descriptors**
+**3. Topological descriptors**
 
-Topological descriptors quantify molecular connectivity, branching, complexity, 
+Topological descriptors quantify molecular connectivity, branching, complexity,
 and graph structure independently of three-dimensional molecular geometry or coordinates.
 
 ??? note "Example"
@@ -898,41 +858,30 @@ and graph structure independently of three-dimensional molecular geometry or coo
     from rdkit import Chem
     from rdkit.Chem import GraphDescriptors
 
-    # 1. Create molecule
-
-    # Aspirin
+    # 1. Create molecule (Aspirin)
     mol = Chem.MolFromSmiles(
         "CC(=O)Oc1ccccc1C(=O)O"
     )
 
-    # 2. Balaban J index
-
-    # Measures molecular branching and connectivity
+    # 2. Balaban J index (branching and connectivity)
     balaban = GraphDescriptors.BalabanJ(mol)
-
     print(f"Balaban J Index: {balaban:.3f}")
 
-    # 3. Bertz complexity index
-
-    # Estimates molecular structural complexity
+    # 3. Bertz complexity index (structural complexity)
     bertz = GraphDescriptors.BertzCT(mol)
-
     print(f"Bertz Complexity Index: {bertz:.3f}")
 
     # 4. Chi connectivity indices
-
-    # Connectivity and branching descriptors
     chi0 = GraphDescriptors.Chi0(mol)
     chi1 = GraphDescriptors.Chi1(mol)
-
     print(f"Chi0 Index: {chi0:.3f}")
     print(f"Chi1 Index: {chi1:.3f}")
     ```
 
-**4. 3D Descriptors**
+**4. 3D descriptors**
 
-3D descriptors characterize molecular shape, spatial distribution, geometry, and 
-conformational properties using three-dimensional atomic coordinates and optimized 
+3D descriptors characterize molecular shape, spatial distribution, geometry, and
+conformational properties using three-dimensional atomic coordinates and optimized
 molecular structures.
 
 ??? note "Example"
@@ -941,38 +890,28 @@ molecular structures.
     from rdkit import Chem
     from rdkit.Chem import AllChem, Descriptors3D
 
-    # 1. Create molecule
-
-    # Aspirin
+    # 1. Create molecule (Aspirin)
     mol = Chem.MolFromSmiles(
         "CC(=O)Oc1ccccc1C(=O)O"
     )
 
     # 2. Generate 3D molecular structure
-
     mol_3d = Chem.AddHs(mol)
-
-    # Generate 3D coordinates
-    AllChem.EmbedMolecule(
-        mol_3d,
-        randomSeed=42
-    )
-
-    # Geometry optimization
+    AllChem.EmbedMolecule(mol_3d, randomSeed=42)
     AllChem.MMFFOptimizeMolecule(mol_3d)
 
     # 3. Compute 3D descriptors
 
-    # Molecular shape descriptor
+    # Deviation from spherical shape
     asphericity = Descriptors3D.Asphericity(mol_3d)
 
-    # Measures deviation from spherical shape
+    # Measure of molecular elongation
     eccentricity = Descriptors3D.Eccentricity(mol_3d)
 
     # Shape and mass distribution descriptor
     inertial_shape = Descriptors3D.InertialShapeFactor(mol_3d)
 
-    # Spatial distribution of atoms
+    # Spatial extent of the atomic distribution
     radius_of_gyration = Descriptors3D.RadiusOfGyration(mol_3d)
 
     # 4. Display results
@@ -984,17 +923,17 @@ molecular structures.
 
 #### Drug-Likeness Metrics
 
-Drug-likeness metrics evaluate whether a molecule possesses physicochemical and 
+Drug-likeness metrics evaluate whether a molecule possesses physicochemical and
 structural properties commonly associated with successful pharmaceutical compounds.
 
-**Lipinski's Rule of Five**
+**Lipinski's rule of five**
 
-Lipinski’s Rule of Five estimates oral bioavailability using molecular weight, 
+Lipinski's rule of five estimates oral bioavailability using molecular weight,
 hydrogen bonding, and lipophilicity-based physicochemical thresholds.
 
 **QED (Quantitative Estimate of Drug-likeness)**
 
-QED combines multiple molecular descriptors into a single score representing the 
+QED combines multiple molecular descriptors into a single score representing the
 overall drug-like character of a compound.
 
 #### Creating Feature Vectors
@@ -1078,12 +1017,12 @@ overall drug-like character of a compound.
 
 ### 2.7 Graph Representations
 
-Molecular graphs represent atoms as nodes and chemical bonds as edges, preserving 
+Molecular graphs represent atoms as nodes and chemical bonds as edges, preserving
 connectivity and atom-level information.
 
 #### Graph Structure
 
-Molecules as graphs where atoms are nodes and bonds are edges.
+Molecules can be represented as graphs where atoms are nodes and bonds are edges.
 
 ??? note "Example"
 
@@ -1134,7 +1073,7 @@ Molecules as graphs where atoms are nodes and bonds are edges.
     print(f"Node 0 features: {G.nodes[0]}")
     ```
 
-#### Adjacency Matrix Representation
+#### Adjacency matrix representation
 
 ??? note "Example"
 
@@ -1187,7 +1126,7 @@ Molecules as graphs where atoms are nodes and bonds are edges.
 
 #### Node and Edge Features
 
-Node and edge features encode atom and bond properties as numerical vectors 
+Node and edge features encode atom and bond properties as numerical vectors
 for graph-based molecular machine learning models.
 
 ??? note "Example"
@@ -1234,9 +1173,7 @@ for graph-based molecular machine learning models.
             bond_type_map.get(
                 bond.GetBondType(), 0
             ),                                       # Bond type
-
             int(bond.GetIsConjugated()),             # Conjugation
-
             int(bond.GetIsAromatic()),               # Aromaticity
         ], dtype=float)
 
@@ -1262,6 +1199,10 @@ for graph-based molecular machine learning models.
         )
     ```
 
+The following example builds a protein graph from residue C$^{\alpha}$ atoms. Note that it uses a
+4.5 Å cutoff, which here mainly connects sequential residues; residue-level contact maps
+more commonly use a cutoff of around 8 Å between C$^{\alpha}$ atoms.
+
 ??? note "Example"
 
     ```python
@@ -1270,7 +1211,6 @@ for graph-based molecular machine learning models.
     import numpy as np
     import networkx as nx
     import matplotlib.pyplot as plt
-
 
     # 1. Example protein residues
     # Each residue has:
@@ -1287,7 +1227,6 @@ for graph-based molecular machine learning models.
     ]
 
     # 2. Create graph
-
     G = nx.Graph()
 
     # Add residues as nodes
@@ -1299,7 +1238,6 @@ for graph-based molecular machine learning models.
         )
 
     # 3. Add edges based on distance cutoff
-
     distance_cutoff = 4.5
 
     for i in range(len(residues)):
@@ -1318,7 +1256,6 @@ for graph-based molecular machine learning models.
                 )
 
     # 4. Print graph information
-
     print("Number of nodes:", G.number_of_nodes())
     print("Number of edges:", G.number_of_edges())
 
@@ -1331,7 +1268,6 @@ for graph-based molecular machine learning models.
         print(f"{u} -- {v}, distance = {features['distance']:.2f} Å")
 
     # 5. Visualize graph
-
     pos = {
         residue["index"]: residue["ca_coord"][:2]
         for residue in residues
@@ -1350,7 +1286,7 @@ for graph-based molecular machine learning models.
         node_size=900
     )
 
-    plt.title("Protein Graph Representation")
+    plt.title("Protein graph representation")
     plt.savefig("graph-protein.png", dpi=300, bbox_inches="tight")
     plt.show()
     ```
@@ -1360,7 +1296,7 @@ for graph-based molecular machine learning models.
 - Natural for molecules (atoms connected by bonds)
 - Permutation invariant (atom order doesn't matter)
 - Captures topology and local structure
-- Enables Graph Neural Networks 
+- Enables Graph Neural Networks
 
 **Limitations**:
 
