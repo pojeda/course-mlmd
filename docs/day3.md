@@ -2472,7 +2472,7 @@ more honest number to report.
     print(f"Actual atoms: {n_atoms}")
     ```
 
-## 6. Practical Exercise: Complete ML Pipeline
+## 7. Practical Exercise: Complete ML Pipeline
 
 ### Task
 Build a complete machine learning pipeline to predict molecular solubility. The dataset can be downloaded from:
@@ -2813,7 +2813,7 @@ J. Chem. Inf. Comput. Sci. 2004, 44, 3, 1000–1005 (https://pubs.acs.org/doi/10
     print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
     ```
 
-## 7. Practical example: QM9
+## 8. Practical example: QM9
 
 ??? note "Example"
 
