@@ -1,37 +1,36 @@
-# Day 2: Deep Learning for Molecular Systems
+# Deep Learning for Molecular Systems
 
-**Machine Learning for Molecular Systems - Advanced Course**
-
-*Course Module : Neural Networks and Deep Learning Applications*
 
 ## 1. Deep Learning Fundamentals
 
-### 1.1 Why Deep Learning for Molecules?
+### 1.1 Why deep learning for molecules?
 
-Deep learning has transformed molecular property prediction by enabling models to learn complex representations from raw 
-molecular data automatically. Unlike traditional machine learning methods, which rely heavily on hand-crafted descriptors, 
-deep learning models can learn directly from molecular representations such as SMILES strings, molecular graphs, and 3D atomic 
-coordinates.
+Deep learning has transformed molecular property prediction by enabling models to learn
+complex representations directly from raw molecular data. Unlike traditional machine
+learning methods, which rely heavily on hand-crafted descriptors, deep learning models can
+learn directly from molecular representations such as SMILES strings, molecular graphs, and
+3D atomic coordinates.
 
-**Key Advantages**
+**Key advantages**
 
-* **Automatic Feature Learning:** Neural networks learn hierarchical representations directly from molecular structures 
-without the need for manual feature engineering.
-* **Complex Pattern Recognition:** Deep learning models can capture highly non-linear relationships and subtle structural 
-patterns that influence molecular properties.
-* **Transfer Learning:** Models pre-trained on large chemical datasets can be fine-tuned for specialized tasks, even when 
-only limited labeled data are available.
-* **End-to-End Learning:** These models can directly map molecular representations to predicted properties within a single 
-unified framework.
-* **Multi-Task Learning:** A single model can simultaneously predict multiple molecular properties while sharing learned 
-representations across related tasks.
+* **Automatic feature learning:** Neural networks learn hierarchical representations directly
+from molecular structures, without the need for manual feature engineering.
+* **Complex pattern recognition:** Deep learning models can capture highly non-linear
+relationships and subtle structural patterns that influence molecular properties.
+* **Transfer learning:** Models pre-trained on large chemical datasets can be fine-tuned for
+specialized tasks, even when only limited labeled data are available.
+* **End-to-end learning:** These models map molecular representations to predicted properties
+within a single, unified framework.
+* **Multi-task learning:** A single model can predict several molecular properties at once,
+sharing learned representations across related tasks.
 
 ### Examples
 
-#### Example 1: Solubility Prediction
+#### Example 1: Solubility prediction
 
-Traditional machine learning approaches typically require calculating molecular descriptors such as LogP, molecular weight, 
-and hydrogen-bond donor/acceptor counts. In contrast, deep learning models can learn these relationships directly from SMILES strings.
+Traditional machine learning approaches typically require computing molecular descriptors such
+as LogP, molecular weight, and hydrogen-bond donor and acceptor counts. In contrast, deep
+learning models can learn these relationships directly from SMILES strings.
 
 ```text
 Input: "CC(=O)OC1=CC=CC=C1C(=O)O" (aspirin)
@@ -45,10 +44,10 @@ The model learns associations such as:
 Output: Predicted LogS = -1.5 (moderate solubility)
 ```
 
-#### Example 2: Toxicity Prediction
+#### Example 2: Toxicity prediction
 
-Deep learning models are particularly effective at identifying toxic substructures (toxicophores) without requiring explicitly 
-programmed rules.
+Deep learning models are particularly effective at identifying toxic substructures
+(toxicophores) without requiring explicitly programmed rules.
 
 ```text
 The model automatically learns patterns such as:
@@ -59,11 +58,10 @@ The model automatically learns patterns such as:
 - Combinations of substructures → synergistic toxic effects
 ```
 
+#### Example 3: Drug-likeness prediction
 
-#### Example 3: Drug-Likeness Prediction
-
-Instead of relying solely on heuristic rules such as Lipinski’s Rule of Five, neural networks can learn implicit patterns associated 
-with drug-like molecules.
+Rather than relying solely on heuristic rules such as Lipinski's rule of five, neural networks
+can learn the implicit patterns associated with drug-like molecules.
 
 ```text
 By training on FDA-approved drugs, the model learns:
