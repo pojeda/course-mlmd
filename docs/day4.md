@@ -98,9 +98,7 @@ or graph-based features.
 ### Hidden Layers
 
 Hidden layers perform non-linear transformations that enable the network to learn complex patterns and 
-hierarchical representations.
-
-Each neuron computes:
+hierarchical representations. Each neuron computes:
 
 $$
 z = \sum_{i=1}^{n} w_i x_i + b
@@ -163,7 +161,7 @@ $$
 a = f(z)
 $$
 
-where (f) is a non-linear activation function.
+where $f$ is a non-linear activation function.
 
 
 ### Neural Network Layer
