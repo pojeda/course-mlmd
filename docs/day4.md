@@ -2263,7 +2263,7 @@ each neuron is dropped with probability $30\%$ at every training step.
 nn.Dropout(p=0.3)
 ```
 
-#### Batch Normalization
+##### Batch normalization
 
 Batch normalization stabilizes intermediate activations:
 
@@ -2525,17 +2525,19 @@ This strategy is especially useful for sequence-based models trained directly on
 
 ### 3.1 Why and When to Use Multi-Task Learning
 
-**Multi-task learning (MTL)** is a modeling strategy in which a single neural network learns several related prediction 
-tasks at the same time. Instead of training one model for each molecular property, an MTL model shares part of its internal 
-representation across tasks and then uses task-specific output layers.
+**Multi-task learning (MTL)** is a modeling strategy in which a single neural network learns
+several related prediction tasks at the same time. Instead of training one model for each
+molecular property, an MTL model shares part of its internal representation across tasks and
+then uses task-specific output layers.
 
-In molecular machine learning, this is useful because many properties depend on overlapping chemical features. For 
-example, polarity, molecular size, hydrogen bonding, and lipophilicity can influence solubility, permeability, and toxicity.
+In molecular machine learning, this is useful because many properties depend on overlapping
+chemical features. For example, polarity, molecular size, hydrogen bonding, and lipophilicity
+can influence solubility, permeability, and toxicity.
 
 A multi-task model can be written as:
 
 $$
-\hat{y}*t = f_t(h*\theta(x))
+\hat{y}_t = f_t\left(h_\theta(x)\right)
 $$
 
 where:
@@ -2545,34 +2547,32 @@ where:
 * $f_t$ is the task-specific prediction head for task $t$,
 * $\hat{y}_t$ is the prediction for task $t$.
 
+#### Benefits of multi-task learning
 
+##### 1. Better generalization
 
-#### Benefits of Multi-Task Learning
+Shared layers act as a form of regularization. The model cannot specialize too strongly to one
+task because it must learn features useful across several tasks.
 
-##### 1. **Better generalization**
+##### 2. Improved data efficiency
 
-   Shared layers act as a form of regularization. The model cannot specialize too strongly to one task because 
-   it must learn features useful across several tasks.
+Tasks with many labeled examples can help improve representations for tasks with fewer labels.
 
-##### 2. **Improved data efficiency**
+##### 3. Shared chemical structure-property patterns
 
-   Tasks with many labeled examples can help improve representations for tasks with fewer labels.
+Related endpoints may depend on similar molecular features, such as aromaticity, polarity,
+molecular weight, or hydrogen bonding.
 
-##### 3. **Shared chemical structure-property patterns**
+##### 4. Transferable molecular representations
 
-   Related endpoints may depend on similar molecular features, such as aromaticity, polarity, molecular weight, or hydrogen bonding.
+The shared network can learn general molecular features that are useful for downstream
+prediction tasks.
 
-##### 4. **Transferable molecular representations**
+##### 5. Computational efficiency
 
-   The shared network can learn general molecular features that are useful for downstream prediction tasks.
+One model can predict several properties in a single forward pass.
 
-##### 5. **Computational efficiency**
-
-   One model can predict several properties in a single forward pass.
-
-
-
-#### When Multi-Task Learning Works Well
+#### When multi-task learning works well
 
 MTL is most useful when the tasks are related.
 
@@ -2601,16 +2601,15 @@ Examples:
 * Predicting BBB permeability and an unrelated physical assay
 * Combining tasks where one requires features that harm another task
 
-This problem is sometimes called **negative transfer**, where learning one task reduces performance on another.
+This problem is called **negative transfer**, where learning one task reduces performance on
+another.
 
+### 3.2 Multi-task model architectures
+#### Hard parameter sharing
 
+The most common MTL architecture uses **hard parameter sharing**. The hidden layers are shared
+across all tasks, while each task has its own output head.
 
-### 3.2 Multi-Task Model Architectures
-
-#### Hard Parameter Sharing
-
-The most common MTL architecture uses **hard parameter sharing**. The hidden layers are shared across 
-all tasks, while each task has its own output head.
 
 ```text
                     Molecular Features
@@ -2624,11 +2623,17 @@ all tasks, while each task has its own output head.
   Regression         Regression        Classification
 ```
 
-The shared network learns general molecular representations, while each task-specific head learns how to use 
-those representations for one endpoint.
+The shared network learns general molecular representations, while each task-specific head
+learns how to use those representations for one endpoint.
 
+An important design decision is that classification heads output **raw logits** rather than
+probabilities. No sigmoid or softmax is applied inside the model. The corresponding losses
+(`BCEWithLogitsLoss`, `CrossEntropyLoss`) apply the activation internally using the log-sum-exp
+trick, which is numerically more stable than applying it separately. Applying a sigmoid in the
+head and then using `BCEWithLogitsLoss` is a common and silent error, since it squashes the
+outputs twice.
 
-#### PyTorch Implementation
+#### PyTorch implementation
 
 ??? note "Example"
 
@@ -2644,6 +2649,8 @@ those representations for one endpoint.
         The model contains:
         1. Shared hidden layers
         2. One task-specific output head per task
+
+        All classification heads emit raw logits.
         """
 
         def __init__(
@@ -2713,6 +2720,10 @@ those representations for one endpoint.
             return self.shared_network(x)
     ```
 
+Because the shared network contains `nn.BatchNorm1d`, the training `DataLoader` should be
+created with `drop_last=True`. A final batch containing a single sample would otherwise raise an
+error, since batch statistics cannot be computed from one observation.
+
 Example configuration:
 
 ??? note "Example"
@@ -2735,9 +2746,12 @@ Example configuration:
             "task_type": "binary_classification"
         },
         {
+            # Five CYP isoforms (1A2, 2C9, 2C19, 2D6, 3A4), each an
+            # independent binary endpoint: a molecule can inhibit several
+            # at once, so this is multi-label, not multiclass.
             "name": "cyp450_inhibition",
             "output_dim": 5,
-            "task_type": "multiclass_classification"
+            "task_type": "multilabel_classification"
         }
     ]
 
@@ -2751,9 +2765,13 @@ Example configuration:
     print(model)
     ```
 
-Important correction: for binary classification, the model should output **raw logits**, not sigmoid 
-probabilities. Use `BCEWithLogitsLoss`, which internally applies the sigmoid operation in a numerically stable way.
-
+**Multiclass versus multi-label.** These are easy to conflate, and the distinction determines
+both the output activation and the loss. Multiclass classification assumes the classes are
+mutually exclusive, so softmax with `CrossEntropyLoss` is appropriate and the predicted
+probabilities sum to 1. Multi-label classification allows several labels to be active
+simultaneously, which requires an independent sigmoid per output and `BCEWithLogitsLoss`.
+CYP450 inhibition across isoforms is a multi-label problem: treating it as multiclass would make
+the model structurally unable to predict a molecule that inhibits two isoforms.
 
 ### 3.3 Multi-Task Loss Function
 
@@ -2769,8 +2787,8 @@ $$
 where:
 
 * $T$ is the number of tasks,
-* $L_t$ is the loss for task (t),
-* $\lambda_t$ is the weight assigned to task (t).
+* $L_t$ is the loss for task $t$,
+* $\lambda_t$ is the weight assigned to task $t$.
 
 Different tasks require different loss functions:
 
@@ -2778,40 +2796,53 @@ Different tasks require different loss functions:
 | ------------------------- | --------------------------: | ------------------- |
 | Regression                |           `(batch_size, 1)` | `MSELoss`           |
 | Binary classification     |           `(batch_size, 1)` | `BCEWithLogitsLoss` |
+| Multi-label classification | `(batch_size, num_labels)` | `BCEWithLogitsLoss` |
 | Multiclass classification | `(batch_size, num_classes)` | `CrossEntropyLoss`  |
 
-Loss function:
+#### Handling missing labels
+
+Real molecular datasets are sparse. A compound in a public ADMET collection is typically
+measured on only a few endpoints, so most (molecule, task) pairs have no label at all — in
+benchmarks such as Tox21 the label matrix can be more than 80% empty. Multi-task learning is
+valuable precisely because it can exploit these partially labeled records, but only if the loss
+ignores the missing entries rather than treating them as zeros.
+
+The implementation below encodes missing labels as `NaN` and masks them per sample, so each
+task's loss is averaged over the samples that were actually measured.
 
 ??? note "Example"
 
     ```python
+    import torch
+    import torch.nn as nn
+
+
     def compute_multitask_loss(outputs, labels, task_configs, task_weights=None):
         """
-        Compute a weighted multi-task loss.
+        Compute a weighted multi-task loss with per-sample masking.
 
-        labels should be a dictionary:
+        labels is a dictionary mapping task names to tensors:
             {
                 "solubility": tensor of shape (batch_size, 1),
                 "toxicity": tensor of shape (batch_size, 1),
-                "cyp450_inhibition": tensor of shape (batch_size,)
+                "cyp450_inhibition": tensor of shape (batch_size, 5),
             }
 
-        Missing labels can be represented by None.
+        Missing measurements are encoded as NaN and are excluded from the
+        loss. An entire task may also be omitted or set to None.
         """
 
         if task_weights is None:
-            task_weights = {
-                task["name"]: 1.0 for task in task_configs
-            }
+            task_weights = {task["name"]: 1.0 for task in task_configs}
 
-        total_loss = 0.0
+        total_loss = None
         task_losses = {}
 
         for task in task_configs:
             task_name = task["name"]
             task_type = task["task_type"]
 
-            if task_name not in labels or labels[task_name] is None:
+            if labels.get(task_name) is None:
                 continue
 
             pred = outputs[task_name]
@@ -2819,28 +2850,58 @@ Loss function:
 
             if task_type == "regression":
                 true = true.float().view_as(pred)
-                loss = nn.MSELoss()(pred, true)
+                mask = ~torch.isnan(true)
 
-            elif task_type == "binary_classification":
+                if mask.sum() == 0:
+                    continue
+
+                loss = nn.functional.mse_loss(pred[mask], true[mask])
+
+            elif task_type in ("binary_classification", "multilabel_classification"):
                 true = true.float().view_as(pred)
-                loss = nn.BCEWithLogitsLoss()(pred, true)
+                mask = ~torch.isnan(true)
+
+                if mask.sum() == 0:
+                    continue
+
+                loss = nn.functional.binary_cross_entropy_with_logits(
+                    pred[mask], true[mask]
+                )
 
             elif task_type == "multiclass_classification":
-                true = true.long().view(-1)
-                loss = nn.CrossEntropyLoss()(pred, true)
+                true = true.view(-1)
+                # Missing class labels are encoded as -1
+                mask = true >= 0
+
+                if mask.sum() == 0:
+                    continue
+
+                loss = nn.functional.cross_entropy(
+                    pred[mask], true[mask].long()
+                )
 
             else:
                 raise ValueError(f"Unknown task type: {task_type}")
 
             task_losses[task_name] = loss.item()
-            total_loss = total_loss + task_weights[task_name] * loss
+
+            weighted = task_weights[task_name] * loss
+            total_loss = weighted if total_loss is None else total_loss + weighted
+
+        # Guard against a batch in which no task has any label: returning a
+        # plain float would make loss.backward() fail.
+        if total_loss is None:
+            device = next(iter(outputs.values())).device
+            total_loss = torch.zeros((), device=device, requires_grad=True)
 
         return total_loss, task_losses
     ```
 
+Note that the functional forms (`nn.functional.mse_loss` and similar) are used rather than
+constructing `nn.MSELoss()` objects inside the loop. The two are equivalent, but the functional
+version avoids allocating a new module on every batch.
 
-
-### 3.4 Multi-Task Training Loop
+### 3.4 Multi-task training loop
 
 ??? note "Example"
 
@@ -2894,16 +2955,12 @@ Loss function:
             factor=0.5
         )
 
-        task_weights = {
-            task["name"]: 1.0 for task in task_configs
-        }
+        task_weights = {task["name"]: 1.0 for task in task_configs}
 
         history = {
             "train_loss": [],
             "val_loss": [],
-            "task_losses": {
-                task["name"]: [] for task in task_configs
-            }
+            "task_losses": {task["name"]: [] for task in task_configs}
         }
 
         best_val_loss = float("inf")
@@ -2913,6 +2970,7 @@ Loss function:
         for epoch in range(num_epochs):
             model.train()
             train_loss = 0.0
+            train_seen = 0
 
             for batch_x, batch_labels in train_loader:
                 batch_x = batch_x.to(device)
@@ -2934,17 +2992,18 @@ Loss function:
                 optimizer.step()
 
                 train_loss += loss.item() * batch_x.size(0)
+                train_seen += batch_x.size(0)
 
-            train_loss /= len(train_loader.dataset)
+            train_loss /= train_seen
 
             model.eval()
             val_loss = 0.0
-            val_task_loss_sums = {
-                task["name"]: 0.0 for task in task_configs
-            }
-            val_task_counts = {
-                task["name"]: 0 for task in task_configs
-            }
+            val_seen = 0
+
+            # Accumulate per-task losses weighted by batch size, so that
+            # they are averaged consistently with the total loss.
+            val_task_loss_sums = {task["name"]: 0.0 for task in task_configs}
+            val_task_counts = {task["name"]: 0 for task in task_configs}
 
             with torch.no_grad():
                 for batch_x, batch_labels in val_loader:
@@ -2960,13 +3019,15 @@ Loss function:
                         task_weights
                     )
 
-                    val_loss += loss.item() * batch_x.size(0)
+                    batch_size = batch_x.size(0)
+                    val_loss += loss.item() * batch_size
+                    val_seen += batch_size
 
                     for task_name, task_loss in task_losses.items():
-                        val_task_loss_sums[task_name] += task_loss
-                        val_task_counts[task_name] += 1
+                        val_task_loss_sums[task_name] += task_loss * batch_size
+                        val_task_counts[task_name] += batch_size
 
-            val_loss /= len(val_loader.dataset)
+            val_loss /= val_seen
 
             scheduler.step(val_loss)
 
@@ -3014,15 +3075,15 @@ Loss function:
         return model, history
     ```
 
+### 3.5 Task balancing
 
+Task balancing matters because different losses have different magnitudes. A regression loss on
+an unnormalized target can be orders of magnitude larger than a cross-entropy loss, in which
+case the gradient of the total loss is dominated by the regression task and the classification
+heads barely train. Standardizing regression targets before training removes much of this
+problem and should be the first step.
 
-### 3.5 Task Balancing
-
-Task balancing is important because different losses may have different magnitudes. For example, a 
-regression loss may be much larger than a classification loss, causing the model to focus too strongly 
-on the regression task.
-
-#### Manual Weighting
+#### Manual weighting
 
 Manual task weighting is the simplest approach:
 
@@ -3040,19 +3101,33 @@ This changes the total loss:
 $$
 L_{\text{total}}
 =
-1.0L_{\text{solubility}}
+1.0 \, L_{\text{solubility}}
 +
-2.0L_{\text{BBB}}
+2.0 \, L_{\text{BBB}}
 +
-1.5L_{\text{toxicity}}
+1.5 \, L_{\text{toxicity}}
 +
-1.0L_{\text{CYP450}}
+1.0 \, L_{\text{CYP450}}
 $$
 
+#### Uncertainty-based weighting
 
-#### Uncertainty-Based Weighting
+Instead of fixing the weights by hand, they can be learned. Kendall, Gal, and Cipolla (CVPR
+2018) proposed treating each task's weight as a learned observation noise $\sigma_t$, giving
 
-Uncertainty weighting learns one weight per task. A simplified version is:
+$$
+L_{\text{total}}
+=
+\sum_{t=1}^{T}
+\frac{1}{2\sigma_t^{2}} L_t
++
+\log \sigma_t .
+$$
+
+Parameterizing by $s_t = \log \sigma_t^2$ keeps the optimization unconstrained and numerically
+stable. The $\log \sigma_t$ term prevents the trivial solution of sending every weight to zero.
+The implementation below uses the common simplified form, which drops the factor of
+$\tfrac{1}{2}$; this rescales all tasks equally and so does not change their relative balance.
 
 ```python
 class MultiTaskLossWithUncertainty(nn.Module):
@@ -3080,15 +3155,31 @@ class MultiTaskLossWithUncertainty(nn.Module):
         return total_loss
 ```
 
+**These parameters must be given to the optimizer.** The `log_vars` live on the loss module, not
+on the model, so an optimizer built from `model.parameters()` alone will never update them and
+the weights will silently remain at their initial values:
+
+```python
+loss_module = MultiTaskLossWithUncertainty(task_names).to(device)
+
+optimizer = optim.AdamW(
+    list(model.parameters()) + list(loss_module.parameters()),
+    lr=learning_rate,
+    weight_decay=1e-5
+)
+```
+
+Note also that `forward` must receive the task losses as **tensors**, not the detached floats
+returned in the `task_losses` dictionary of `compute_multitask_loss`; otherwise no gradient
+flows back to the model.
+
 This method is useful when tasks have very different noise levels or loss scales.
 
+### 3.6 Evaluating multi-task models
 
-
-### 3.6 Evaluating Multi-Task Models
-
-Each task should be evaluated with metrics appropriate for its prediction type.
-
-Evaluation function:
+Each task should be evaluated with metrics appropriate for its prediction type. Since the model
+emits logits, classification metrics require converting them to probabilities with a sigmoid
+(binary and multi-label) or taking an argmax over classes (multiclass).
 
 ??? note "Example"
 
@@ -3104,6 +3195,13 @@ Evaluation function:
     )
 
 
+    def safe_roc_auc(true, scores):
+        """ROC AUC is undefined when only one class is present."""
+        if len(np.unique(true)) < 2:
+            return None
+        return roc_auc_score(true, scores)
+
+
     def evaluate_multitask_model(model, test_loader, task_configs, device=None):
         """
         Evaluate a multi-task model using task-specific metrics.
@@ -3116,13 +3214,8 @@ Evaluation function:
         model = model.to(device)
         model.eval()
 
-        predictions = {
-            task["name"]: [] for task in task_configs
-        }
-
-        true_labels = {
-            task["name"]: [] for task in task_configs
-        }
+        predictions = {task["name"]: [] for task in task_configs}
+        true_labels = {task["name"]: [] for task in task_configs}
 
         with torch.no_grad():
             for batch_x, batch_labels in test_loader:
@@ -3132,10 +3225,7 @@ Evaluation function:
                 for task in task_configs:
                     task_name = task["name"]
 
-                    if task_name not in batch_labels:
-                        continue
-
-                    if batch_labels[task_name] is None:
+                    if batch_labels.get(task_name) is None:
                         continue
 
                     pred = outputs[task_name].cpu().numpy()
@@ -3161,6 +3251,10 @@ Evaluation function:
                 pred = pred.ravel()
                 true = true.ravel()
 
+                # Exclude unmeasured samples
+                mask = ~np.isnan(true)
+                pred, true = pred[mask], true[mask]
+
                 results[task_name] = {
                     "RMSE": np.sqrt(mean_squared_error(true, pred)),
                     "MAE": mean_absolute_error(true, pred),
@@ -3169,44 +3263,84 @@ Evaluation function:
 
             elif task_type == "binary_classification":
                 logits = pred.ravel()
+                true = true.ravel()
+
+                mask = ~np.isnan(true)
+                logits, true = logits[mask], true[mask].astype(int)
+
                 probabilities = 1.0 / (1.0 + np.exp(-logits))
                 pred_binary = (probabilities >= 0.5).astype(int)
-                true = true.ravel().astype(int)
 
                 results[task_name] = {
-                    "ROC_AUC": roc_auc_score(true, probabilities),
+                    "ROC_AUC": safe_roc_auc(true, probabilities),
                     "Accuracy": accuracy_score(true, pred_binary),
-                    "F1": f1_score(true, pred_binary)
+                    "F1": f1_score(true, pred_binary, zero_division=0)
                 }
 
+            elif task_type == "multilabel_classification":
+                # Each column is an independent binary endpoint,
+                # so metrics are reported per label.
+                probabilities = 1.0 / (1.0 + np.exp(-pred))
+                per_label = {}
+
+                for j in range(true.shape[1]):
+                    mask = ~np.isnan(true[:, j])
+
+                    if mask.sum() == 0:
+                        per_label[f"label_{j}"] = None
+                        continue
+
+                    true_j = true[mask, j].astype(int)
+                    prob_j = probabilities[mask, j]
+                    pred_j = (prob_j >= 0.5).astype(int)
+
+                    per_label[f"label_{j}"] = {
+                        "ROC_AUC": safe_roc_auc(true_j, prob_j),
+                        "Accuracy": accuracy_score(true_j, pred_j),
+                        "F1": f1_score(true_j, pred_j, zero_division=0)
+                    }
+
+                results[task_name] = per_label
+
             elif task_type == "multiclass_classification":
-                pred_class = np.argmax(pred, axis=1)
                 true = true.ravel().astype(int)
+                mask = true >= 0
+
+                pred_class = np.argmax(pred, axis=1)[mask]
+                true = true[mask]
 
                 results[task_name] = {
                     "Accuracy": accuracy_score(true, pred_class),
-                    "F1_macro": f1_score(true, pred_class, average="macro")
+                    "F1_macro": f1_score(
+                        true, pred_class, average="macro", zero_division=0
+                    )
                 }
 
         return results
     ```
 
-Important correction: for binary classification, `BCEWithLogitsLoss` expects logits, so 
-evaluation should convert logits to probabilities using sigmoid.
+For imbalanced endpoints — which is the norm in toxicity prediction, where actives are often a
+small minority — accuracy is a poor summary, since a model that predicts the majority class for
+every molecule can score highly. ROC AUC and the F1 score are more informative, and the area
+under the precision-recall curve is often preferred when the positive class is rare.
 
 ### 3.7 Summary
 
-Multi-task learning is useful when molecular prediction tasks share chemical information. A good MTL model has:
+Multi-task learning is useful when molecular prediction tasks share chemical information. A good
+MTL model has:
 
 * shared layers for common molecular representations,
 * task-specific heads for individual endpoints,
-* task-specific loss functions,
+* task-specific loss functions matched to each endpoint type,
+* masking so that missing labels do not contribute to the loss,
 * appropriate balancing between tasks,
 * and separate evaluation metrics for regression and classification tasks.
 
-A practical starting point is hard parameter sharing with equal task weights. More advanced methods, 
-such as uncertainty weighting or gradient balancing, can be added later if some tasks dominate training.
-
+A practical starting point is hard parameter sharing with equal task weights and standardized
+regression targets. More advanced methods, such as uncertainty weighting or gradient balancing,
+can be added later if some tasks dominate training. If multi-task performance is consistently
+worse than single-task baselines, the tasks may be insufficiently related, and negative transfer
+should be suspected.
 
 ## 4. Convolutional Neural Networks
 
