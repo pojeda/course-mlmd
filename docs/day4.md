@@ -2151,7 +2151,7 @@ Simple models are:
 * faster to train,
 * less prone to overfitting.
 
-#### Increase Complexity Gradually
+##### Increase complexity gradually
 
 If the model underfits, complexity can be increased by:
 
@@ -2605,11 +2605,11 @@ This problem is called **negative transfer**, where learning one task reduces pe
 another.
 
 ### 3.2 Multi-task model architectures
+
 #### Hard parameter sharing
 
 The most common MTL architecture uses **hard parameter sharing**. The hidden layers are shared
 across all tasks, while each task has its own output head.
-
 
 ```text
                     Molecular Features
