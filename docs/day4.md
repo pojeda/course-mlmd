@@ -77,9 +77,7 @@ By training on FDA-approved drugs, the model learns:
 A neural network is a computational model composed of interconnected layers of artificial neurons that learn to 
 transform input data into meaningful predictions through adjustable weights and biases (Rosenblatt, Psychological Review, 65, 386, 1958).
 
-
 ![neuron-perceptron](../images/neuron-perceptron.png){: style="width: 600px;"}
-
 
 A **feedforward neural network** processes information sequentially from the input layer to the output layer 
 without feedback connections or recurrent cycles.
@@ -608,36 +606,34 @@ def categorical_crossentropy(y_true, y_pred):
 
 ### Backpropagation
 
-Backpropagation is the algorithm used to train neural networks by computing the gradients of the loss 
-function with respect to all model parameters.
+Backpropagation is the algorithm used to train neural networks by computing the gradients of the
+loss function with respect to all model parameters.
 
-The algorithm relies on the **chain rule of calculus** to efficiently propagate errors backward through 
-the network.
-
+The algorithm relies on the **chain rule of calculus** to efficiently propagate errors backward
+through the network.
 
 #### Main Steps of Backpropagation
 
-#### 1. **Forward Pass**
+##### 1. Forward Pass
 
-   * Compute activations layer by layer
-   * Generate predictions
-   * Evaluate the loss function
+* Compute activations layer by layer
+* Generate predictions
+* Evaluate the loss function
 
-#### 2. **Loss Gradient Computation**
+##### 2. Loss Gradient Computation
 
-   * Compute the gradient of the loss with respect to the output activations
+* Compute the gradient of the loss with respect to the output activations
 
-#### 3. **Backward Pass**
+##### 3. Backward Pass
 
-   * Propagate gradients backward through each layer
-   * Compute gradients for weights and biases
+* Propagate gradients backward through each layer
+* Compute gradients for weights and biases
 
-#### 4. **Parameter Update**
+##### 4. Parameter update
 
-   * Update parameters using gradient descent or an optimization algorithm such as Adam
+* Update parameters using gradient descent or an optimization algorithm such as Adam
 
-
-#### Mathematical Formulation
+#### Mathematical formulation
 
 For layer $l$:
 
@@ -663,9 +659,7 @@ where:
 * $\mathbf{A}^{[l-1]}$ are the activations from the previous layer,
 * $f$ is the activation function.
 
-
-
-##### Error Term
+##### Error term
 
 $$
 d\mathbf{Z}^{[l]}
@@ -677,8 +671,7 @@ $$
 
 where $\odot$ denotes element-wise multiplication.
 
-
-##### Weight Gradient
+##### Weight gradient
 
 $$
 d\mathbf{W}^{[l]}
@@ -688,7 +681,7 @@ d\mathbf{Z}^{[l]}
 \left(\mathbf{A}^{[l-1]}\right)^T
 $$
 
-##### Bias Gradient
+##### Bias gradient
 
 $$
 d\mathbf{b}^{[l]}
@@ -698,7 +691,7 @@ d\mathbf{b}^{[l]}
 d\mathbf{Z}^{[l](i)}
 $$
 
-##### Propagated Gradient
+##### Propagated gradient
 
 $$
 d\mathbf{A}^{[l-1]}
@@ -709,19 +702,18 @@ $$
 
 where:
 
-* $m$ is the number of training samples,
+* $m$ is the number of training samples in the batch,
 * $f'$ is the derivative of the activation function,
 * $\mathbf{W}^{[l]}$ and $\mathbf{b}^{[l]}$ are the weights and biases of layer $l$.
 
-
 #### Example: Backpropagation for a Three-Layer Network
 
-The following implementation computes gradients for a neural network with two hidden ReLU layers 
+The following implementation computes gradients for a neural network with two hidden ReLU layers
 and a linear output layer.
 
 ??? note "Example"
 
-    ```python 
+    ```python
     def backward_propagation(X, Y, cache, parameters):
         """
         Backpropagation for a 3-layer neural network.
@@ -730,8 +722,8 @@ and a linear output layer.
             Input -> ReLU -> ReLU -> Linear Output
 
         Args:
-            X: input features
-            Y: true target values
+            X: input features (n_features, m_samples)
+            Y: true target values (n_outputs, m_samples)
             cache: stored activations and pre-activations
             parameters: dictionary containing weights and biases
 
@@ -746,7 +738,10 @@ and a linear output layer.
         Z1, Z2 = cache['Z1'], cache['Z2']
 
         # Output layer gradient
-        # Linear output with MSE loss
+        # Linear output with MSE loss. This expression assumes the
+        # L = (1 / 2m) * sum((A3 - Y) ** 2) convention; with the
+        # L = (1 / m) * sum(...) convention it carries a factor of 2,
+        # which is equivalent to rescaling the learning rate
         dZ3 = A3 - Y
 
         dW3 = (1 / m) * np.dot(dZ3, A2.T)
@@ -777,18 +772,18 @@ and a linear output layer.
 
 ### 1.5 Optimization Algorithms
 
-Optimization algorithms are responsible for updating the parameters of a neural network in order to 
-minimize the loss function. During training, the optimizer uses gradients computed through backpropagation 
-to determine how the weights and biases should change to improve model performance.
+Optimization algorithms are responsible for updating the parameters of a neural network in order
+to minimize the loss function. During training, the optimizer uses gradients computed through
+backpropagation to determine how the weights and biases should change to improve model
+performance.
 
-Efficient optimization is essential in deep learning because neural networks often contain millions of 
-parameters and highly non-convex loss surfaces.
-
+Efficient optimization is essential in deep learning because neural networks often contain
+millions of parameters and highly non-convex loss surfaces.
 
 #### Gradient Descent
 
-Gradient descent is the foundational optimization method used in machine learning. The main idea is to 
-update parameters in the direction opposite to the gradient of the loss function.
+Gradient descent is the foundational optimization method used in machine learning. The main idea
+is to update parameters in the direction opposite to the gradient of the loss function.
 
 For a parameter matrix $\mathbf{W}$ and bias vector $\mathbf{b}$:
 
@@ -812,7 +807,7 @@ where:
 
 * $L$ is the loss function,
 * $\alpha$ is the learning rate,
-* $\frac{\partial L}{\partial \mathbf{W}}$ and $\frac{\partial L}{\partial \mathbf{b}}$ are 
+* $\frac{\partial L}{\partial \mathbf{W}}$ and $\frac{\partial L}{\partial \mathbf{b}}$ are
 gradients computed through backpropagation.
 
 The learning rate controls the step size of each parameter update:
@@ -822,7 +817,8 @@ The learning rate controls the step size of each parameter update:
 
 #### Batch Gradient Descent
 
-Batch gradient descent computes gradients using the **entire training dataset** before updating the parameters.
+Batch gradient descent computes gradients using the **entire training dataset** before updating
+the parameters.
 
 ##### Advantages
 
@@ -835,7 +831,7 @@ Batch gradient descent computes gradients using the **entire training dataset** 
 * Requires loading the full dataset into memory
 * Updates occur infrequently
 
-```python 
+```python
 def gradient_descent(parameters, gradients, learning_rate):
     """
     Update parameters using batch gradient descent.
@@ -846,7 +842,6 @@ def gradient_descent(parameters, gradients, learning_rate):
 
     return parameters
 ```
-
 
 #### Stochastic Gradient Descent (SGD)
 
@@ -876,11 +871,11 @@ $$
 
 SGD is commonly combined with momentum and learning rate scheduling to improve convergence.
 
-
 #### Mini-Batch Gradient Descent
 
-Mini-batch gradient descent is the most widely used training strategy in deep learning. Instead of using 
-the full dataset or a single sample, the optimizer updates parameters using small batches of training examples.
+Mini-batch gradient descent is the most widely used training strategy in deep learning. Instead
+of using the full dataset or a single sample, the optimizer updates parameters using small
+batches of training examples.
 
 Typical batch sizes range from (32) to (256).
 
@@ -891,6 +886,11 @@ Typical batch sizes range from (32) to (256).
 * Faster than full batch gradient descent
 * Provides a good balance between convergence quality and computational cost
 
+An important practical detail is that the training data should be **shuffled at the start of
+every epoch**. Without shuffling, the same examples are grouped into the same batches in the
+same order at each pass, which correlates successive updates. This matters particularly for
+chemical datasets, which are frequently stored sorted by scaffold, assay, or molecular weight.
+
 ??? note "Example"
 
     ```python
@@ -899,23 +899,30 @@ Typical batch sizes range from (32) to (256).
         Y,
         parameters,
         batch_size=32,
-        learning_rate=0.01
+        learning_rate=0.01,
+        rng=None
     ):
         """
-        Mini-batch gradient descent implementation.
+        Mini-batch gradient descent implementation (one epoch).
         """
 
         m = X.shape[1]
-        num_batches = m // batch_size
 
-        for i in range(num_batches):
+        # Shuffle the samples at the start of the epoch
+        rng = np.random.default_rng() if rng is None else rng
+        permutation = rng.permutation(m)
 
-            # Create mini-batch
-            start = i * batch_size
-            end = start + batch_size
+        X_shuffled = X[:, permutation]
+        Y_shuffled = Y[:, permutation]
 
-            X_batch = X[:, start:end]
-            Y_batch = Y[:, start:end]
+        # Iterate over batches, including a final partial batch if
+        # m is not divisible by batch_size
+        for start in range(0, m, batch_size):
+
+            end = min(start + batch_size, m)
+
+            X_batch = X_shuffled[:, start:end]
+            Y_batch = Y_shuffled[:, start:end]
 
             # Forward propagation
             predictions, cache = forward_propagation(X_batch, parameters)
@@ -938,11 +945,10 @@ Typical batch sizes range from (32) to (256).
         return parameters
     ```
 
-
 #### Momentum
 
-Momentum improves SGD by accumulating a running average of previous gradients. This helps accelerate 
-optimization in consistent directions while reducing oscillations.
+Momentum improves SGD by accumulating a running average of previous gradients. This helps
+accelerate optimization in consistent directions while reducing oscillations.
 
 The velocity update is:
 
@@ -966,8 +972,20 @@ $$
 
 where:
 
-* $\mathbf{v}$ is the velocity term,
-* $\beta$ is the momentum coefficient, typically (0.9) or (0.99).
+* $\mathbf{v}$ is the velocity term, initialized to zero,
+* $\beta$ is the momentum coefficient, typically $0.9$ or $0.99$.
+
+Two conventions are in common use. The form above is an exponential moving average of the
+gradients. Classical (Polyak) momentum — and the implementation in PyTorch's
+`SGD(momentum=...)` — instead omits the $(1-\beta)$ factor:
+
+$$
+\mathbf{v} \leftarrow \beta\mathbf{v} + \frac{\partial L}{\partial \mathbf{W}}.
+$$
+
+The two differ by a factor of $(1-\beta)$ in the effective step size, which is a factor of ten
+at $\beta = 0.9$. This is worth keeping in mind when transferring a learning rate between
+implementations.
 
 ##### Benefits
 
@@ -987,6 +1005,8 @@ where:
     ):
         """
         Parameter update with momentum.
+        The velocity dictionary should be initialized with zero arrays
+        matching the shape of each parameter.
         """
 
         for key in parameters.keys():
@@ -1005,10 +1025,11 @@ where:
         return parameters, velocity
     ```
 
-
 #### RMSprop (Root Mean Square Propagation)
 
-RMSprop adapts the learning rate individually for each parameter based on the recent magnitude of gradients.
+RMSprop adapts the learning rate individually for each parameter based on the recent magnitude
+of gradients. Parameters with consistently large gradients receive smaller effective steps, and
+parameters with small gradients receive larger ones.
 
 The moving average of squared gradients is computed as:
 
@@ -1031,15 +1052,20 @@ $$
 \mathbf{W}
 -\alpha
 \frac{
-\frac{\partial L}{\partial \mathbf{W}}
+\dfrac{\partial L}{\partial \mathbf{W}}
 }{
-\sqrt{\mathbf{s} + \epsilon}
+\sqrt{\mathbf{s}} + \epsilon
 }
 $$
 
 where:
 
-* $\epsilon$ is a small constant for numerical stability, typically $10^{-8}$.
+* $\epsilon$ is a small constant for numerical stability, typically $10^{-8}$,
+* $\beta$ is typically $0.9$.
+
+All operations are element-wise. Note that some references place $\epsilon$ inside the square
+root, as $\sqrt{\mathbf{s} + \epsilon}$; the two are practically equivalent, but the form above
+matches the implementation below and PyTorch's default.
 
 ##### Benefits
 
@@ -1053,20 +1079,22 @@ where:
     def rmsprop_optimizer(
         parameters,
         gradients,
-        cache,
+        rms_cache,
         beta=0.9,
         learning_rate=0.001,
         epsilon=1e-8
     ):
         """
         RMSprop optimization.
+        rms_cache holds the moving average of squared gradients and
+        should be initialized with zero arrays.
         """
 
         for key in parameters.keys():
 
             # Update squared gradient cache
-            cache['s' + key] = (
-                beta * cache['s' + key]
+            rms_cache['s' + key] = (
+                beta * rms_cache['s' + key]
                 + (1 - beta) * gradients['d' + key] ** 2
             )
 
@@ -1074,12 +1102,11 @@ where:
             parameters[key] -= (
                 learning_rate
                 * gradients['d' + key]
-                / (np.sqrt(cache['s' + key]) + epsilon)
+                / (np.sqrt(rms_cache['s' + key]) + epsilon)
             )
 
-        return parameters, cache
+        return parameters, rms_cache
     ```
-
 
 #### Adam (Adaptive Moment Estimation)
 
@@ -1126,7 +1153,11 @@ $$
 \frac{\mathbf{v}}{1-\beta_2^t}
 $$
 
-##### Parameter Update
+Both moments are initialized to zero, which biases them toward zero during the first few
+iterations. The correction terms above, where $t$ is the iteration counter starting at 1,
+compensate for this and matter most in early training.
+
+##### Parameter update
 
 $$
 \mathbf{W}
@@ -1154,7 +1185,7 @@ $$
 
 * Fast and robust convergence
 * Works well with sparse gradients
-* Excellent default optimizer for many deep learning applications
+* Good default optimizer for many deep learning applications
 
 ??? note "Example"
 
@@ -1171,6 +1202,7 @@ $$
     ):
         """
         Adam optimization with bias correction.
+        t is the iteration counter, starting at 1.
         """
 
         for key in parameters.keys():
@@ -1210,9 +1242,13 @@ $$
 
 #### AdamW (Adam with Weight Decay)
 
-AdamW improves Adam by decoupling weight decay regularization from the gradient update.
+AdamW modifies Adam by decoupling weight decay from the gradient update.
 
-The parameter update becomes:
+The distinction is where the decay enters. Adding standard L2 regularization to Adam means
+adding $\lambda\mathbf{W}$ to the gradient, so the penalty passes through the moment estimates
+and is rescaled by the adaptive denominator $\sqrt{\hat{\mathbf{v}}}$. Parameters that receive
+large gradients are therefore regularized less, which is not the intended behavior. AdamW
+instead applies the decay directly to the weights, independently of the adaptive scaling:
 
 $$
 \mathbf{W}
