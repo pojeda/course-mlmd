@@ -1299,7 +1299,9 @@ optimizer = optim.AdamW(
 | Sparse gradients              | Adam                  | $10^{-3}$              |
 | Strong regularization needed  | AdamW or SGD          | Lower learning rates   |
 
-
+An instructive comparison of different optimizers can be found in 
+[mlreview_notebooks](https://github.com/Emergent-Behaviors-in-Biology/mlreview_notebooks/blob/master/NB2_CIV-gradient_descent.ipynb){:target="_blank"}
+([arxiv:1803.08823](https://arxiv.org/pdf/1803.08823){:target="_blank"}).
 
 #### Learning Rate Scheduling
 
