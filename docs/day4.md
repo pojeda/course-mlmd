@@ -1287,6 +1287,52 @@ optimizer = optim.AdamW(
 )
 ```
 
+#### Learning rate scheduling
+
+The learning rate is usually the single most important hyperparameter, and holding it fixed
+throughout training is rarely optimal. A large rate is useful early, when the parameters are far
+from a good solution, while a smaller rate is needed later to settle into a minimum rather than
+oscillating around it. Learning rate schedules reduce $\alpha$ over the course of training.
+
+Common strategies include:
+
+* **Step decay**: multiply the learning rate by a fixed factor at predetermined epochs
+* **Exponential decay**: $\alpha_t = \alpha_0 e^{-kt}$
+* **Cosine annealing**: decrease the rate following a cosine curve, widely used in modern
+  training pipelines
+* **Reduce on plateau**: lower the rate when the validation loss stops improving
+* **Warmup**: increase the rate linearly for the first few hundred or thousand steps before
+  applying a decay schedule; this stabilizes early training, particularly for transformers
+
+```python
+import torch.optim as optim
+
+optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.01)
+
+# Cosine annealing over 100 epochs
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
+
+# Alternative: reduce when validation loss plateaus
+# scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10)
+
+for epoch in range(100):
+    train_one_epoch(model, optimizer)
+    scheduler.step()
+```
+
+#### Gradient clipping
+
+When gradients become very large, a single update can destroy the progress made so far. Gradient
+clipping bounds the norm of the gradient before the update is applied, which stabilizes training
+for recurrent networks and deep architectures in particular:
+
+```python
+import torch.nn.utils as utils
+
+loss.backward()
+utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+optimizer.step()
+```
 
 #### Optimizer Selection Guide
 
@@ -1303,89 +1349,14 @@ An instructive comparison of different optimizers can be found in
 [mlreview_notebooks](https://github.com/Emergent-Behaviors-in-Biology/mlreview_notebooks/blob/master/NB2_CIV-gradient_descent.ipynb){:target="_blank"}
 ([arxiv:1803.08823](https://arxiv.org/pdf/1803.08823){:target="_blank"}).
 
-#### Learning Rate Scheduling
-
-Learning rate scheduling gradually changes the learning rate during training to improve convergence and generalization.
-
-
-
-#### Exponential Decay
-
-$$
-\alpha_t
-=\alpha_0
-\gamma^t
-$$
-
-where:
-
-* $\alpha_0$ is the initial learning rate,
-* $\gamma$ is the decay factor.
-
-```python 
-def lr_decay(initial_lr, epoch, decay_rate=0.95):
-    return initial_lr * (decay_rate ** epoch)
-```
-
-
-#### Step Decay
-
-The learning rate is reduced at fixed intervals.
-
-```python
-def step_decay(
-    initial_lr,
-    epoch,
-    drop=0.5,
-    epochs_drop=10
-):
-    return initial_lr * (
-        drop ** np.floor(epoch / epochs_drop)
-    )
-```
-
-#### Cosine Annealing
-
-Cosine annealing gradually decreases the learning rate following a cosine curve:
-
-$$
-\alpha_t
-=
-\frac{\alpha_0}{2}
-\left(
-1 +
-\cos\left(
-\frac{\pi t}{T}
-\right)
-\right)
-$$
-
-where:
-
-* $t$ is the current epoch,
-* $T$ is the total number of epochs.
-
-```python
-def cosine_annealing(
-    initial_lr,
-    epoch,
-    total_epochs
-):
-    return (
-        initial_lr
-        * 0.5
-        * (1 + np.cos(np.pi * epoch / total_epochs))
-    )
-```
-
-
 ## 2. Feedforward Neural Networks
 
 ### 2.1 Feedforward Neural Network Architecture Design
 
-A **feedforward neural network (FNN)** is one of the most fundamental neural network architectures in deep learning. In 
-an FNN, information flows sequentially from the input layer through one or more hidden layers to the output layer, 
-without recurrent or feedback connections.
+A **feedforward neural network (FNN)** is one of the most fundamental neural network
+architectures in deep learning. In an FNN, information flows sequentially from the input layer
+through one or more hidden layers to the output layer, without recurrent or feedback
+connections.
 
 Mathematically, the transformation at layer $l$ is:
 
@@ -1406,11 +1377,10 @@ where:
 * $\mathbf{b}^{[l]}$ is the bias vector,
 * $f(\cdot)$ is the activation function.
 
-For molecular machine learning, feedforward networks are commonly applied to molecular fingerprints, 
-physicochemical descriptors, or learned molecular embeddings.
+For molecular machine learning, feedforward networks are commonly applied to molecular
+fingerprints, physicochemical descriptors, or learned molecular embeddings.
 
-
-### Design Principles
+#### Design principles
 
 Designing an effective neural network architecture requires balancing:
 
@@ -1419,37 +1389,33 @@ Designing an effective neural network architecture requires balancing:
 * generalization ability,
 * and training stability.
 
-A network that is too small may underfit the data, while an excessively large network may overfit and memorize the training set.
+A network that is too small may underfit the data, while an excessively large network may
+overfit and memorize the training set.
 
-
-#### Layer Size Guidelines
-
-##### Input Layer
+##### Input layer
 
 The input dimension corresponds to the number of molecular features.
 
 Examples:
 
-* Morgan fingerprints: (1024)–(4096) bits
+* Morgan fingerprints: $1024$–$4096$ bits
 * Molecular descriptors: tens to hundreds of features
 * Learned embeddings: variable dimensionality
 
-Example:
+For a $2048$-bit Morgan fingerprint:
 
 $$
 \text{Input dimension} = 2048
 $$
 
-for a (2048)-bit Morgan fingerprint.
+##### Hidden layers
 
-
-##### Hidden Layers
-
-Hidden layers learn increasingly abstract representations of molecular structure-property relationships.
+Hidden layers learn increasingly abstract representations of molecular structure-property
+relationships.
 
 General recommendations:
 
-* Start with (128)–(512) neurons per layer
+* Start with $128$–$512$ neurons per layer
 * Gradually reduce dimensionality in deeper layers
 * Use ReLU-family activations for stable optimization
 
@@ -1461,11 +1427,11 @@ $$
 
 which progressively compresses the learned representation.
 
-##### Output Layer
+##### Output layer
 
 The output layer depends on the prediction task.
 
-| Task                       | Output Neurons    | Activation |
+| Task                       | Output neurons    | Activation |
 | -------------------------- | ----------------- | ---------- |
 | Regression                 | 1                 | Linear     |
 | Binary classification      | 1                 | Sigmoid    |
@@ -1477,12 +1443,9 @@ Examples:
 * Toxic/non-toxic classification → sigmoid output
 * Protein family classification → softmax output
 
+#### Common Architecture Patterns
 
-### Common Architecture Patterns
-
-
-
-#### Pattern 1: Pyramid Architecture
+##### Pattern 1: Pyramid architecture
 
 Recommended for many molecular property prediction tasks.
 
@@ -1498,16 +1461,17 @@ Hidden Layer (128)
 Output (1)
 ```
 
-##### Characteristics
+**Characteristics:**
 
 * Gradually compresses information
 * Encourages hierarchical feature learning
 * Reduces parameter count in deeper layers
 * Often improves generalization
 
-This architecture works well when the input space is high-dimensional, such as molecular fingerprints.
+This architecture works well when the input space is high-dimensional, such as molecular
+fingerprints.
 
-#### Pattern 2: Bottleneck (Hourglass) Architecture
+##### Pattern 2: Bottleneck (hourglass) architecture
 
 ```text
 Input (2048)
@@ -1521,16 +1485,17 @@ Hidden Layer (256)
 Output (1)
 ```
 
-##### Characteristics
+**Characteristics:**
 
 * Forces the network to learn compact latent representations
 * Useful for feature extraction and dimensionality reduction
-* Often used in autoencoders and representation learning
 
-The bottleneck layer acts as a compressed representation of the molecule.
+The bottleneck layer acts as a compressed representation of the molecule. Note that the diagram
+above is a bottleneck *regressor*: it narrows and then re-expands before producing a single
+prediction. A true autoencoder shares the same hourglass shape but reconstructs its own input,
+so its output layer would have dimension 2048 rather than 1, and it is trained without labels.
 
-
-#### Pattern 3: Constant-Width Architecture
+##### Pattern 3: Constant-width architecture
 
 ```text
 Input (2048)
@@ -1544,14 +1509,13 @@ Hidden Layer (256)
 Output (1)
 ```
 
-##### Characteristics
+**Characteristics:**
 
 * Maintains representational capacity across layers
 * Useful for highly non-linear mappings
 * Easier to tune than aggressively shrinking architectures
 
 This design is often effective when the dataset is large and the target function is complex.
-
 
 ### Depth vs. Width Trade-Off
 
@@ -1569,10 +1533,10 @@ $$
 2048 \rightarrow 512 \rightarrow 256 \rightarrow 128 \rightarrow 1
 $$
 
+#### Regularization Strategies
 
-### Regularization Strategies
-
-Deep neural networks can easily overfit molecular datasets, especially when training data are limited.
+Deep neural networks can easily overfit molecular datasets, especially when training data are
+limited.
 
 Common regularization methods include:
 
@@ -1581,42 +1545,49 @@ Common regularization methods include:
 * Early stopping
 * Batch normalization
 
-#### Dropout
+##### Dropout
 
-Dropout randomly disables neurons during training to reduce co-adaptation.
+Dropout randomly disables neurons during training to reduce co-adaptation. If the dropout
+probability is $p$, each neuron is retained with probability $1 - p$. Typical values are
+$p = 0.2$ to $0.5$.
 
-If the dropout probability is (p), each neuron is retained with probability:
+Two practical points are easy to overlook. Dropout is applied **only during training**: at
+evaluation time all neurons are active, which is why `model.eval()` must be called before
+validation. PyTorch implements *inverted* dropout, scaling the surviving activations by
+$1/(1-p)$ during training so that the expected activation is unchanged and no rescaling is
+needed at inference.
 
-$$
-1 - p
-$$
-
-Typical values:
-
-$$
-p = 0.2 \text{ to } 0.5
-$$
-
-
-#### Batch Normalization
+##### Batch normalization
 
 Batch normalization standardizes activations within a mini-batch:
 
 $$
-\hat{x}
-=\frac{x - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}
+\hat{x} = \frac{x - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}
 $$
 
-This often:
+$$
+y = \gamma \hat{x} + \beta
+$$
+
+The learnable parameters $\gamma$ and $\beta$ are essential: without them the layer could only
+ever emit zero-mean, unit-variance activations, which would restrict what the network can
+represent. During training, $\mu_B$ and $\sigma_B^2$ are computed from the current mini-batch;
+at inference, running estimates accumulated during training are used instead, so batch
+normalization behaves differently in `train()` and `eval()` modes.
+
+Batch normalization often:
 
 * stabilizes training,
 * improves gradient flow,
 * and enables larger learning rates.
 
-
-### 2.2 Full Training Example
+### 2.2 Full training example
 
 **Complete Training Pipeline:**
+
+The example below trains a feedforward network on Morgan fingerprints. The synthetic data are
+constructed so that no molecule appears in more than one split; see the note following the code
+for why this matters.
 
 ??? note "Example"
 
@@ -1633,15 +1604,16 @@ This often:
     from sklearn.model_selection import train_test_split
     from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 
-    from rdkit import Chem
-    from rdkit.Chem import AllChem, Descriptors
+    from rdkit import Chem, DataStructs
+    from rdkit.Chem import Descriptors
+    from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 
 
     class MolecularFNN(nn.Module):
         """Feedforward neural network for molecular property prediction."""
 
         def __init__(self, input_dim=2048, hidden_dims=(512, 256, 128),
-                    output_dim=1, dropout_rate=0.3):
+                     output_dim=1, dropout_rate=0.3):
             super().__init__()
 
             layers = []
@@ -1660,6 +1632,10 @@ This often:
             self._initialize_weights()
 
         def _initialize_weights(self):
+            # He (Kaiming) initialization is matched to ReLU activations.
+            # It is also applied to the final linear layer here for
+            # simplicity; a Xavier/Glorot initialization would be the more
+            # principled choice for a linear output.
             for module in self.modules():
                 if isinstance(module, nn.Linear):
                     nn.init.kaiming_normal_(
@@ -1678,6 +1654,8 @@ This often:
         """Dataset that converts SMILES strings into Morgan fingerprints."""
 
         def __init__(self, smiles_list, labels, radius=2, n_bits=2048):
+            generator = GetMorganGenerator(radius=radius, fpSize=n_bits)
+
             fingerprints = []
             valid_labels = []
 
@@ -1687,13 +1665,12 @@ This often:
                 if mol is None:
                     continue
 
-                fp = AllChem.GetMorganFingerprintAsBitVect(
-                    mol,
-                    radius,
-                    nBits=n_bits
-                )
+                fp = generator.GetFingerprint(mol)
 
-                fingerprints.append(np.asarray(fp, dtype=np.float32))
+                array = np.zeros((n_bits,), dtype=np.float32)
+                DataStructs.ConvertToNumpyArray(fp, array)
+
+                fingerprints.append(array)
                 valid_labels.append(label)
 
             if len(fingerprints) == 0:
@@ -1719,6 +1696,7 @@ This often:
     def train_epoch(model, train_loader, criterion, optimizer, device):
         model.train()
         total_loss = 0.0
+        n_seen = 0
 
         for batch_x, batch_y in train_loader:
             batch_x = batch_x.to(device)
@@ -1732,8 +1710,11 @@ This often:
             optimizer.step()
 
             total_loss += loss.item() * batch_x.size(0)
+            n_seen += batch_x.size(0)
 
-        return total_loss / len(train_loader.dataset)
+        # Normalize by samples actually seen, since drop_last=True may
+        # discard a partial final batch.
+        return total_loss / n_seen
 
 
     def validate(model, val_loader, criterion, device):
@@ -1797,10 +1778,13 @@ This often:
             n_bits=config["input_dim"]
         )
 
+        # drop_last=True avoids a final batch of size 1, which would make
+        # nn.BatchNorm1d raise an error in training mode.
         train_loader = DataLoader(
             train_dataset,
             batch_size=config["batch_size"],
-            shuffle=True
+            shuffle=True,
+            drop_last=True
         )
 
         val_loader = DataLoader(
@@ -1889,7 +1873,7 @@ This often:
 
         model.load_state_dict(best_model_state)
 
-        print("\nTraining complete!")
+        print("\nTraining complete.")
         print(f"Best validation loss: {best_val_loss:.4f}")
 
         return model, history
@@ -1899,52 +1883,58 @@ This often:
         """
         Generate synthetic molecular data with a learnable target.
 
-        The target is molecular weight plus Gaussian noise.
+        The target is molecular weight plus Gaussian noise. Molecules are
+        split into disjoint pools BEFORE sampling, so that no molecule
+        appears in more than one split.
         """
 
         rng = np.random.default_rng(random_state)
 
         base_smiles = np.array([
-            "CCO",
-            "CC(C)O",
-            "CCCO",
-            "CC(C)CO",
-            "CCCCO",
-            "c1ccccc1",
-            "CC(=O)O",
-            "CCN",
-            "CCCl",
-            "CCBr",
+            "CCO", "CC(C)O", "CCCO", "CC(C)CO", "CCCCO",
+            "CCCCCO", "CC(C)(C)O", "OCCO", "OCCCO", "CCCCCCO",
+            "c1ccccc1", "Cc1ccccc1", "CCc1ccccc1", "Oc1ccccc1", "Nc1ccccc1",
+            "Clc1ccccc1", "c1ccncc1", "c1ccsc1", "c1cc[nH]c1", "c1ccoc1",
+            "CC(=O)O", "CCC(=O)O", "CCCC(=O)O", "CC(=O)OC", "CC(=O)OCC",
+            "CCN", "CCCN", "CCNCC", "CCN(CC)CC", "NCCN",
+            "CCCl", "CCBr", "CCI", "CCCCl", "CCCBr",
+            "CC#N", "CCC#N", "C1CCCCC1", "C1CCCC1", "C1CCNCC1",
         ])
 
-        smiles_list = rng.choice(base_smiles, size=n_samples)
+        # Split the unique molecules first, so the pools are disjoint
+        idx = rng.permutation(len(base_smiles))
+        n_train = int(0.7 * len(base_smiles))
+        n_val = int(0.15 * len(base_smiles))
 
-        labels = []
+        pools = {
+            "train": base_smiles[idx[:n_train]],
+            "val": base_smiles[idx[n_train:n_train + n_val]],
+            "test": base_smiles[idx[n_train + n_val:]],
+        }
 
-        for smiles in smiles_list:
-            mol = Chem.MolFromSmiles(smiles)
-            mw = Descriptors.MolWt(mol)
-            noisy_target = mw + rng.normal(0, 2.0)
-            labels.append(noisy_target)
+        splits = {}
+        proportions = {"train": 0.7, "val": 0.15, "test": 0.15}
 
-        return smiles_list, np.asarray(labels, dtype=np.float32)
+        for name, pool in pools.items():
+            size = int(n_samples * proportions[name])
+            sampled = rng.choice(pool, size=size)
+
+            labels = []
+            for smiles in sampled:
+                mol = Chem.MolFromSmiles(smiles)
+                mw = Descriptors.MolWt(mol)
+                labels.append(mw + rng.normal(0, 2.0))
+
+            splits[name] = (sampled, np.asarray(labels, dtype=np.float32))
+
+        return splits
 
 
-    smiles, labels = generate_synthetic_data(1000)
+    splits = generate_synthetic_data(1000)
 
-    smiles_train, smiles_temp, y_train, y_temp = train_test_split(
-        smiles,
-        labels,
-        test_size=0.3,
-        random_state=42
-    )
-
-    smiles_val, smiles_test, y_val, y_test = train_test_split(
-        smiles_temp,
-        y_temp,
-        test_size=0.5,
-        random_state=42
-    )
+    smiles_train, y_train = splits["train"]
+    smiles_val, y_val = splits["val"]
+    smiles_test, y_test = splits["test"]
 
     model, history = train_molecular_model(
         smiles_train,
@@ -1957,12 +1947,12 @@ This often:
     plt.figure(figsize=(12, 4))
 
     plt.subplot(1, 3, 1)
-    plt.plot(history["train_loss"], label="Train Loss")
-    plt.plot(history["val_loss"], label="Validation Loss")
+    plt.plot(history["train_loss"], label="Train loss")
+    plt.plot(history["val_loss"], label="Validation loss")
     plt.xlabel("Epoch")
-    plt.ylabel("MSE Loss")
+    plt.ylabel("MSE loss")
     plt.legend()
-    plt.title("Training and Validation Loss")
+    plt.title("Training and validation loss")
 
     plt.subplot(1, 3, 2)
     plt.plot(history["val_rmse"], label="RMSE")
@@ -1970,12 +1960,12 @@ This often:
     plt.xlabel("Epoch")
     plt.ylabel("Error")
     plt.legend()
-    plt.title("Validation Errors")
+    plt.title("Validation errors")
 
     plt.subplot(1, 3, 3)
     plt.plot(history["val_r2"])
     plt.xlabel("Epoch")
-    plt.ylabel("R² Score")
+    plt.ylabel("R² score")
     plt.title("Validation R²")
 
     plt.tight_layout()
@@ -1983,27 +1973,34 @@ This often:
     plt.show()
     ```
 
+**A note on this example.** The data are drawn from a small pool of molecules, so the same
+structure appears many times within a split. This is fine for demonstrating the mechanics of a
+training loop, but it is not a realistic benchmark: the network only needs to learn a mapping
+from a few dozen distinct fingerprints to their molecular weights. What the code does avoid,
+deliberately, is letting a molecule appear in more than one split — that would be exactly the
+data leakage described in Section 2.3, and it would make the validation metrics meaningless.
+When adapting this pipeline to real data, use a scaffold split rather than a random one.
 
 ### 2.3 Practical Recommendations and Training Guidelines
 
-Training neural networks for molecular property prediction requires more than selecting a model architecture. 
-Data quality, preprocessing, optimization settings, and regularization strategies strongly influence model 
-performance and generalization.
+Training neural networks for molecular property prediction requires more than selecting a model
+architecture. Data quality, preprocessing, optimization settings, and regularization strategies
+strongly influence model performance and generalization.
 
-The following guidelines summarize common best practices for building stable and reliable molecular deep learning models.
+The following guidelines summarize common best practices for building stable and reliable
+molecular deep learning models.
 
+#### 1. Data preparation and preprocessing
 
-### 1. Data Preparation and Preprocessing
+Careful preprocessing is essential because neural networks are highly sensitive to inconsistent
+or noisy inputs.
 
-Careful preprocessing is essential because neural networks are highly sensitive to inconsistent or noisy inputs.
-
-
-#### Feature Scaling
+##### Feature scaling
 
 Many molecular descriptors have very different numerical ranges. For example:
 
-* molecular weight may range from (10) to (1000),
-* partial charges may lie between (-1) and (1),
+* molecular weight may range from $10$ to $1000$,
+* partial charges may lie between $-1$ and $1$,
 * counts of functional groups are often small integers.
 
 Large scale differences can make optimization unstable.
@@ -2035,18 +2032,16 @@ X_val_scaled = scaler.transform(X_val)
 X_test_scaled = scaler.transform(X_test)
 ```
 
-##### Important Note
-
-Fingerprint vectors such as Morgan fingerprints are binary:
+**Important note.** Fingerprint vectors such as Morgan fingerprints are binary,
 
 $$
-x_i \in {0,1}
+x_i \in \{0, 1\},
 $$
 
-and are often used directly without scaling. Feature normalization is more important for continuous descriptors.
+and are typically used directly without scaling. Feature normalization matters far more for
+continuous descriptors.
 
-
-#### Missing Values
+##### Missing values
 
 Neural networks cannot process undefined numerical values such as:
 
@@ -2062,8 +2057,6 @@ Missing values should be:
 * imputed,
 * or replaced using domain-specific rules.
 
-Example:
-
 ```python
 from sklearn.impute import SimpleImputer
 
@@ -2073,12 +2066,13 @@ X_train = imputer.fit_transform(X_train)
 X_val = imputer.transform(X_val)
 ```
 
+Note that the imputer, like the scaler, is fit on the training data only.
 
-#### Duplicate Removal and Data Leakage
+##### Duplicate removal and data leakage
 
-Duplicate molecules appearing across training and validation sets can produce overly optimistic performance estimates.
-
-Data leakage occurs when the model indirectly sees validation information during training.
+Duplicate molecules appearing across training and validation sets produce overly optimistic
+performance estimates. Data leakage occurs when the model indirectly sees validation information
+during training.
 
 Always ensure:
 
@@ -2088,18 +2082,16 @@ $$
 
 and similarly for the test set.
 
-For molecular datasets, scaffold-based splitting is often more reliable than random splitting because 
-structurally similar molecules may otherwise appear in multiple sets.
+For molecular datasets, scaffold-based splitting is often more reliable than random splitting,
+because structurally similar molecules may otherwise appear in multiple sets.
 
 ##### Deduplication
 
-Deduplication is the process of identifying and removing duplicate or highly similar samples from a dataset before 
-training a machine learning model. This step improves data quality, reduces training bias, and helps prevent data 
-leakage between training, validation, and test sets. In molecular machine learning, duplicates may occur because the 
-same compound is stored in multiple databases or represented by different SMILES strings. Removing duplicates ensures 
-that model performance reflects true generalization rather than memorization. Deduplication is particularly important 
-when working with chemical datasets, where repeated molecules can artificially inflate evaluation metrics and lead 
-to overly optimistic conclusions.
+Deduplication is the process of identifying and removing duplicate samples from a dataset before
+training. In molecular machine learning, duplicates arise because the same compound is stored in
+multiple databases or written as different SMILES strings. Removing them ensures that model
+performance reflects generalization rather than memorization, and prevents repeated molecules
+from inflating evaluation metrics.
 
 ??? note "Example"
 
@@ -2113,7 +2105,7 @@ to overly optimistic conclusions.
         "C(C)O"
     ]
 
-    # Convert to canonical SMILES
+    # Canonical SMILES collapse these to a single representation
     canonical_smiles = set()
 
     for smiles in smiles_list:
@@ -2126,12 +2118,20 @@ to overly optimistic conclusions.
         print(smiles)
     ```
 
-### 2. Choosing an Appropriate Architecture
+Canonical SMILES handle differences in atom ordering, but they will still treat two entries as
+distinct if they differ in stereochemistry annotation, protonation state, or tautomeric form.
+For database-scale deduplication, the InChIKey is a more robust identifier, and RDKit's
+`rdMolStandardize` module can normalize tautomers and charges beforehand.
+
+```python
+inchikey = Chem.MolToInchiKey(Chem.MolFromSmiles("CCO"))
+```
+
+#### 2. Choosing an Appropriate Architecture
 
 Model complexity should match dataset size and task difficulty.
 
-
-#### Start with Simple Architectures
+##### Start with Simple Architectures
 
 A practical starting point is:
 
@@ -2161,10 +2161,10 @@ If the model underfits, complexity can be increased by:
 
 Increasing complexity too early often leads to unstable training.
 
+##### Detecting Overfitting
 
-#### Detecting Overfitting
-
-Overfitting occurs when the model memorizes training data instead of learning generalizable patterns.
+Overfitting occurs when the model memorizes training data instead of learning generalizable
+patterns.
 
 Typical behavior:
 
@@ -2185,27 +2185,23 @@ Possible solutions:
 * reduce network size,
 * collect more data.
 
-
-### 3. Hyperparameter Tuning
+#### 3. Hyperparameter Tuning
 
 Some hyperparameters affect training much more strongly than others.
 
-| Priority | Hyperparameter      | Typical Values         | Effect                     |
-| -------- | ------------------- | ---------------------- | -------------------------- |
-| High     | Learning rate       | (10^{-4}) to (10^{-2}) | Optimization stability     |
-| High     | Batch size          | 32–256                 | Speed and gradient noise   |
-| Medium   | Hidden layers       | 2–5                    | Model capacity             |
-| Medium   | Hidden dimension    | 64–512                 | Representation power       |
-| Medium   | Dropout rate        | 0.1–0.5                | Regularization strength    |
-| Low      | Optimizer           | Adam, AdamW            | Usually less critical      |
-| Low      | Activation function | ReLU, Leaky ReLU       | Small effect in most cases |
+| Priority | Hyperparameter      | Typical values             | Effect                     |
+| -------- | ------------------- | -------------------------- | -------------------------- |
+| High     | Learning rate       | $10^{-4}$ to $10^{-2}$     | Optimization stability     |
+| High     | Batch size          | 32–256                     | Speed and gradient noise   |
+| Medium   | Hidden layers       | 2–5                        | Model capacity             |
+| Medium   | Hidden dimension    | 64–512                     | Representation power       |
+| Medium   | Dropout rate        | 0.1–0.5                    | Regularization strength    |
+| Low      | Optimizer           | Adam, AdamW                | Usually less critical      |
+| Low      | Activation function | ReLU, Leaky ReLU           | Small effect in most cases |
 
+##### Learning rate
 
-#### Learning Rate
-
-The learning rate is usually the most important hyperparameter.
-
-Parameter updates follow:
+The learning rate is usually the most important hyperparameter. Parameter updates follow:
 
 $$
 \theta
@@ -2215,26 +2211,19 @@ $$
 \nabla_\theta L
 $$
 
-where:
+where $\alpha$ is the learning rate.
 
-* $\alpha$ is the learning rate.
-
-Typical behavior:
-
-| Learning Rate | Effect                      |
+| Learning rate | Effect                      |
 | ------------- | --------------------------- |
 | Too large     | Divergence or unstable loss |
 | Too small     | Very slow convergence       |
 | Appropriate   | Stable optimization         |
 
-
-
-### 4. Regularization Techniques
+#### 4. Regularization Techniques
 
 Regularization helps improve generalization and reduce overfitting.
 
-
-#### Weight Decay (L2 Regularization)
+##### Weight decay (L2 regularization)
 
 Weight decay penalizes large parameter values:
 
@@ -2243,14 +2232,10 @@ L_{\text{total}}
 =
 L_{\text{data}}
 +
-\lambda ||W||_2^2
+\lambda \lVert \mathbf{W} \rVert_2^2
 $$
 
-where:
-
-* $\lambda$ controls regularization strength.
-
-Example:
+where $\lambda$ controls regularization strength.
 
 ```python
 optimizer = optim.Adam(
@@ -2260,17 +2245,19 @@ optimizer = optim.Adam(
 )
 ```
 
-#### Dropout
+Note that the `weight_decay` argument of `optim.Adam` implements *coupled* L2 regularization:
+the penalty is added to the gradient and is therefore rescaled by Adam's adaptive denominator.
+Use `optim.AdamW` for the decoupled form discussed in Section 1.5, which is generally preferred.
 
-Dropout randomly disables neurons during training.
+##### Dropout
 
-If the dropout probability is:
+Dropout randomly disables neurons during training. With
 
 $$
-p = 0.3
+p = 0.3,
 $$
 
-then (30%) of neurons are randomly ignored during each iteration.
+each neuron is dropped with probability $30\%$ at every training step.
 
 ```python
 nn.Dropout(p=0.3)
@@ -2280,7 +2267,7 @@ nn.Dropout(p=0.3)
 
 Batch normalization stabilizes intermediate activations:
 
-```python 
+```python
 nn.BatchNorm1d(hidden_dim)
 ```
 
@@ -2290,14 +2277,14 @@ Benefits include:
 * improved gradient flow,
 * reduced sensitivity to initialization.
 
-
-#### Early Stopping
+##### Early Stopping
 
 Early stopping terminates training when validation performance stops improving.
 
 ```python
 if val_loss < best_val_loss:
     best_val_loss = val_loss
+    best_model_state = copy.deepcopy(model.state_dict())
     patience_counter = 0
 else:
     patience_counter += 1
@@ -2306,16 +2293,15 @@ else:
 Training stops when:
 
 $$
-\text{patience counter} \geq p
+\text{patience counter} \geq p,
 $$
 
-where (p) is the patience threshold.
+where $p$ is the patience threshold. Note that the best model state should be saved and restored
+at the end of training; otherwise the final weights are those of the last, worse epoch.
 
+#### 5. Troubleshooting common training problems
 
-### 5. Troubleshooting Common Training Problems
-
-
-#### Problem: Loss Becomes NaN
+##### Problem: loss becomes NaN
 
 Possible causes:
 
@@ -2326,7 +2312,7 @@ Possible causes:
 
 A common solution is gradient clipping:
 
-```python 
+```python
 torch.nn.utils.clip_grad_norm_(
     model.parameters(),
     max_norm=1.0
@@ -2341,8 +2327,7 @@ $$
 
 where $c$ is the clipping threshold.
 
-
-#### Problem: Loss Does Not Decrease
+##### Problem: loss does not decrease
 
 Possible causes:
 
@@ -2353,14 +2338,13 @@ Possible causes:
 
 Potential fixes:
 
-* adjust learning rate,
-* verify labels,
+* adjust the learning rate,
+* verify the labels,
 * inspect feature distributions,
-* simplify debugging with a smaller dataset.
+* try to overfit a small subset deliberately; a model that cannot overfit ten samples has a bug
+  rather than a capacity problem.
 
-
-
-#### Problem: Validation Loss Increases While Training Loss Decreases
+##### Problem: validation loss increases while training loss decreases
 
 This is a classic sign of overfitting.
 
@@ -2371,9 +2355,7 @@ Possible solutions:
 * smaller architecture,
 * earlier stopping.
 
-
-
-#### Problem: Both Training and Validation Loss Remain High
+##### Problem: both training and validation loss remain high
 
 This often indicates underfitting.
 
@@ -2384,12 +2366,10 @@ Possible solutions:
 * train longer,
 * improve molecular features.
 
+#### 6. Monitoring the training process
 
-### 6. Monitoring the Training Process
-
-Monitoring training curves helps identify optimization problems early.
-
-TensorBoard is commonly used for real-time visualization.
+Monitoring training curves helps identify optimization problems early. TensorBoard is commonly
+used for real-time visualization.
 
 ```python
 from torch.utils.tensorboard import SummaryWriter
@@ -2416,9 +2396,7 @@ Useful plots include:
 * gradient norms,
 * evaluation metrics.
 
-
-
-### 7. Saving and Reloading Models
+#### 7. Saving and reloading models
 
 Saving checkpoints allows training to resume later and preserves the best model.
 
@@ -2435,7 +2413,11 @@ torch.save({
 Reloading:
 
 ```python
-checkpoint = torch.load("best_model.pth")
+# Since PyTorch 2.6, torch.load defaults to weights_only=True, which
+# refuses to unpickle arbitrary Python objects. A checkpoint containing
+# a history dictionary therefore requires weights_only=False.
+# Only do this for checkpoints from a trusted source.
+checkpoint = torch.load("best_model.pth", weights_only=False)
 
 model.load_state_dict(
     checkpoint["model_state_dict"]
@@ -2446,6 +2428,13 @@ optimizer.load_state_dict(
 )
 ```
 
+If only the weights are needed, saving `model.state_dict()` alone allows the safer default:
+
+```python
+torch.save(model.state_dict(), "weights.pth")
+state = torch.load("weights.pth")  # weights_only=True is fine here
+```
+
 This restores:
 
 * model weights,
@@ -2453,17 +2442,14 @@ This restores:
 * training history,
 * and training epoch.
 
+#### 8. Recommendations for molecular data
 
-### 8. Recommendations for Molecular Data
+Molecular machine learning introduces additional considerations beyond standard deep learning
+workflows.
 
-Molecular machine learning introduces additional considerations beyond standard deep learning workflows.
-
-
-#### Molecular Representations
+##### Molecular representations
 
 Different fingerprint types capture different chemical information.
-
-Common choices include:
 
 | Fingerprint         | Characteristics                |
 | ------------------- | ------------------------------ |
@@ -2473,11 +2459,9 @@ Common choices include:
 
 Morgan fingerprints are often the best starting point for general molecular tasks.
 
-#### Molecular Size Effects
+##### Molecular size effects
 
-Some molecular properties scale with molecule size.
-
-In certain tasks, normalization by:
+Some molecular properties scale with molecule size. In certain tasks, normalization by:
 
 * molecular weight,
 * heavy atom count,
@@ -2485,12 +2469,10 @@ In certain tasks, normalization by:
 
 may improve learning stability.
 
+##### Invalid SMILES strings
 
-#### Invalid SMILES Strings
-
-RDKit cannot parse malformed molecular representations.
-
-Always validate molecules before training.
+RDKit cannot parse malformed molecular representations. Always validate molecules before
+training.
 
 ```python
 mol = Chem.MolFromSmiles(smiles)
@@ -2499,29 +2481,23 @@ if mol is None:
     continue
 ```
 
+##### SMILES enumeration for data augmentation
 
-#### SMILES Enumeration for Data Augmentation
-
-A molecule can have multiple equivalent SMILES representations.
-
-Example:
+A molecule can have multiple equivalent SMILES representations. For example,
 
 ```text
 CCO
 OCC
 ```
 
-represent the same molecule.
-
-SMILES randomization can augment datasets and improve robustness.
+represent the same molecule. SMILES randomization can augment datasets and improve robustness.
 
 ```python
 from rdkit import Chem
 
 def enumerate_smiles(smiles, n_variants=5):
     """
-    Generate randomized SMILES strings
-    for the same molecule.
+    Generate randomized SMILES strings for the same molecule.
     """
 
     mol = Chem.MolFromSmiles(smiles)
