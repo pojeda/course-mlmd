@@ -1,6 +1,5 @@
 # Deep Learning for Molecular Systems
 
-
 ## 1. Deep Learning Fundamentals
 
 ### 1.1 Why deep learning for molecules?
@@ -450,17 +449,17 @@ def softmax(x):
 
 ### 1.4 Loss Functions and Backpropagation
 
-Loss functions measure how well a neural network's predictions match the true target values. During training, 
-the model adjusts its parameters to minimize the loss, thereby improving prediction accuracy.
+Loss functions measure how well a neural network's predictions match the true target values.
+During training, the model adjusts its parameters to minimize the loss, thereby improving
+prediction accuracy.
 
-The choice of loss function depends on the type of problem being solved, such as regression or classification.
-
-
+The choice of loss function depends on the type of problem being solved, such as regression or
+classification.
 
 #### Mean Squared Error (MSE) — Regression
 
-Mean Squared Error is one of the most common loss functions for regression tasks. It computes the average squared 
-difference between predicted and true values:
+Mean Squared Error is one of the most common loss functions for regression tasks. It computes 
+the average squared difference between predicted and true values:
 
 $$
 L(y, \hat{y}) =
@@ -478,7 +477,7 @@ where:
 ##### Characteristics
 
 * Penalizes large prediction errors more strongly because of the squared term
-* Produces smooth and differentiable gradients
+* Smooth and differentiable everywhere, which suits gradient-based optimization
 * Sensitive to outliers
 
 ##### Typical Use Cases
@@ -508,8 +507,8 @@ $$
 
 ##### Advantages
 
-* Less sensitive to outliers than MSE
-* Treats all prediction errors equally
+* Less sensitive to outliers than MSE: because the gradient does not grow with the error, a
+  single badly mispredicted sample cannot dominate the parameter updates
 
 ##### Disadvantages
 
@@ -521,15 +520,14 @@ $$
 * Noisy experimental datasets
 * Robust molecular property prediction
 
-```python 
+```python
 def mae_loss(y_true, y_pred):
     return np.mean(np.abs(y_true - y_pred))
 ```
 
-
 #### Binary Cross-Entropy — Binary Classification
 
-Binary Cross-Entropy (BCE) is commonly used for binary classification problems where the model 
+Binary Cross-Entropy (BCE) is commonly used for binary classification problems where the model
 predicts the probability of belonging to a single class.
 
 $$
@@ -542,6 +540,9 @@ y_i \log(\hat{y}_i)
 (1-y_i)\log(1-\hat{y}_i)
 \right]
 $$
+
+The predictions $\hat{y}_i$ must be probabilities in $(0, 1)$, which is why this loss is paired
+with a sigmoid output.
 
 ##### Typical Use Cases
 
@@ -566,7 +567,8 @@ def binary_crossentropy(y_true, y_pred):
 
 #### Categorical Cross-Entropy — Multi-Class Classification
 
-Categorical Cross-Entropy is used when predicting one class among several mutually exclusive categories.
+Categorical Cross-Entropy is used when predicting one class among several mutually exclusive
+categories.
 
 $$
 L(y, \hat{y}) =
@@ -582,6 +584,9 @@ where:
 * $y_{ij}$ is the true label indicator,
 * $\hat{y}_{ij}$ is the predicted probability for class $j$.
 
+The targets are assumed to be one-hot encoded, so that for each sample exactly one $y_{ij}$
+equals 1 and the inner sum reduces to the log-probability assigned to the correct class.
+
 ##### Typical Use Cases
 
 * Molecular functional group classification
@@ -594,6 +599,7 @@ where:
 
 ```python
 def categorical_crossentropy(y_true, y_pred):
+    # y_true, y_pred: shape (n_samples, C), with one-hot targets
     epsilon = 1e-15
     y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
 
