@@ -166,7 +166,7 @@ where $f$ is a non-linear activation function.
 
 ### Neural Network Layer
 
-For layer (l), the computations are:
+For layer $l$, the computations are:
 
 $$
 \mathbf{Z}^{[l]} = \mathbf{W}^{[l]} \mathbf{A}^{[l-1]} + \mathbf{b}^{[l]}
@@ -179,11 +179,13 @@ $$
 where:
 
 * $l$ is the layer index,
-* $\mathbf{W}^{[l]}$ is the weight matrix for layer (l),
+* $\mathbf{W}^{[l]}$ is the weight matrix for layer $l$,
 * $\mathbf{A}^{[l-1]}$ represents the activations from the previous layer,
-* $\mathbf{b}^{[l]}$ is the bias vector,
+* $\mathbf{b}^{[l]}$ is the bias vector, broadcast across all samples,
 * $f$ is the activation function applied element-wise.
 
+With the convention used here, columns of $\mathbf{A}^{[l]}$ correspond to samples and rows
+to features, so $\mathbf{A}^{[0]} = \mathbf{X}$ has shape (features, samples).
 
 **Forward Propagation Example:**
 
@@ -191,6 +193,7 @@ where:
 
     ```python
     # Simple 3-layer network
+    # Activation functions: relu, sigmoid, ...
     import numpy as np
 
     def forward_propagation(X, parameters):
@@ -201,43 +204,47 @@ where:
         # Layer 1: Input → Hidden (128 neurons)
         Z1 = np.dot(parameters['W1'], X) + parameters['b1']
         A1 = relu(Z1)
-        
+
         # Layer 2: Hidden → Hidden (64 neurons)
         Z2 = np.dot(parameters['W2'], A1) + parameters['b2']
         A2 = relu(Z2)
-        
+
         # Layer 3: Hidden → Output (1 neuron for regression)
         Z3 = np.dot(parameters['W3'], A2) + parameters['b3']
         A3 = Z3  # Linear activation for regression
-        
+
         cache = {'Z1': Z1, 'A1': A1, 'Z2': Z2, 'A2': A2, 'Z3': Z3, 'A3': A3}
         return A3, cache
     ```
 
 ### Universal Approximation Theorem
 
-The Universal Approximation Theorem is a foundational result in neural network theory. It states that a feedforward neural 
-network with a single hidden layer containing a sufficient number of neurons and a non-linear activation function can 
-approximate any continuous function on a compact domain to arbitrary accuracy. Mathematically, for a continuous function 
-$f(x)$ and any error tolerance $\varepsilon > 0$, there exists a neural network $g(x)$ such that $|f(x) - g(x)| < \varepsilon$
-for all $x$ in the domain of interest. A typical neural network approximation can be written as
+The Universal Approximation Theorem is a foundational result in neural network theory. It 
+states that a feedforward neural network with a single hidden layer containing a sufficient 
+number of neurons and a non-linear activation function can approximate any continuous 
+function on a compact domain to arbitrary accuracy. Mathematically, for a continuous function 
+$f(x)$ and any error tolerance $\varepsilon > 0$, there exists a neural network $g(x)$ such 
+that $|f(x) - g(x)| < \varepsilon$ for all $x$ in the domain of interest. 
+A typical neural network approximation can be written as
 
 $$
 g(x) = \sum_{i=1}^{N} a_i \, \sigma(\mathbf{w}_i^\top \mathbf{x} + b_i),
 $$
 
-where $\sigma$ is a non-linear activation function, $a_i$ are output weights, $\mathbf{w}_i$ are input weights, and $b_i$ 
-are biases. The theorem explains why neural networks are highly expressive models, although it does not guarantee efficient 
-training, optimal architectures, or the number of neurons required for a given problem [Math. Control, Signals, and Systems 2, 
+where $\sigma$ is a non-linear activation function, $a_i$ are output weights, $\mathbf{w}_i$ i
+are input weights, and $b_i$ are biases. The theorem explains why neural networks are 
+highly expressive models, although it does not guarantee efficient 
+training, optimal architectures, or the number of neurons required for a given problem 
+[Math. Control, Signals, and Systems 2, 
 303-314 (1989); Neural Networks 4, 251-257 (1991)].
 
-### 1.3 Activation Functions
+### 1.3 Activation functions
 
-Activation functions introduce non-linearity into neural networks, allowing them to learn complex and highly non-linear 
-relationships in data. Without activation functions, a deep neural network would behave like a linear model regardless of its depth.
+Activation functions introduce non-linearity into neural networks, allowing them to learn
+complex and highly non-linear relationships in data. Without activation functions, a deep 
+neural network would behave like a linear model regardless of its depth.
 
-
-#### ReLU (Rectified Linear Unit)
+#### ReLU (rectified linear unit)
 
 The ReLU activation function is defined as:
 
@@ -251,9 +258,12 @@ $$
 f'(x) =
 \begin{cases}
 1, & x > 0 \\
-0, & x \leq 0
+0, & x < 0
 \end{cases}
 $$
+
+Strictly, ReLU is not differentiable at $x = 0$. In practice a subgradient is used, and the
+value $0$ is the conventional choice (the one adopted in the code below).
 
 ##### Advantages
 
@@ -264,7 +274,7 @@ $$
 
 ##### Disadvantages
 
-* Can suffer from the **dead ReLU problem**, where neurons permanently output zero
+* Can suffer from the **dead ReLU problem**, where a neuron's permanently output zero
 * Outputs are not zero-centered
 
 ```python
@@ -275,30 +285,69 @@ def relu_derivative(x):
     return (x > 0).astype(float)
 ```
 
-
 #### Leaky ReLU
 
 Leaky ReLU introduces a small slope for negative inputs:
 
 $$
-f(x) = 
+f(x) =
 \begin{cases}
 x, & x > 0 \\
 \alpha x, & x \leq 0
-\end{cases} 
+\end{cases}
 $$
 
+where $\alpha$ is typically 0.01. Its derivative is:
 
-where $\alpha$ is typically 0.01.
+$$
+f'(x) =
+\begin{cases}
+1, & x > 0 \\
+\alpha, & x < 0
+\end{cases}
+$$
 
 ##### Advantages
 
-* Reduces the risk of dead neurons
+* Reduces the risk of dead neurons, since the gradient is never exactly zero
 * Maintains a small gradient for negative values
 
 ```python
 def leaky_relu(x, alpha=0.01):
     return np.where(x > 0, x, alpha * x)
+
+def leaky_relu_derivative(x, alpha=0.01):
+    return np.where(x > 0, 1.0, alpha)
+```
+
+#### ELU (exponential linear unit)
+
+ELU is a smooth alternative that saturates to a negative value rather than growing linearly:
+
+$$
+f(x) =
+\begin{cases}
+x, & x > 0 \\
+\alpha \left(e^{x} - 1\right), & x \leq 0
+\end{cases}
+$$
+
+##### Advantages
+
+* Mean activations closer to zero, which can speed up convergence
+* Smooth and differentiable everywhere for $\alpha > 0$
+* Negative saturation makes it more robust to noise than Leaky ReLU
+
+##### Disadvantages
+
+* More expensive than ReLU because of the exponential
+
+```python
+def elu(x, alpha=1.0):
+    return np.where(x > 0, x, alpha * (np.exp(x) - 1))
+
+def elu_derivative(x, alpha=1.0):
+    return np.where(x > 0, 1.0, alpha * np.exp(x))
 ```
 
 #### Sigmoid
@@ -322,7 +371,8 @@ $$
 
 ##### Disadvantages
 
-* Suffers from the vanishing gradient problem for large positive or negative inputs
+* Suffers from the vanishing gradient problem for large positive or negative inputs, where
+  the derivative approaches zero
 * Outputs are not zero-centered
 * More computationally expensive than ReLU
 
@@ -335,19 +385,12 @@ def sigmoid_derivative(x):
     return s * (1 - s)
 ```
 
-
 #### Tanh (Hyperbolic Tangent)
 
 The hyperbolic tangent function is defined as:
 
 $$
-f(x) = \tanh(x)
-$$
-
-which can also be written as:
-
-$$
-f(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}
+f(x) = \tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}
 $$
 
 Its derivative is:
@@ -359,7 +402,8 @@ $$
 ##### Advantages
 
 * Zero-centered outputs improve optimization compared to sigmoid
-* Produces stronger gradients near zero
+* Produces stronger gradients near the origin, where $f'(0) = 1$ compared with $0.25$ for
+  sigmoid
 
 ##### Disadvantages
 
@@ -375,15 +419,16 @@ def tanh_derivative(x):
 
 #### Softmax (Multi-Class Output)
 
-Softmax converts raw outputs into a probability distribution over multiple classes:
+Softmax converts a vector of raw scores $\mathbf{x} \in \mathbb{R}^{K}$ into a probability
+distribution over $K$ classes:
 
 $$
-f(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}}
+f(x_i) = \frac{e^{x_i}}{\sum_{j=1}^{K} e^{x_j}}, \qquad i = 1, \dots, K
 $$
 
 ##### Properties
 
-* Output probabilities sum to 1
+* Outputs are positive and  probabilities sum to 1
 * Commonly used in the output layer for multi-class classification
 
 ```python
@@ -392,7 +437,6 @@ def softmax(x):
     return exp_x / np.sum(exp_x, axis=0, keepdims=True)
 ```
 
-
 #### Activation Function Selection Guide
 
 | Layer Type                                  | Recommended Activation | Reason                                                  |
@@ -400,7 +444,7 @@ def softmax(x):
 | Hidden layers (general)                     | ReLU                   | Fast, simple, and effective for deep networks           |
 | Hidden layers (negative features important) | Leaky ReLU / ELU       | Preserves gradients for negative inputs                 |
 | Output (regression)                         | Linear                 | Allows unrestricted output values                       |
-| Output (binary classification)              | Sigmoid                | Produces probabilities in the range ([0,1])             |
+| Output (binary classification)              | Sigmoid                | Produces probabilities in the range $[0,1]$             |
 | Output (multi-class classification)         | Softmax                | Generates a probability distribution across classes     |
 | Recurrent neural networks                   | Tanh                   | Zero-centered and bounded activations improve stability |
 
