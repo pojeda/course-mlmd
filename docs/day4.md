@@ -4527,29 +4527,97 @@ padding index and applies this mask.
             return output, attention_weights
     ```
 
+### 5.2 GRU model
 
-### 5.2 Comparison with CNNs
+The Gated Recurrent Unit (GRU) is a lighter gated RNN. It merges the cell and hidden states and
+uses two gates (a reset gate and an update gate) instead of three, giving it fewer parameters
+than an LSTM of the same hidden size while often performing comparably.
 
-CNNs and RNNs process SMILES strings differently.
+??? note "Example"
 
-A **1D CNN** detects local token patterns, such as short fragments and functional groups. An **LSTM or 
-GRU** processes the sequence step by step and can model longer-range dependencies.
+    ```python
+    class SMILES_GRU(nn.Module):
+        """
+        GRU model for molecular property prediction from SMILES strings.
+        """
 
+        def __init__(
+            self,
+            vocab_size,
+            embedding_dim=128,
+            hidden_dim=256,
+            num_layers=2,
+            output_dim=1,
+            dropout_rate=0.3,
+            bidirectional=True,
+            padding_idx=0
+        ):
+            super().__init__()
 
-#### Conceptual Comparison
+            self.bidirectional = bidirectional
+            self.num_directions = 2 if bidirectional else 1
 
-| Model            | Strengths                                   | Limitations                         | Good Use Cases                              |
+            self.embedding = nn.Embedding(
+                vocab_size,
+                embedding_dim,
+                padding_idx=padding_idx
+            )
+
+            self.gru = nn.GRU(
+                input_size=embedding_dim,
+                hidden_size=hidden_dim,
+                num_layers=num_layers,
+                batch_first=True,
+                dropout=dropout_rate if num_layers > 1 else 0.0,
+                bidirectional=bidirectional
+            )
+
+            gru_output_dim = hidden_dim * self.num_directions
+
+            self.regressor = nn.Sequential(
+                nn.Linear(gru_output_dim, 128),
+                nn.ReLU(),
+                nn.Dropout(dropout_rate),
+                nn.Linear(128, output_dim)
+            )
+
+        def forward(self, x):
+            embedded = self.embedding(x)
+
+            # GRU returns only a hidden state, not a cell state
+            _, hidden = self.gru(embedded)
+
+            if self.bidirectional:
+                final_hidden = torch.cat([hidden[-2], hidden[-1]], dim=1)
+            else:
+                final_hidden = hidden[-1]
+
+            return self.regressor(final_hidden)
+    ```
+
+### 5.3 Comparison with CNNs
+
+CNNs and RNNs process SMILES strings differently. A **1D CNN** detects local token patterns, such
+as short fragments and functional groups, and does so in parallel across the sequence. An **LSTM
+or GRU** processes the sequence step by step and can model longer-range dependencies, at the cost
+of sequential computation.
+
+#### Conceptual comparison
+
+| Model            | Strengths                                   | Limitations                         | Good use cases                              |
 | ---------------- | ------------------------------------------- | ----------------------------------- | ------------------------------------------- |
 | 1D CNN           | Fast, parallelizable, good for local motifs | Weaker long-range sequence modeling | Large-scale screening, toxicity alerts      |
 | LSTM             | Captures sequential dependencies            | Slower than CNNs                    | Longer SMILES, sequence-sensitive patterns  |
 | GRU              | Similar to LSTM but lighter                 | Slightly less expressive than LSTM  | Efficient recurrent modeling                |
-| LSTM + Attention | Highlights important tokens                 | More parameters and slower training | Interpretability, complex sequence patterns |
+| LSTM + attention | Highlights important tokens                 | More parameters and slower training | Interpretability, complex sequence patterns |
 
+#### Model comparison example
 
-#### Model Comparison Example
-
-This example assumes that `SMILESTokenizer`, `SMILESDataset`, `SMILES_CNN`, `SMILES_LSTM`, `SMILES_GRU`, 
-and `SMILES_LSTM_Attention` are already defined.
+This example assumes that `SMILESTokenizer`, `SMILESDataset`, `SMILES_CNN`, `SMILES_LSTM`,
+`SMILES_GRU`, and `SMILES_LSTM_Attention` are already defined. To make the comparison fair, the
+shared hyperparameters — embedding dimension, hidden dimension, and directionality — are set
+explicitly and equally for every recurrent model, so that the table reflects architectural
+differences rather than incidental configuration choices.
 
 ??? note "Example"
 
@@ -4576,6 +4644,7 @@ and `SMILES_LSTM_Attention` are already defined.
 
             outputs = model(batch_x)
 
+            # Attention models return (prediction, attention_weights)
             if isinstance(outputs, tuple):
                 predictions = outputs[0]
             else:
@@ -4658,23 +4727,18 @@ and `SMILES_LSTM_Attention` are already defined.
         tokenizer = SMILESTokenizer()
 
         train_dataset = SMILESDataset(
-            smiles_train,
-            y_train,
-            tokenizer,
-            max_length=100
+            smiles_train, y_train, tokenizer, max_length=100
         )
 
         val_dataset = SMILESDataset(
-            smiles_val,
-            y_val,
-            tokenizer,
-            max_length=100
+            smiles_val, y_val, tokenizer, max_length=100
         )
 
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
-            shuffle=True
+            shuffle=True,
+            drop_last=True
         )
 
         val_loader = DataLoader(
@@ -4685,14 +4749,31 @@ and `SMILES_LSTM_Attention` are already defined.
 
         vocab_size = len(tokenizer.vocab)
 
+        # Shared hyperparameters, set equally for a fair comparison
+        embedding_dim = 128
+        hidden_dim = 256
+
         models = {
-            "1D CNN": SMILES_CNN(vocab_size=vocab_size),
-            "LSTM": SMILES_LSTM(vocab_size=vocab_size),
-            "GRU": SMILES_GRU(vocab_size=vocab_size),
+            "1D CNN": SMILES_CNN(
+                vocab_size=vocab_size,
+                embedding_dim=embedding_dim
+            ),
+            "LSTM": SMILES_LSTM(
+                vocab_size=vocab_size,
+                embedding_dim=embedding_dim,
+                hidden_dim=hidden_dim,
+                bidirectional=True
+            ),
+            "GRU": SMILES_GRU(
+                vocab_size=vocab_size,
+                embedding_dim=embedding_dim,
+                hidden_dim=hidden_dim,
+                bidirectional=True
+            ),
             "LSTM + Attention": SMILES_LSTM_Attention(
                 vocab_size=vocab_size,
-                embedding_dim=128,
-                hidden_dim=256,
+                embedding_dim=embedding_dim,
+                hidden_dim=hidden_dim,
                 output_dim=1
             )
         }
@@ -4770,28 +4851,35 @@ and `SMILES_LSTM_Attention` are already defined.
         return results
     ```
 
-#### Typical Behavior
+#### Typical behavior
 
-The exact numbers depend on the dataset, target property, split, vocabulary, and training settings. In general:
+The exact numbers depend on the dataset, target property, split, vocabulary, and training
+settings. The table below is a qualitative expectation, not a measurement; the relative ordering
+is generally reliable, but the magnitudes will vary.
 
-| Model            | Speed   | Parameter Count | Strength                                         |
+| Model            | Speed   | Parameter count | Strength                                         |
 | ---------------- | ------- | --------------- | ------------------------------------------------ |
 | 1D CNN           | Fastest | Moderate        | Local SMILES motifs                              |
 | GRU              | Medium  | Lower than LSTM | Efficient sequence modeling                      |
 | LSTM             | Slower  | Higher          | Long-range sequence patterns                     |
-| LSTM + Attention | Slowest | Highest         | Interpretability and flexible sequence weighting |
-
+| LSTM + attention | Slowest | Highest         | Interpretability and flexible sequence weighting |
 
 #### Recommendations
 
-Use a **1D CNN** when speed is important and local molecular motifs are enough.
+Use a **1D CNN** when speed is important and local molecular motifs are sufficient.
 
 Use a **GRU** when you want recurrent modeling with fewer parameters and faster training.
 
 Use an **LSTM** when long-range sequence dependencies may matter.
 
-Use **LSTM with attention** when interpretability is important or when the model should learn which 
-SMILES tokens contribute most strongly to the prediction.
+Use an **LSTM with attention** when interpretability is important, or when the model should learn
+which SMILES tokens contribute most strongly to the prediction.
+
+It is worth noting that, for sequence modeling generally, transformer architectures based on
+self-attention have largely superseded recurrent networks, since they model long-range
+dependencies directly and train in parallel rather than sequentially. The recurrent models here
+remain a lightweight and instructive baseline, and are still competitive on small molecular
+datasets where large transformers tend to overfit.
 
 ## 6. Transfer Learning
 
