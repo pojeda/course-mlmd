@@ -4160,33 +4160,43 @@ baseline before being adopted.
 
 ## 5. Recurrent Neural Networks
 
-Recurrent Neural Networks (RNNs) are designed for sequential data. Unlike feedforward networks, they process 
-one token at a time while maintaining a hidden state that stores information from previous positions in the sequence.
+Recurrent Neural Networks (RNNs) are designed for sequential data (text, SMILES strings, protein sequences, etc.). Unlike feedforward networks,
+they process one token at a time while maintaining a hidden state that carries information from
+previous positions in the sequence.
 
-For molecular machine learning, RNNs are useful when molecules are represented as **SMILES strings**, because 
-the order of tokens carries chemical meaning.
+For molecular machine learning, RNNs are useful when molecules are represented as **SMILES
+strings**. A 1D CNN also respects token order, but only within the span of its kernel; the
+distinguishing strength of an RNN is that its hidden state can, in principle, carry information
+across the entire sequence, letting it model dependencies between tokens that are far apart, for
+example, a ring-opening digit and its matching ring-closure digit. RNNs also handle
+variable-length sequences naturally.
 
 A simplified recurrent update is:
 
 $$
-\mathbf{h}_t = f(\mathbf{W}_x \mathbf{x}_t + \mathbf{W}*h \mathbf{h}*{t-1} + \mathbf{b})
+\mathbf{h}_t = f\left(\mathbf{W}_x \mathbf{x}_t + \mathbf{W}_h \mathbf{h}_{t-1} + \mathbf{b}\right)
 $$
 
 where:
 
-* $\mathbf{x}_t$ is the input token at position (t),
-* $\mathbf{h}_t$ is the hidden state at position (t),
+* $\mathbf{x}_t$ is the input token at position $t$,
+* $\mathbf{h}_t$ is the hidden state at position $t$,
 * $\mathbf{h}_{t-1}$ is the previous hidden state.
 
+In this simplest form the network is difficult to train on long sequences, because repeatedly
+multiplying by $\mathbf{W}_h$ during backpropagation causes gradients to shrink toward zero or
+grow without bound — the vanishing and exploding gradient problems. Gated architectures such as
+the LSTM were introduced to address this.
 
+### 5.1 LSTM for SMILES sequences
 
-### 5.1 LSTM for SMILES Sequences
+Long Short-Term Memory networks, or **LSTMs**, are gated RNNs designed to handle longer
+sequences. They maintain a separate cell state and use gates to control what information is
+stored, forgotten, and passed forward. The cell state provides a path along which gradients can
+flow with less attenuation, which is what makes long-range dependencies learnable.
 
-Long Short-Term Memory networks, or **LSTMs**, are improved RNNs designed to handle longer sequences. They 
-use gates to control what information is stored, forgotten, and passed forward.
-
-This is useful for SMILES strings because important molecular patterns may depend on tokens that are far apart 
-in the sequence.
+This matters for SMILES strings because chemically important relationships may span tokens that
+are distant in the string.
 
 Example architecture:
 
@@ -4206,9 +4216,7 @@ Fully connected layers
 Molecular property prediction
 ```
 
-
-
-#### LSTM Model
+#### LSTM model
 
 ??? note "Example"
 
@@ -4266,17 +4274,19 @@ Molecular property prediction
             """
             Args:
                 x: Tensor of token indices with shape
-                (batch_size, sequence_length)
+                   (batch_size, sequence_length)
 
             Returns:
-                Prediction tensor with shape
-                (batch_size, output_dim)
+                Prediction tensor with shape (batch_size, output_dim)
             """
 
             embedded = self.embedding(x)
 
             lstm_output, (hidden, cell) = self.lstm(embedded)
 
+            # hidden has shape (num_layers * num_directions, batch, hidden_dim).
+            # For a bidirectional network, the last two entries are the final
+            # forward and backward layer states.
             if self.bidirectional:
                 forward_hidden = hidden[-2]
                 backward_hidden = hidden[-1]
@@ -4291,6 +4301,14 @@ Molecular property prediction
 
             return output
     ```
+
+One caveat applies to this model as written. Because the sequences are padded to a fixed length,
+the final hidden state summarizes the network after it has consumed all 100 positions, including
+the trailing padding tokens. The forward direction is therefore reading the state *after* the
+padding rather than at the last real token. For correct handling, wrap the embedded sequence with
+`nn.utils.rnn.pack_padded_sequence` using the true lengths before passing it to the LSTM; PyTorch
+then stops each sequence at its real end. This is omitted above for readability, but it is
+recommended in practice, and it matters more the more heavily the batch is padded.
 
 Example:
 
@@ -4316,47 +4334,46 @@ Example:
     print(f"Trainable parameters: {num_parameters:,}")
     ```
 
-
-#### LSTM Internal Gates
+#### LSTM internal gates
 
 An LSTM uses three main gates:
 
-* **Forget gate:** decides what old information to remove.
+* **Forget gate:** decides what old information to remove from the cell state.
 * **Input gate:** decides what new information to store.
 * **Output gate:** decides what information to expose as the hidden state.
 
 The main equations are:
 
 $$
-\mathbf{f}_t = \sigma(\mathbf{W}_f[\mathbf{x}*t, \mathbf{h}*{t-1}] + \mathbf{b}_f)
+\mathbf{f}_t = \sigma\left(\mathbf{W}_f[\mathbf{x}_t, \mathbf{h}_{t-1}] + \mathbf{b}_f\right)
 $$
 
 $$
-\mathbf{i}_t = \sigma(\mathbf{W}_i[\mathbf{x}*t, \mathbf{h}*{t-1}] + \mathbf{b}_i)
+\mathbf{i}_t = \sigma\left(\mathbf{W}_i[\mathbf{x}_t, \mathbf{h}_{t-1}] + \mathbf{b}_i\right)
 $$
 
 $$
-\tilde{\mathbf{c}}_t = \tanh(\mathbf{W}_c[\mathbf{x}*t, \mathbf{h}*{t-1}] + \mathbf{b}_c)
+\tilde{\mathbf{c}}_t = \tanh\left(\mathbf{W}_c[\mathbf{x}_t, \mathbf{h}_{t-1}] + \mathbf{b}_c\right)
 $$
 
 $$
-\mathbf{c}_t = \mathbf{f}*t \odot \mathbf{c}*{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t
+\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t
 $$
 
 $$
-\mathbf{o}_t = \sigma(\mathbf{W}_o[\mathbf{x}*t, \mathbf{h}*{t-1}] + \mathbf{b}_o)
+\mathbf{o}_t = \sigma\left(\mathbf{W}_o[\mathbf{x}_t, \mathbf{h}_{t-1}] + \mathbf{b}_o\right)
 $$
 
 $$
 \mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)
 $$
 
-where $\odot$ means element-wise multiplication.
-
+where $\odot$ denotes element-wise multiplication and $[\mathbf{x}_t, \mathbf{h}_{t-1}]$ is the
+concatenation of the current input and the previous hidden state.
 
 #### Manual LSTM Cell
 
-This implementation is mainly for understanding. In practice, use `nn.LSTM`.
+This implementation is for understanding only. In practice, use `nn.LSTM`.
 
 ??? note "Example"
 
@@ -4406,13 +4423,17 @@ This implementation is mainly for understanding. In practice, use `nn.LSTM`.
             return h_t, c_t
     ```
 
+The four gates are written as separate linear layers here to make the correspondence with the
+equations explicit. Efficient implementations, including PyTorch's, concatenate them into a
+single weight matrix and compute all four pre-activations in one matrix multiplication, then split
+the result.
 
+#### LSTM with attention
 
-#### LSTM with Attention
-
-A standard LSTM often uses only the final hidden state. However, for SMILES strings, useful information may appear anywhere in the sequence.
-
-An attention mechanism learns which token positions are most relevant for the prediction.
+A standard LSTM summarizes the sequence with a single hidden state. For SMILES strings, useful
+information may appear anywhere in the sequence, and compressing everything into one vector can
+lose it. An attention mechanism instead forms a weighted combination of all positions, learning
+which ones are most relevant to the prediction.
 
 The attention weights are:
 
@@ -4431,16 +4452,21 @@ $$
 
 where:
 
-* $e_t$ is the attention score for token (t),
+* $e_t$ is the attention score for token $t$,
 * $\alpha_t$ is the normalized attention weight,
-* $\mathbf{h}_t$ is the LSTM output at position (t).
+* $\mathbf{h}_t$ is the LSTM output at position $t$.
+
+A subtle but important detail is that the softmax must be computed over the real tokens only.
+Padding positions have to be masked out before normalization; otherwise they receive a share of
+the attention weight and contaminate the context vector. The implementation below takes the
+padding index and applies this mask.
 
 ??? note "Example"
 
     ```python
     class SMILES_LSTM_Attention(nn.Module):
         """
-        Bidirectional LSTM with attention for SMILES-based prediction.
+        Bidirectional LSTM with masked attention for SMILES-based prediction.
         """
 
         def __init__(
@@ -4453,6 +4479,8 @@ where:
             padding_idx=0
         ):
             super().__init__()
+
+            self.padding_idx = padding_idx
 
             self.embedding = nn.Embedding(
                 vocab_size,
@@ -4477,21 +4505,22 @@ where:
             )
 
         def forward(self, x):
-            embedded = self.embedding(x)
+            # Mask marking real (non-padding) positions
+            mask = (x != self.padding_idx)  # (batch, seq_len)
 
+            embedded = self.embedding(x)
             lstm_output, _ = self.lstm(embedded)
 
-            attention_scores = self.attention(lstm_output)
+            attention_scores = self.attention(lstm_output)  # (batch, seq_len, 1)
 
-            attention_weights = torch.softmax(
-                attention_scores,
-                dim=1
+            # Set padding positions to -inf so they receive zero weight
+            attention_scores = attention_scores.masked_fill(
+                ~mask.unsqueeze(-1), float("-inf")
             )
 
-            context = torch.sum(
-                attention_weights * lstm_output,
-                dim=1
-            )
+            attention_weights = torch.softmax(attention_scores, dim=1)
+
+            context = torch.sum(attention_weights * lstm_output, dim=1)
 
             output = self.regressor(context)
 
