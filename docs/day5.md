@@ -1,235 +1,287 @@
 # Graph Neural Networks and Geometric Deep Learning
 
-This section focuses on Graph Neural Networks (GNNs) and their applications in molecular and materials science. We will 
-explore how graphs can represent molecular structures and how specialized neural network architectures learn from 
-these representations while respecting physical symmetries and chemical constraints.
+This section introduces **Graph Neural Networks (GNNs)**, one of the core techniques in **Geometric Deep Learning**, 
+and their applications in molecular and materials science. Molecules can naturally be represented as graphs, where 
+atoms correspond to nodes and chemical bonds correspond to edges. Unlike traditional neural networks, GNNs learn 
+directly from these graph structures by exchanging information between neighboring atoms while preserving the 
+connectivity and relational information that determine molecular properties.
 
 ## 1. Message Passing Neural Networks
 
-Message Passing Neural Networks (MPNNs) provide the foundation for many modern graph neural networks used in molecular 
-property prediction. They offer a unified framework for learning from graph-structured data, making them especially suitable 
-for molecular systems where atoms and bonds naturally form graphs.
+Message Passing Neural Networks (MPNNs) provide the foundation for many modern graph neural network architectures 
+used for molecular property prediction. They offer a unified framework for learning from graph-structured data, 
+making them particularly well suited for molecular systems, where atoms and chemical bonds naturally form graphs.
 
-### Core Concepts
+### 1.1 Graph Representation
 
-### 1. Graph Representation
+In molecular graphs, chemical structures are represented as graphs composed of nodes and edges.
 
-In molecular graphs, chemical structures are naturally represented as graphs:
+### **Nodes**
 
-##### **Nodes** represent atoms and contain feature vectors such as:
+Each node represents an atom and is associated with a feature vector that may include:
 
-  * Atomic number
-  * Formal charge and partial charge
-  * Hybridization state ($sp$, $sp^2$, $sp^3$)
-  * Number of bonded hydrogen atoms
-  * Aromaticity
-  * Chirality
-  * Atomic mass
-  * Degree (number of bonded neighbors)
+* Atomic number
+* Formal charge or partial charge
+* Hybridization state ($sp$, $sp^2$, $sp^3$)
+* Number of bonded hydrogen atoms
+* Aromaticity
+* Chirality
+* Atomic mass
+* Degree (number of bonded neighbors)
 
-##### **Edges** represent chemical bonds and may include:
+### **Edges**
 
-  * Bond type (single, double, triple, aromatic)
-  * Bond length or interatomic distance
-  * Stereochemistry (cis/trans or E/Z)
-  * Conjugation
-  * Ring membership
+Each edge represents a chemical bond and may include features such as:
 
-The graph topology preserves molecular connectivity and encodes the relationships that determine chemical and physical properties.
+* Bond type (single, double, triple, aromatic)
+* Bond length or interatomic distance
+* Stereochemistry (cis/trans or E/Z)
+* Conjugation
+* Ring membership
 
+The graph topology preserves molecular connectivity and encodes the structural relationships 
+that determine many chemical and physical properties.
 
 ### Why Message Passing?
 
-The central idea behind MPNNs is that the properties of an atom depend not only on the atom itself, but also on its chemical environment.
+The fundamental idea behind MPNNs is that the properties of an atom depend not only on the atom 
+itself but also on its local chemical environment.
 
-Message passing mimics how chemical information propagates through molecules:
-
-* Inductive effects propagate through $\sigma$ bonds
-* Resonance effects propagate through conjugated systems
-* Steric effects depend on neighboring spatial arrangements
-
-By iteratively exchanging information between neighboring atoms, the network learns increasingly expressive representations 
-of molecular structure.
-
+Message passing is inspired by this principle. During each iteration, neighboring atoms exchange 
+information, allowing the network to progressively build richer representations of the molecular 
+structure. As information propagates through the graph, the model learns local bonding patterns, 
+conjugation effects, and larger structural motifs that influence molecular behavior.
 
 
 ### 2. Message Passing Framework
 
-An MPNN typically consists of three stages repeated over several iterations.
+An MPNN consists of three stages that are repeated over several message-passing iterations.
 
-### 1. Message Phase
+#### Message Phase
 
-At iteration $t$, each node receives messages from its neighbors:
+At iteration $t$, each node receives messages from its neighboring nodes:
 
 $$
-m_v^{(t+1)} = \sum_{u \in \mathcal{N}(v)}
-M_t\left(h_v^{(t)}, h_u^{(t)}, e_{uv}\right)
+m_v^{(t+1)}
+=
+\sum_{u\in\mathcal N(v)}
+M_t
+\left(
+h_v^{(t)},
+h_u^{(t)},
+e_{uv}
+\right)
 $$
 
-Where:
+where:
 
-* $h_v^{(t)}$ is the hidden representation of node $v$
-* $h_u^{(t)}$ is the hidden representation of neighboring node $u$
-* $e_{uv}$ represents edge features
-* $\mathcal{N}(v)$ denotes the neighbors of node $v$
-* $M_t$ is a learnable message function
+* $h_v^{(t)}$ is the hidden representation of node $v$,
+* $h_u^{(t)}$ is the hidden representation of neighboring node $u$,
+* $e_{uv}$ represents the edge features,
+* $\mathcal N(v)$ denotes the neighbors of node $v$, and
+* $M_t$ is a learnable message function.
 
-### Intuition
+#### Intuition
 
-Each atom "listens" to information from its bonded neighbors and receives messages describing the local chemical environment.
+Each node aggregates information from its neighboring nodes and combines it into a message 
+that summarizes its local chemical environment.
 
 
-### Update Phase
+#### Update Phase
 
 The node representation is updated using the aggregated message:
 
 $$
-h_v^{(t+1)} =
-U_t\left(h_v^{(t)}, m_v^{(t+1)}\right)
+h_v^{(t+1)}
+=
+U_t
+\left(
+h_v^{(t)},
+m_v^{(t+1)}
+\right)
 $$
 
-Where $U_t$ is typically implemented using:
+where $U_t$ is typically implemented using
 
-* A feedforward neural network
-* A GRU (Gated Recurrent Unit)
-* An LSTM
+* a feedforward neural network,
+* a GRU (Gated Recurrent Unit), or
+* an LSTM (Long Short-Term Memory network).
 
-### Intuition
+#### Intuition
 
-Each atom updates its internal representation after incorporating information from neighboring atoms.
+Each node updates its hidden representation by combining its previous embedding with 
+the aggregated information received from its neighbors.
 
 
-###  Aggregation Functions
+### Aggregation Functions
 
-The summation operator in the message phase can be replaced by different aggregation schemes.
+The summation operator in the message phase can be replaced by different aggregation strategies.
 
 #### Sum Aggregation
 
 $$
-\sum_{u \in \mathcal{N}(v)} M_t(\cdot)
+\sum_{u\in\mathcal N(v)}
+M_t(\cdot)
 $$
 
-* Sensitive to neighborhood size
-* Appropriate for extensive properties
+* Preserves information about neighborhood size
+* Suitable for extensive molecular properties
+
 
 #### Mean Aggregation
 
 $$
-\frac{1}{|\mathcal{N}(v)|}
-\sum_{u \in \mathcal{N}(v)} M_t(\cdot)
+\frac{1}{|\mathcal N(v)|}
+\sum_{u\in\mathcal N(v)}
+M_t(\cdot)
 $$
 
-* Degree-normalized
-* More stable for variable graph sizes
+* Normalizes for variations in node degree
+* More stable across graphs of different sizes
+
 
 #### Max Aggregation
 
 $$
-\max_{u \in \mathcal{N}(v)} M_t(\cdot)
+\max_{u\in\mathcal N(v)}
+M_t(\cdot)
 $$
 
-* Captures dominant features
-* May lose distributed information
+* Captures the strongest local features
+* May ignore information contributed by less dominant neighbors
+
 
 #### Attention-Based Aggregation
 
 $$
-\sum_{u \in \mathcal{N}(v)}
-\alpha_{vu} M_t(\cdot)
+\sum_{u\in\mathcal N(v)}
+\alpha_{vu}
+M_t(\cdot)
 $$
 
-where $\alpha_{vu}$ are learned attention weights.
+where $\alpha_{vu}$ are learnable attention coefficients.
 
-This approach is used in Graph Attention Networks (GATs).
+This strategy is employed by **Graph Attention Networks (GATs)** and enables the network to assign different importance to neighboring nodes.
 
 
 
-### 2. Readout Phase
+### Readout Phase
 
-After $T$ message-passing iterations, each node has a final embedding $h_v^{(T)}$.
-
-To predict graph-level properties, node embeddings are aggregated into a graph representation:
+After $T$ message-passing iterations, each node has a learned embedding
 
 $$
-y = R(  h_v^{(T)} \mid v \in G  )
+h_v^{(T)}.
 $$
 
-where $R$ is the readout function.
+To predict graph-level properties, the node embeddings are combined into a single graph representation
+
+$$
+h_G
+=
+R
+\left(
+\{
+h_v^{(T)}
+\}_{v\in V}
+\right),
+$$
+
+where $R$ denotes the readout function.
+
+A prediction is then obtained using
+
+$$
+\hat y = f(h_G).
+$$
+
 
 ### Common Readout Functions
 
 #### Sum Pooling
 
 $$
-R = \sum_v h_v^{(T)}
+h_G
+=
+\sum_{v\in V}
+h_v^{(T)}
 $$
 
-* Suitable for extensive properties
+* Appropriate for extensive molecular properties
 * Sensitive to molecular size
 
 #### Mean Pooling
 
 $$
-R =
+h_G
+=
 \frac{1}{|V|}
-\sum_v h_v^{(T)}
+\sum_{v\in V}
+h_v^{(T)}
 $$
 
-* Size-invariant
-* Useful for intensive properties
+* Produces size-invariant representations
+* Suitable for intensive properties
+
 
 #### Max Pooling
 
 $$
-R = \max_v h_v^{(T)}
+h_G
+=
+\max_{v\in V}
+h_v^{(T)}
 $$
 
-* Captures dominant features
+* Captures the most prominent node features
 
 #### Set2Set Pooling
 
-A learnable attention-based mechanism that iteratively attends to node embeddings using recurrent neural networks.
+A learnable attention-based pooling mechanism that iteratively attends to node embeddings using recurrent neural networks, producing expressive graph-level representations.
 
 
 ### 3. Receptive Fields and Network Depth
 
-The number of message-passing iterations determines the receptive field.
+The number of message-passing iterations determines the **receptive field** of each node.
 
-* $T = 1$: information from immediate neighbors
-* $T = 2$: information from neighbors-of-neighbors
-* $T = k$: information propagates across $k$ bonds
+* $T=1$: information from immediate neighbors
+* $T=2$: information from neighbors-of-neighbors
+* $T=k$: information propagates across paths containing up to $k$ edges
 
-Typical values:
-
-* Small molecules (e.g., QM9 dataset): $T = 3$–$5$
-* Proteins and biomolecules: $T = 5$–$10$
+Most molecular GNNs use between three and six message-passing layers, providing sufficient receptive fields for many small and medium-sized molecules.
 
 ### Trade-Off
 
-Deeper message passing increases the receptive field but may lead to **over-smoothing**, where node embeddings become excessively similar.
+Increasing the number of message-passing layers expands the receptive field, but excessively deep GNNs may suffer from two well-known problems:
+
+* **Over-smoothing**, where node embeddings become nearly indistinguishable.
+* **Over-squashing**, where information from distant nodes is compressed into fixed-size vectors, limiting the amount of information that can propagate through the graph.
 
 
 ### 4. Key Variants of Message Passing Networks
 
 #### Graph Convolutional Networks (GCNs)
 
-Graph Convolutional Networks simplify message passing using normalized graph convolutions:
+Graph Convolutional Networks simplify the message-passing framework by using a normalized adjacency matrix to aggregate information from neighboring nodes:
 
 $$
 H^{(t+1)}
 =
-\sigma\left(
-D^{-1/2}\tilde{A}D^{-1/2}
-H^{(t)}W^{(t)}
-\right)
+\sigma
+\left(
+D^{-1/2}
+\tilde A
+D^{-1/2}
+H^{(t)}
+W^{(t)}
+\right),
 $$
 
 Where:
 
-* $\tilde{A} = A + I$ is the adjacency matrix with self-loops
-* $D$ is the degree matrix
-* $W^{(t)}$ is a learnable weight matrix
-* $\sigma$ is a nonlinear activation function
+* $\tilde A = A + I$ is the adjacency matrix with self-loops,
+* $D$ is the degree matrix,
+* $W^{(t)}$ is a learnable weight matrix, and
+* $\sigma$ is a nonlinear activation function.
 
 ### Advantages
 
@@ -239,45 +291,53 @@ Where:
 
 ### Limitations
 
-* Limited handling of edge features
-* Fixed aggregation scheme
-* Reduced expressive power for certain graph structures
+* Limited support for edge features
+* Fixed aggregation strategy
+* Cannot distinguish certain graph structures that are theoretically indistinguishable under the Weisfeiler-Lehman graph isomorphism test
 
 
 ### GraphSAGE
 
-GraphSAGE introduces neighborhood sampling for scalability:
+GraphSAGE introduces neighborhood sampling, making GNNs scalable to very large graphs.
+
+Its update rule can be written as
 
 $$
 h_v^{(t+1)}
 =
-\sigma (
-W \cdot
-\text{CONCAT}
-(
-h_v^{(t)},
-\text{AGG}
-(
+\sigma
+\left(
+W
+\left[
+h_v^{(t)}
+\,
+\Vert
+\,
+\mathrm{AGG}
+\left(
+\{
 h_u^{(t)}
-\mid
-u \in \text{Sample}(\mathcal{N}(v))
-)
-)
-)
+:
+u\in\mathcal N(v)
+\}
+\right)
+\right]
+\right),
 $$
+
+where $\Vert$ denotes vector concatenation.
 
 ### Key Ideas
 
-* Randomly samples neighbors
-* Supports multiple aggregation functions
-* Enables inductive learning on unseen graphs
+* Randomly samples neighboring nodes
+* Supports multiple aggregation strategies
+* Enables inductive learning on previously unseen graphs
 
 ### Benefits
 
-* Scales efficiently to large datasets
+* Scales efficiently to very large datasets
 * Suitable for large molecular databases
-* Works well with variable graph sizes
-
+* Handles graphs of varying sizes without requiring the entire graph to reside in memory
 
 ## 2. Neural Message Passing for Quantum Chemistry
 
@@ -873,8 +933,6 @@ for layer in model.layers:
 for head in range(num_heads):
     visualize_attention_head(head, attention_weights)
 ```
-
---- hasta aca ---
 
 ### 3. Equivariant Networks for 3D Structures
 
@@ -1620,7 +1678,6 @@ PaiNN           35          0.8 ms          800K
 Note: Exact numbers vary by implementation and hardware
 ```
 
----
 
 ### 4. Protein-Ligand Interaction Modeling
 
@@ -2338,7 +2395,6 @@ top_hits = predictions[:100]
    - Polypharmacology
    - Side effect prediction
 
----
 
 ### 5. Crystal Structures for Materials Science
 
