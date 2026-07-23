@@ -1,9 +1,8 @@
-# Day 3: Graph Neural Networks and Geometric Deep Learning
+# Graph Neural Networks and Geometric Deep Learning
 
-Day 3 focuses on Graph Neural Networks (GNNs) and their applications in molecular and materials science. We will 
+This section focuses on Graph Neural Networks (GNNs) and their applications in molecular and materials science. We will 
 explore how graphs can represent molecular structures and how specialized neural network architectures learn from 
 these representations while respecting physical symmetries and chemical constraints.
-
 
 ## 1. Message Passing Neural Networks
 
