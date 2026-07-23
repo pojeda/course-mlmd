@@ -4883,9 +4883,9 @@ datasets where large transformers tend to overfit.
 
 ## 6. Transfer Learning
 
-Transfer learning uses knowledge learned from one task or dataset to improve performance on another related task. 
-In molecular machine learning, this often means pre-training a model on a large collection of molecules and then 
-fine-tuning it on a smaller property-specific dataset.
+Transfer learning uses knowledge learned from one task or dataset to improve performance on
+another related task. In molecular machine learning, this often means pre-training a model on a
+large collection of molecules and then fine-tuning it on a smaller property-specific dataset.
 
 The basic idea is:
 
@@ -4897,22 +4897,23 @@ $$
 \text{fine-tuned property predictor}
 $$
 
+### 6.1 Why transfer learning for molecules?
 
-### 6.1 Why Transfer Learning for Molecules?
+Transfer learning is especially useful in molecular modeling because high-quality experimental
+labels are often expensive, noisy, or limited.
 
-Transfer learning is especially useful in molecular modeling because high-quality experimental labels are often expensive, noisy, or limited.
-
-#### Common Challenges
+#### Common challenges
 
 ##### Limited labeled data
 
-Many molecular endpoints have only a few thousand measured examples. For example, BBB permeability, metabolic 
-stability, or toxicity datasets are usually much smaller than general image or text datasets.
+Many molecular endpoints have only a few thousand measured examples. For instance, datasets for
+BBB permeability, metabolic stability, or toxicity are usually far smaller than general image or
+text datasets.
 
 ##### Imbalanced data availability
 
-Some properties, such as solubility or lipophilicity, may have many labels, while other properties may have 
-only a few hundred or thousand reliable measurements.
+Some properties, such as solubility or lipophilicity, may have many labels, while others may have
+only a few hundred or a few thousand reliable measurements.
 
 ##### Related molecular properties
 
@@ -4924,16 +4925,15 @@ Many molecular properties depend on overlapping chemical features. For example:
 
 Because of this overlap, a model trained on one molecular task can often help with another.
 
-
-#### Benefits of Transfer Learning
+#### Benefits of transfer learning
 
 * **Better data efficiency:** useful performance with fewer labeled examples.
 * **Faster convergence:** fine-tuned models often need fewer epochs.
 * **Improved generalization:** pre-trained models learn broad molecular patterns.
-* **Domain adaptation:** a model can be adapted from a general chemical dataset to a specialized molecular domain.
+* **Domain adaptation:** a model can be adapted from a general chemical dataset to a specialized
+  molecular domain.
 
-
-#### Example Scenario
+#### Example scenario
 
 ```text
 Goal:
@@ -4951,13 +4951,34 @@ Transfer learning:
 - Usually converges faster and generalizes better
 ```
 
+### 6.2 Pre-training strategies
 
+#### 1. Autoencoder pre-training
 
-### 6.2 Pre-Training Strategies
+##### What is an autoencoder?
 
-#### 1. Autoencoder Pre-Training
+An autoencoder is a neural network trained to reproduce its own input. It has two parts joined at
+a narrow middle layer. The **encoder** compresses the input $\mathbf{x}$ into a lower-dimensional
+latent vector $\mathbf{z}$, called the bottleneck, and the **decoder** attempts to reconstruct the
+original input from $\mathbf{z}$ alone. Because the bottleneck has fewer dimensions than the
+input, the network cannot simply copy the data through; it must discover a compact code that
+retains the information needed for reconstruction. That code is the learned representation.
 
-An autoencoder learns molecular representations by reconstructing its input.
+The crucial property for transfer learning is that this training is **self-supervised**: the
+target is the input itself, so no labels are required. A large collection of unlabeled molecules —
+of which there are millions in public databases — is enough to train the encoder. Once trained,
+the encoder is kept and the decoder is discarded, and the encoder serves as a feature extractor
+for a downstream task that has only a small number of labels. This is exactly the situation
+described in Section 6.1.
+
+An autoencoder can be viewed as a non-linear generalization of principal component analysis: with
+linear activations and a squared-error loss it recovers the principal subspace, while non-linear
+activations let it capture curved structure that PCA cannot. Common variants include the
+denoising autoencoder, which reconstructs a clean input from a corrupted one, and the variational
+autoencoder, which learns a probability distribution over the latent space and can generate new
+molecules.
+
+##### Autoencoder for molecular fingerprints
 
 For molecular fingerprints:
 
@@ -4971,16 +4992,27 @@ where:
 * $\mathbf{z}$ is the compressed latent representation,
 * $\hat{\mathbf{x}}$ is the reconstructed fingerprint.
 
-The reconstruction loss can be written as:
+The choice of reconstruction loss must match the data type. Morgan fingerprints are **binary**
+vectors, $x_i \in \{0, 1\}$, so reconstruction is really a set of independent binary
+classification problems, one per bit. The appropriate loss is therefore binary cross-entropy:
 
 $$
 L =
-\frac{1}{n}
+-\frac{1}{n}
 \sum_{i=1}^{n}
-(\mathbf{x}_i - \hat{\mathbf{x}}_i)^2
+\left[
+x_i \log \hat{x}_i + (1 - x_i)\log(1 - \hat{x}_i)
+\right].
 $$
 
-#### Autoencoder Example
+Mean squared error would also run, but it treats the bits as continuous regression targets and
+provides weaker gradients when a prediction is confidently wrong. A further point specific to
+fingerprints is that they are **sparse**: the large majority of bits are 0. A model can therefore
+achieve a low loss by predicting mostly zeros, so reconstruction loss alone can be misleading, and
+it is worth also monitoring a metric such as the reconstruction accuracy on the active (nonzero)
+bits.
+
+#### Autoencoder example
 
 ??? note "Example"
 
@@ -4993,13 +5025,17 @@ $$
 
     from torch.utils.data import DataLoader, TensorDataset
 
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
+    from rdkit import Chem, DataStructs
+    from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 
 
     class MolecularAutoencoder(nn.Module):
         """
         Autoencoder for learning molecular fingerprint representations.
+
+        The decoder outputs raw logits (no final sigmoid), so it is paired
+        with BCEWithLogitsLoss, which applies the sigmoid internally in a
+        numerically stable way.
         """
 
         def __init__(self, input_dim=2048, encoding_dim=256):
@@ -5027,14 +5063,13 @@ $$
                 nn.ReLU(),
                 nn.BatchNorm1d(1024),
 
-                nn.Linear(1024, input_dim),
-                nn.Sigmoid()
+                nn.Linear(1024, input_dim)  # logits
             )
 
         def forward(self, x):
             z = self.encoder(x)
-            reconstruction = self.decoder(z)
-            return reconstruction
+            reconstruction_logits = self.decoder(z)
+            return reconstruction_logits
 
         def encode(self, x):
             return self.encoder(x)
@@ -5046,6 +5081,8 @@ $$
         Invalid molecules are skipped.
         """
 
+        generator = GetMorganGenerator(radius=radius, fpSize=n_bits)
+
         fingerprints = []
 
         for smiles in smiles_list:
@@ -5054,13 +5091,12 @@ $$
             if mol is None:
                 continue
 
-            fp = AllChem.GetMorganFingerprintAsBitVect(
-                mol,
-                radius,
-                nBits=n_bits
-            )
+            fp = generator.GetFingerprint(mol)
 
-            fingerprints.append(np.asarray(fp, dtype=np.float32))
+            array = np.zeros((n_bits,), dtype=np.float32)
+            DataStructs.ConvertToNumpyArray(fp, array)
+
+            fingerprints.append(array)
 
         if len(fingerprints) == 0:
             raise ValueError("No valid molecules were found.")
@@ -5095,10 +5131,13 @@ $$
 
         dataset = TensorDataset(x, x)
 
+        # drop_last=True avoids a final batch of size 1, which would make
+        # nn.BatchNorm1d raise an error in training mode.
         dataloader = DataLoader(
             dataset,
             batch_size=batch_size,
-            shuffle=True
+            shuffle=True,
+            drop_last=True
         )
 
         model = MolecularAutoencoder(
@@ -5112,7 +5151,8 @@ $$
             weight_decay=1e-5
         )
 
-        criterion = nn.MSELoss()
+        # Binary targets -> binary cross-entropy on the decoder logits
+        criterion = nn.BCEWithLogitsLoss()
 
         for epoch in range(num_epochs):
             model.train()
@@ -5124,9 +5164,9 @@ $$
 
                 optimizer.zero_grad()
 
-                reconstruction = model(batch_x)
+                reconstruction_logits = model(batch_x)
 
-                loss = criterion(reconstruction, batch_x)
+                loss = criterion(reconstruction_logits, batch_x)
 
                 loss.backward()
                 optimizer.step()
@@ -5145,15 +5185,14 @@ $$
         return model
     ```
 
-
-### 6.3 Using the Pre-Trained Encoder
+### 6.3 Using the pre-trained encoder
 
 After pre-training, the encoder can be reused for a supervised molecular property prediction task.
 
 The downstream model is:
 
 $$
-\hat{y} = g_\phi(\text{encoder}_\theta(\mathbf{x}))
+\hat{y} = g_\phi\left(\text{encoder}_\theta(\mathbf{x})\right)
 $$
 
 where:
@@ -5198,7 +5237,12 @@ where:
             return prediction
     ```
 
-### 6.4 Fine-Tuning Workflow
+A subtle point when freezing the encoder: the encoder contains `BatchNorm1d` layers, whose
+running statistics continue to update in training mode even when the weights are frozen. If the
+encoder is meant to be held completely fixed, call `self.encoder.eval()` so that batch
+normalization uses its stored statistics rather than adapting to the downstream batches.
+
+### 6.4 Fine-tuning workflow
 
 Fine-tuning adapts the pre-trained model to a specific task.
 
@@ -5208,7 +5252,7 @@ Typical strategies:
 2. **Fine-tune all layers:** update the encoder and prediction head together.
 3. **Gradual unfreezing:** start with a frozen encoder, then progressively unfreeze layers.
 
-#### Dataset for Fine-Tuning
+#### Dataset for fine-tuning
 
 ??? note "Example"
 
@@ -5218,7 +5262,9 @@ Typical strategies:
         Dataset for supervised molecular property prediction.
         """
 
-        def __init__(self, smiles_list, labels, n_bits=2048):
+        def __init__(self, smiles_list, labels, radius=2, n_bits=2048):
+            generator = GetMorganGenerator(radius=radius, fpSize=n_bits)
+
             fingerprints = []
             valid_labels = []
 
@@ -5228,13 +5274,12 @@ Typical strategies:
                 if mol is None:
                     continue
 
-                fp = AllChem.GetMorganFingerprintAsBitVect(
-                    mol,
-                    2,
-                    nBits=n_bits
-                )
+                fp = generator.GetFingerprint(mol)
 
-                fingerprints.append(np.asarray(fp, dtype=np.float32))
+                array = np.zeros((n_bits,), dtype=np.float32)
+                DataStructs.ConvertToNumpyArray(fp, array)
+
+                fingerprints.append(array)
                 valid_labels.append(label)
 
             if len(fingerprints) == 0:
@@ -5257,7 +5302,7 @@ Typical strategies:
             return self.x[idx], self.y[idx]
     ```
 
-#### Fine-Tuning Function
+#### Fine-tuning function
 
 ??? note "Example"
 
@@ -5278,7 +5323,8 @@ Typical strategies:
         device=None
     ):
         """
-        Fine-tune a pre-trained molecular encoder on a downstream regression task.
+        Fine-tune a pre-trained molecular encoder on a downstream
+        regression task.
         """
 
         if device is None:
@@ -5306,7 +5352,8 @@ Typical strategies:
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
-            shuffle=True
+            shuffle=True,
+            drop_last=True
         )
 
         val_loader = DataLoader(
@@ -5416,10 +5463,12 @@ Typical strategies:
         return model, history
     ```
 
-### 6.5 Gradual Unfreezing
+### 6.5 Gradual unfreezing
 
-Gradual unfreezing is useful when the downstream dataset is small. It avoids changing the 
-pre-trained encoder too aggressively at the beginning of fine-tuning.
+Gradual unfreezing is useful when the downstream dataset is small. It avoids changing the
+pre-trained encoder too aggressively at the beginning of fine-tuning, when the randomly
+initialized prediction head produces large, uninformative gradients that could otherwise erase
+the pre-trained features.
 
 ??? note "Example"
 
@@ -5443,7 +5492,8 @@ pre-trained encoder too aggressively at the beginning of fine-tuning.
             Freeze encoder and train only the prediction head.
 
         Phase 2:
-            Unfreeze encoder and train the full model with a smaller learning rate.
+            Unfreeze encoder and train the full model with a smaller
+            learning rate.
         """
 
         phases = [
@@ -5502,10 +5552,9 @@ pre-trained encoder too aggressively at the beginning of fine-tuning.
         return model
     ```
 
+### 6.6 Pre-trained language models for molecules
 
-### 6.6 Pre-Trained Language Models for Molecules
-
-SMILES strings can also be treated as a chemical language. Models such as ChemBERTa are trained 
+SMILES strings can also be treated as a chemical language. Models such as ChemBERTa are trained
 on large SMILES datasets and can be fine-tuned for molecular property prediction.
 
 A transformer-based model learns contextual token representations:
@@ -5514,14 +5563,13 @@ $$
 \mathbf{H} = \text{Transformer}(\text{SMILES tokens})
 $$
 
-The prediction head then maps the sequence representation to a molecular property:
+The prediction head then maps a pooled sequence representation to a molecular property:
 
 $$
-\hat{y} = g(\mathbf{h}_{\text{CLS}})
+\hat{y} = g(\mathbf{h}_{\text{pooled}})
 $$
 
-
-#### ChemBERTa Fine-Tuning Example
+#### ChemBERTa fine-tuning example
 
 ??? note "Example"
 
@@ -5561,14 +5609,22 @@ $$
                 attention_mask=attention_mask
             )
 
-            cls_embedding = outputs.last_hidden_state[:, 0, :]
+            # Mean-pool over real tokens using the attention mask.
+            # This is more robust than taking a single [CLS]/<s> token,
+            # whose position depends on the tokenizer.
+            hidden = outputs.last_hidden_state          # (batch, seq, hidden)
+            mask = attention_mask.unsqueeze(-1).float()  # (batch, seq, 1)
 
-            prediction = self.prediction_head(cls_embedding)
+            summed = (hidden * mask).sum(dim=1)
+            counts = mask.sum(dim=1).clamp(min=1e-9)
+            pooled = summed / counts
+
+            prediction = self.prediction_head(pooled)
 
             return prediction
     ```
 
-#### ChemBERTa Training Example
+#### ChemBERTa training example
 
 ??? note "Example"
 
@@ -5584,6 +5640,10 @@ $$
     ):
         """
         Fine-tune ChemBERTa on a molecular regression task.
+
+        For regression, standardize y_train (zero mean, unit variance)
+        before training and invert the transformation on predictions;
+        transformer fine-tuning is sensitive to the target scale.
         """
 
         if device is None:
@@ -5602,8 +5662,7 @@ $$
         )
 
         labels = torch.tensor(
-            y_train,
-            dtype=torch.float32
+            np.asarray(y_train, dtype=np.float32)
         ).view(-1, 1)
 
         dataset = TensorDataset(
@@ -5664,20 +5723,25 @@ $$
         return model
     ```
 
+Transformer fine-tuning has a few conventions that differ from training a small model from
+scratch. The learning rate is small (typically $2 \times 10^{-5}$ to $5 \times 10^{-5}$), and a
+short linear warmup followed by decay is standard; the `transformers` library provides
+`get_linear_schedule_with_warmup` for this. It is also common to use a lower learning rate for the
+pre-trained backbone than for the freshly initialized prediction head. Gradient clipping at a norm
+of 1.0 is a typical safeguard.
 
-### 6.7 Comparing Transfer Learning Strategies
+### 6.7 Comparing transfer learning strategies
 
 The best transfer learning strategy depends on the available data and molecular representation.
 
-| Strategy                | Best When                           | Strength                               |
+| Strategy                | Best when                           | Strength                               |
 | ----------------------- | ----------------------------------- | -------------------------------------- |
 | Train from scratch      | Large labeled dataset available     | Simple baseline                        |
 | Autoencoder transfer    | Many unlabeled molecules available  | Learns compact fingerprint features    |
 | Multi-task pre-training | Related labeled tasks are available | Shares information across endpoints    |
 | ChemBERTa fine-tuning   | SMILES data are available           | Uses large-scale language pre-training |
 
-
-#### Comparison Template
+#### Comparison template
 
 ??? note "Example"
 
@@ -5686,10 +5750,13 @@ The best transfer learning strategy depends on the available data and molecular 
         """
         Template for comparing transfer learning strategies.
 
-        This function is intentionally a template because each strategy requires
-        different datasets and training routines.
+        WARNING: the numbers below are ILLUSTRATIVE PLACEHOLDERS, not
+        measured results. They show the expected shape of the comparison
+        (transfer methods tending to beat training from scratch on small
+        datasets). Replace them with values from your own experiments.
         """
 
+        # ILLUSTRATIVE placeholders only -- not real measurements
         results = {
             "From Scratch": {
                 "RMSE": 0.95,
@@ -5714,7 +5781,7 @@ The best transfer learning strategy depends on the available data and molecular 
         }
 
         print("\n" + "=" * 70)
-        print("TRANSFER LEARNING COMPARISON")
+        print("TRANSFER LEARNING COMPARISON (ILLUSTRATIVE VALUES)")
         print("=" * 70)
 
         print(
@@ -5737,19 +5804,22 @@ The best transfer learning strategy depends on the available data and molecular 
         return results
     ```
 
-### 6.8 Key Takeaways
+### 6.8 Key takeaways
 
-Transfer learning is most valuable when the target dataset is small or noisy. In molecular machine learning, 
-it can improve performance by reusing general chemical knowledge learned from larger datasets.
+Transfer learning is most valuable when the target dataset is small or noisy. In molecular machine
+learning, it can improve performance by reusing general chemical knowledge learned from larger
+datasets.
 
 Practical recommendations:
 
-* Use a **from-scratch model** as a baseline.
+* Use a **from-scratch model** as a baseline, so that any benefit from transfer is measurable.
 * Use **autoencoder transfer** when you have many unlabeled molecules.
 * Use **multi-task pre-training** when related molecular properties are available.
 * Use **ChemBERTa or similar transformer models** when working directly with SMILES strings.
-* Fine-tune with a smaller learning rate than training from scratch.
+* Fine-tune with a smaller learning rate than when training from scratch.
 * Start with a frozen encoder, then unfreeze if validation performance stops improving.
+* Always compare against the baseline on a scaffold split: transfer learning can look impressive
+  under a random split while offering little benefit on genuinely novel chemistry.
 
 ## 7. Complete Practical Exercise
 
