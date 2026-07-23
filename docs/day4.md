@@ -6479,8 +6479,9 @@ Blood-Brain Barrier (BBB) permeability is crucial for CNS drugs. We'll predict l
 
 ## 8. Model Interpretation
 
-Model interpretation helps us understand what a trained model has learned, why it makes certain predictions, and whether it 
-relies on chemically meaningful patterns. This is especially important in molecular machine learning, where predictions may guide experimental decisions.
+Model interpretation helps us understand what a trained model has learned, why it makes certain
+predictions, and whether it relies on chemically meaningful patterns. This is especially important
+in molecular machine learning, where predictions may guide experimental decisions.
 
 Interpretation methods can help answer questions such as:
 
@@ -6489,33 +6490,47 @@ Interpretation methods can help answer questions such as:
 * Is the model using chemically reasonable information?
 * Are there signs of data leakage or spurious correlations?
 
+A note that applies throughout this section: the methods below were developed largely for
+continuous inputs such as images. Molecular fingerprints are **binary** vectors, $x_i \in \{0,
+1\}$, so a gradient $\partial f / \partial x_i$ describes an infinitesimal change that a binary
+feature cannot actually undergo. The attributions are therefore approximate, and this is one
+reason Integrated Gradients (Section 8.2), which measures the effect of turning a bit from 0 to
+1 along a full path, is often better suited to fingerprints than a plain local gradient.
 
-### 8.1 Gradient-Based Feature Importance
+### 8.1 Gradient-based feature importance
 
 Gradient-based interpretation estimates how sensitive the model output is to each input feature.
 
 For an input vector $\mathbf{x}$ and model prediction $f(\mathbf{x})$, the gradient is:
 
 $$
-\frac{\partial f(\mathbf{x})}{\partial x_i}
+\frac{\partial f(\mathbf{x})}{\partial x_i}.
 $$
 
 A large gradient means that changing feature $x_i$ would strongly affect the prediction.
 
-A common attribution score is:
+A common attribution score is the gradient-times-input:
 
 $$
 \text{Importance}_i =
 \left|
-x_i
+x_i \,
 \frac{\partial f(\mathbf{x})}{\partial x_i}
-\right|
+\right|,
 $$
 
-This combines feature sensitivity with the actual feature value.
+which combines feature sensitivity with the actual feature value. For a binary fingerprint this
+has the convenient effect of assigning zero importance to absent bits, so only substructures that
+are actually present receive attribution. Note that the absolute value discards the **sign** of
+the attribution — whether a feature pushes the prediction up or down — which is often chemically
+informative; keeping the signed value is frequently more useful.
 
+Gradient-times-input has a known weakness: **saturation**. If the model's response to a feature
+has flattened (for example, past a ReLU threshold or in the tail of a sigmoid), the local
+gradient can be near zero even for a feature that is decisive for the prediction. Integrated
+Gradients addresses this directly.
 
-#### Gradient Importance Function
+#### Gradient importance function
 
 ??? note "Example"
 
@@ -6527,22 +6542,15 @@ This combines feature sensitivity with the actual feature value.
 
     def compute_gradient_importance(model, X, device=None):
         """
-        Compute gradient-based feature importance.
+        Compute gradient-based feature importance (gradient x input).
 
         Args:
-            model:
-                Trained PyTorch model.
-
-            X:
-                Input features as a NumPy array or PyTorch tensor.
-                Shape: (num_samples, num_features)
-
-            device:
-                Device used for computation.
+            model:   Trained PyTorch model.
+            X:       Input features, shape (num_samples, num_features).
+            device:  Device used for computation.
 
         Returns:
-            importance:
-                Array of shape (num_samples, num_features).
+            importance: Array of shape (num_samples, num_features).
         """
 
         if device is None:
@@ -6562,11 +6570,11 @@ This combines feature sensitivity with the actual feature value.
         # If model output has shape (batch_size, 1), flatten it.
         output = output.view(output.shape[0], -1)
 
-        # For regression, use the first output dimension.
+        # For regression, use the first output dimension. For classification,
+        # select the logit of the class being explained instead.
         selected_output = output[:, 0].sum()
 
         model.zero_grad()
-
         selected_output.backward()
 
         gradients = X_tensor.grad.detach()
@@ -6576,9 +6584,7 @@ This combines feature sensitivity with the actual feature value.
         return importance.cpu().numpy()
     ```
 
-
-
-#### Visualizing Feature Importance
+#### Visualizing feature importance
 
 ??? note "Example"
 
@@ -6596,7 +6602,6 @@ This combines feature sensitivity with the actual feature value.
         avg_importance = np.mean(importance, axis=0)
 
         top_indices = np.argsort(avg_importance)[-top_k:][::-1]
-
         top_scores = avg_importance[top_indices]
 
         if feature_names is None:
@@ -6607,8 +6612,8 @@ This combines feature sensitivity with the actual feature value.
         plt.figure(figsize=(10, 6))
         plt.barh(range(top_k), top_scores)
         plt.yticks(range(top_k), top_labels)
-        plt.xlabel("Average Importance Score")
-        plt.title(f"Top {top_k} Most Important Features")
+        plt.xlabel("Average importance score")
+        plt.title(f"Top {top_k} most important features")
         plt.gca().invert_yaxis()
         plt.tight_layout()
         plt.savefig(save_path, dpi=150)
@@ -6631,10 +6636,11 @@ Example:
     )
     ```
 
-### 8.2 Integrated Gradients
+### 8.2 Integrated gradients
 
-Simple gradients can be noisy because they measure sensitivity only at the input point. **Integrated Gradients** improves 
-on this by accumulating gradients along a path from a baseline input to the actual input.
+Because of the saturation problem, a local gradient can understate the importance of a feature.
+**Integrated Gradients** addresses this by accumulating gradients along a straight path from a
+baseline input to the actual input, rather than evaluating the gradient only at the input point.
 
 For a feature $x_i$, the integrated gradient is:
 
@@ -6643,9 +6649,9 @@ IG_i(\mathbf{x})
 =
 (x_i - x_i')
 \int_{\alpha=0}^{1}
-\frac{\partial f(\mathbf{x}' + \alpha(\mathbf{x}-\mathbf{x}'))}
+\frac{\partial f\left(\mathbf{x}' + \alpha(\mathbf{x}-\mathbf{x}')\right)}
 {\partial x_i}
-d\alpha
+\, d\alpha
 $$
 
 where:
@@ -6654,10 +6660,21 @@ where:
 * $\mathbf{x}'$ is a baseline input,
 * $\alpha$ interpolates between the baseline and the input.
 
-For molecular fingerprints, a common baseline is the all-zero fingerprint.
+For molecular fingerprints, the natural baseline is the all-zero fingerprint. With this choice,
+the path from baseline to input corresponds to switching on each present bit, so IG measures how
+much turning on each substructure contributes to the prediction.
 
+Integrated Gradients satisfies the **completeness** axiom: the attributions sum to the difference
+in model output between the input and the baseline,
 
-#### Integrated Gradients Function
+$$
+\sum_i IG_i(\mathbf{x}) = f(\mathbf{x}) - f(\mathbf{x}').
+$$
+
+This gives a free correctness check. If the attributions do not sum to roughly $f(\mathbf{x}) -
+f(\mathbf{x}')$, the number of interpolation steps is too small and should be increased.
+
+#### Integrated gradients function
 
 ??? note "Example"
 
@@ -6672,22 +6689,17 @@ For molecular fingerprints, a common baseline is the all-zero fingerprint.
         """
         Compute Integrated Gradients for feature attribution.
 
+        Uses the midpoint Riemann rule, which approximates the path
+        integral more accurately than sampling the endpoints.
+
         Args:
-            model:
-                Trained PyTorch model.
-
-            X:
-                Input features with shape (num_samples, num_features).
-
-            baseline:
-                Baseline input. If None, uses zeros.
-
-            steps:
-                Number of interpolation steps.
+            model:    Trained PyTorch model.
+            X:        Input features, shape (num_samples, num_features).
+            baseline: Baseline input. If None, uses zeros.
+            steps:    Number of interpolation steps.
 
         Returns:
-            attributions:
-                Array of feature attributions with same shape as X.
+            attributions: Array of feature attributions, same shape as X.
         """
 
         if device is None:
@@ -6702,19 +6714,19 @@ For molecular fingerprints, a common baseline is the all-zero fingerprint.
 
         if baseline is None:
             baseline_tensor = torch.zeros_like(X_tensor)
+        elif isinstance(baseline, np.ndarray):
+            baseline_tensor = torch.tensor(
+                baseline, dtype=torch.float32, device=device
+            )
         else:
-            if isinstance(baseline, np.ndarray):
-                baseline_tensor = torch.tensor(
-                    baseline,
-                    dtype=torch.float32,
-                    device=device
-                )
-            else:
-                baseline_tensor = baseline.detach().clone().float().to(device)
+            baseline_tensor = baseline.detach().clone().float().to(device)
 
         total_gradients = torch.zeros_like(X_tensor)
 
-        for alpha in torch.linspace(0, 1, steps, device=device):
+        # Midpoint Riemann sum: alpha at (k + 0.5) / steps
+        alphas = (torch.arange(steps, device=device) + 0.5) / steps
+
+        for alpha in alphas:
             interpolated = baseline_tensor + alpha * (X_tensor - baseline_tensor)
             interpolated.requires_grad_(True)
 
@@ -6724,7 +6736,6 @@ For molecular fingerprints, a common baseline is the all-zero fingerprint.
             selected_output = output[:, 0].sum()
 
             model.zero_grad()
-
             selected_output.backward()
 
             total_gradients += interpolated.grad.detach()
@@ -6736,16 +6747,31 @@ For molecular fingerprints, a common baseline is the all-zero fingerprint.
         return attributions.detach().cpu().numpy()
     ```
 
+A quick completeness check, useful during development:
 
-#### Explaining a Molecular Prediction
+```python
+attr = integrated_gradients(model, X, steps=50)
+
+with torch.no_grad():
+    xt = torch.tensor(X, dtype=torch.float32,
+                      device=next(model.parameters()).device)
+    baseline = torch.zeros_like(xt)
+    delta = (model(xt) - model(baseline)).view(-1).cpu().numpy()
+
+# attr.sum(axis=1) should be close to delta
+print(np.abs(attr.sum(axis=1) - delta).max())
+```
+
+#### Explaining a molecular prediction
 
 This example explains a prediction from a fingerprint-based model.
 
 ??? note "Example"
 
     ```python
-    from rdkit import Chem
-    from rdkit.Chem import AllChem, Draw
+    from rdkit import Chem, DataStructs
+    from rdkit.Chem import Draw
+    from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 
 
     def explain_prediction(
@@ -6768,13 +6794,11 @@ This example explains a prediction from a fingerprint-based model.
         if mol is None:
             raise ValueError(f"Invalid SMILES string: {smiles}")
 
-        fp = AllChem.GetMorganFingerprintAsBitVect(
-            mol,
-            radius,
-            nBits=n_bits
-        )
+        generator = GetMorganGenerator(radius=radius, fpSize=n_bits)
+        fp = generator.GetFingerprint(mol)
 
-        X = np.asarray(fp, dtype=np.float32).reshape(1, -1)
+        X = np.zeros((1, n_bits), dtype=np.float32)
+        DataStructs.ConvertToNumpyArray(fp, X[0])
 
         model.eval()
 
@@ -6784,19 +6808,16 @@ This example explains a prediction from a fingerprint-based model.
 
         if method == "integrated_gradients":
             importance = integrated_gradients(
-                model,
-                X,
-                steps=50,
-                device=device
+                model, X, steps=50, device=device
             )
         elif method == "gradients":
             importance = compute_gradient_importance(
-                model,
-                X,
-                device=device
+                model, X, device=device
             )
         else:
-            raise ValueError("method must be 'integrated_gradients' or 'gradients'")
+            raise ValueError(
+                "method must be 'integrated_gradients' or 'gradients'"
+            )
 
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
@@ -6809,16 +6830,12 @@ This example explains a prediction from a fingerprint-based model.
         scores = importance[0]
         top_indices = np.argsort(np.abs(scores))[-top_k:][::-1]
 
-        axes[1].barh(
-            range(top_k),
-            scores[top_indices]
-        )
-
+        axes[1].barh(range(top_k), scores[top_indices])
         axes[1].set_yticks(range(top_k))
         axes[1].set_yticklabels([f"Bit {i}" for i in top_indices])
         axes[1].invert_yaxis()
-        axes[1].set_xlabel("Attribution Score")
-        axes[1].set_title("Top Fingerprint Attributions")
+        axes[1].set_xlabel("Attribution score")
+        axes[1].set_title("Top fingerprint attributions")
 
         plt.tight_layout()
         plt.savefig("molecular_explanation.png", dpi=150)
@@ -6827,26 +6844,31 @@ This example explains a prediction from a fingerprint-based model.
         return prediction, importance
     ```
 
-Important note: fingerprint bits are hashed. A high-importance bit may correspond to several possible molecular 
-fragments. For chemically detailed interpretation, use RDKit bit information during fingerprint generation.
+**Important note.** Fingerprint bits are hashed, so a single high-importance bit may correspond to
+several different molecular fragments (a bit collision). To map a bit back to the substructures
+that set it, request the generator's bit information at fingerprint-generation time (the
+`AdditionalOutput` interface of `GetMorganGenerator`, which exposes the bit-to-atom-environment
+mapping) and highlight the corresponding atoms with `Draw.DrawMorganBit`. Without this, bit-level
+attributions can only be interpreted loosely.
 
+### 8.3 Activation maximization
 
-### 8.3 Activation Maximization
-
-Activation maximization finds an input pattern that strongly activates a specific neuron. It is mainly a diagnostic tool.
+Activation maximization finds an input pattern that strongly activates a specific neuron. It is
+mainly a diagnostic tool.
 
 For a neuron activation $a_j(\mathbf{x})$, the objective is:
 
 $$
 \mathbf{x}^*
 =
-\arg\max_{\mathbf{x}} a_j(\mathbf{x})
+\arg\max_{\mathbf{x}} \; a_j(\mathbf{x}).
 $$
 
-For molecular fingerprints, the optimized input is not guaranteed to correspond to a valid molecule. Therefore, this method 
-should be interpreted as identifying abstract feature patterns, not generating real chemical structures.
+For molecular fingerprints, the optimized input is a continuous vector and is not guaranteed to
+correspond to any valid molecule. This method should therefore be read as revealing an abstract
+feature pattern that a neuron responds to, not as generating a real chemical structure.
 
-#### Activation Maximization
+#### Activation maximization function
 
 ??? note "Example"
 
@@ -6867,19 +6889,13 @@ should be interpreted as identifying abstract feature patterns, not generating r
         Find a fingerprint-like input that maximizes one neuron activation.
 
         Args:
-            model:
-                Trained PyTorch model.
-
-            layer_name:
-                Name of the layer to inspect. Use dict(model.named_modules())
-                to see valid names.
-
-            neuron_idx:
-                Index of the neuron in the selected layer.
+            model:      Trained PyTorch model.
+            layer_name: Name of the layer to inspect. Use
+                        dict(model.named_modules()) to list valid names.
+            neuron_idx: Index of the neuron in the selected layer.
 
         Returns:
-            optimized_input:
-                NumPy array with shape input_shape.
+            optimized_input: NumPy array with shape input_shape.
         """
 
         if device is None:
@@ -6909,10 +6925,7 @@ should be interpreted as identifying abstract feature patterns, not generating r
             requires_grad=True
         )
 
-        optimizer = optim.Adam(
-            [optimized_input],
-            lr=learning_rate
-        )
+        optimizer = optim.Adam([optimized_input], lr=learning_rate)
 
         for iteration in range(iterations):
             optimizer.zero_grad()
@@ -6930,9 +6943,9 @@ should be interpreted as identifying abstract feature patterns, not generating r
             loss = -target_activation
 
             loss.backward()
-
             optimizer.step()
 
+            # Constrain to the valid fingerprint range [0, 1].
             with torch.no_grad():
                 optimized_input.clamp_(0.0, 1.0)
 
@@ -6969,17 +6982,17 @@ Example:
     print(np.sum(optimal_fp > 0.5))
     ```
 
+### 8.4 Attention visualization for SMILES models
 
-### 8.4 Attention Visualization for SMILES Models
+For sequence models with attention, we can inspect which SMILES tokens received the highest
+attention weights.
 
-For sequence models with attention, we can inspect which SMILES tokens received the highest attention weights.
+Attention weights offer clues about which parts of a sequence the model drew on, but they should
+not be treated as definitive explanations. Attention is not, in general, a faithful account of
+feature importance: Jain and Wallace (2019) showed that very different attention distributions can
+yield the same prediction, so high attention does not reliably imply that a token was decisive.
 
-Attention weights should not be interpreted as perfect explanations, but they can provide useful clues about 
-which parts of a sequence influenced the model.
-
-
-
-#### Attention Visualization
+#### Attention visualization function
 
 ??? note "Example"
 
@@ -7007,11 +7020,7 @@ which parts of a sequence influenced the model.
         tokens = tokenizer.tokenize(smiles)
         encoded = tokenizer.encode(smiles, max_length=max_length)
 
-        X = torch.tensor(
-            [encoded],
-            dtype=torch.long,
-            device=device
-        )
+        X = torch.tensor([encoded], dtype=torch.long, device=device)
 
         with torch.no_grad():
             prediction, attention_weights = model(X)
@@ -7022,22 +7031,14 @@ which parts of a sequence influenced the model.
         attention = attention[:len(tokens)]
 
         plt.figure(figsize=(max(8, len(tokens) * 0.4), 4))
-
         plt.bar(range(len(tokens)), attention)
-
-        plt.xticks(
-            range(len(tokens)),
-            tokens,
-            rotation=45
-        )
-
-        plt.xlabel("SMILES Token")
-        plt.ylabel("Attention Weight")
+        plt.xticks(range(len(tokens)), tokens, rotation=45)
+        plt.xlabel("SMILES token")
+        plt.ylabel("Attention weight")
         plt.title(
-            f"Attention Weights for {smiles}\n"
+            f"Attention weights for {smiles}\n"
             f"Prediction: {prediction.view(-1)[0].item():.3f}"
         )
-
         plt.tight_layout()
         plt.savefig(save_path, dpi=150)
         plt.show()
@@ -7055,28 +7056,30 @@ prediction, attention = visualize_attention(
 )
 ```
 
-
-### 8.5 Practical Interpretation Guidelines
+### 8.5 Practical interpretation guidelines
 
 Interpretation methods are useful, but they should be applied carefully.
 
-#### Good Practices
+#### Good practices
 
-* Compare explanations across multiple molecules.
+* Compare explanations across multiple molecules rather than trusting a single case.
 * Check whether important features make chemical sense.
-* Use several methods instead of relying on one explanation.
-* Interpret fingerprint bits carefully because hashed fingerprints can mix fragments.
-* Validate interpretations with domain knowledge.
+* Use several methods instead of relying on one explanation, and treat agreement between them as
+  more trustworthy than any single method.
+* Interpret fingerprint bits carefully, since hashed fingerprints can mix fragments.
+* Validate interpretations against domain knowledge.
 
-#### Common Pitfalls
+#### Common pitfalls
 
-* High attribution does not always imply causality.
+* High attribution does not imply causality; it reflects the model's behavior, not the underlying
+  chemistry.
 * Attention weights are not guaranteed to be faithful explanations.
 * Activation-maximized fingerprints may not correspond to valid molecules.
-* Explanations can change when the model is retrained with a different random seed.
+* Explanations can change when the model is retrained with a different random seed, so an
+  explanation that is unstable across seeds should not be over-interpreted.
 
-Model interpretation is best used as a tool for debugging, hypothesis generation, and scientific 
-insight—not as definitive proof of chemical mechanism.
+Model interpretation is best used as a tool for debugging, hypothesis generation, and scientific
+insight — not as definitive proof of chemical mechanism.
 
 
 ## 9. Best Practices
