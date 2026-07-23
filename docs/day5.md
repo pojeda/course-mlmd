@@ -1,22 +1,24 @@
 # Graph Neural Networks and Geometric Deep Learning
 
-This section introduces **Graph Neural Networks (GNNs)**, one of the core techniques in **Geometric Deep Learning**, 
-and their applications in molecular and materials science. Molecules can naturally be represented as graphs, where 
-atoms correspond to nodes and chemical bonds correspond to edges. Unlike traditional neural networks, GNNs learn 
-directly from these graph structures by exchanging information between neighboring atoms while preserving the 
-connectivity and relational information that determine molecular properties.
+This section introduces **Graph Neural Networks (GNNs)**, one of the core techniques in **geometric
+deep learning**, and their applications in molecular and materials science. Molecules can naturally
+be represented as graphs, where atoms correspond to nodes and chemical bonds correspond to edges.
+Unlike traditional neural networks, GNNs learn directly from these graph structures by exchanging
+information between neighboring atoms, while preserving the connectivity and relational information
+that determine molecular properties.
 
 ## 1. Message Passing Neural Networks
 
-Message Passing Neural Networks (MPNNs) provide the foundation for many modern graph neural network architectures 
-used for molecular property prediction. They offer a unified framework for learning from graph-structured data, 
-making them particularly well suited for molecular systems, where atoms and chemical bonds naturally form graphs.
+Message Passing Neural Networks (MPNNs) provide the foundation for many modern graph neural network
+architectures used for molecular property prediction. They offer a unified framework for learning
+from graph-structured data, making them particularly well suited for molecular systems, where atoms
+and chemical bonds naturally form graphs.
 
 ### 1.1 Graph Representation
 
 In molecular graphs, chemical structures are represented as graphs composed of nodes and edges.
 
-### **Nodes**
+#### Nodes
 
 Each node represents an atom and is associated with a feature vector that may include:
 
@@ -29,7 +31,7 @@ Each node represents an atom and is associated with a feature vector that may in
 * Atomic mass
 * Degree (number of bonded neighbors)
 
-### **Edges**
+#### Edges
 
 Each edge represents a chemical bond and may include features such as:
 
@@ -39,25 +41,24 @@ Each edge represents a chemical bond and may include features such as:
 * Conjugation
 * Ring membership
 
-The graph topology preserves molecular connectivity and encodes the structural relationships 
-that determine many chemical and physical properties.
+The graph topology preserves molecular connectivity and encodes the structural relationships that
+determine many chemical and physical properties.
 
-### Why Message Passing?
+### 1.2 Why message passing?
 
-The fundamental idea behind MPNNs is that the properties of an atom depend not only on the atom 
+The fundamental idea behind MPNNs is that the properties of an atom depend not only on the atom
 itself but also on its local chemical environment.
 
-Message passing is inspired by this principle. During each iteration, neighboring atoms exchange 
-information, allowing the network to progressively build richer representations of the molecular 
-structure. As information propagates through the graph, the model learns local bonding patterns, 
+Message passing is inspired by this principle. During each iteration, neighboring atoms exchange
+information, allowing the network to progressively build richer representations of the molecular
+structure. As information propagates through the graph, the model learns local bonding patterns,
 conjugation effects, and larger structural motifs that influence molecular behavior.
 
-
-### 2. Message Passing Framework
+### 1.3 The message passing framework
 
 An MPNN consists of three stages that are repeated over several message-passing iterations.
 
-#### Message Phase
+#### Message phase
 
 At iteration $t$, each node receives messages from its neighboring nodes:
 
@@ -81,13 +82,10 @@ where:
 * $\mathcal N(v)$ denotes the neighbors of node $v$, and
 * $M_t$ is a learnable message function.
 
-#### Intuition
+Intuitively, each node aggregates information from its neighboring nodes and combines it into a
+message that summarizes its local chemical environment.
 
-Each node aggregates information from its neighboring nodes and combines it into a message 
-that summarizes its local chemical environment.
-
-
-#### Update Phase
+#### Update phase
 
 The node representation is updated using the aggregated message:
 
@@ -104,203 +102,155 @@ $$
 where $U_t$ is typically implemented using
 
 * a feedforward neural network,
-* a GRU (Gated Recurrent Unit), or
-* an LSTM (Long Short-Term Memory network).
+* a GRU (gated recurrent unit), or
+* an LSTM (long short-term memory network).
 
-#### Intuition
+Each node updates its hidden representation by combining its previous embedding with the aggregated
+information received from its neighbors.
 
-Each node updates its hidden representation by combining its previous embedding with 
-the aggregated information received from its neighbors.
+#### Aggregation functions
 
+The summation operator in the message phase can be replaced by different aggregation strategies. All
+of these aggregate over a node's **neighbors**.
 
-### Aggregation Functions
-
-The summation operator in the message phase can be replaced by different aggregation strategies.
-
-#### Sum Aggregation
+**Sum aggregation**
 
 $$
-\sum_{u\in\mathcal N(v)}
-M_t(\cdot)
+\sum_{u\in\mathcal N(v)} M_t(\cdot)
 $$
 
 * Preserves information about neighborhood size
 * Suitable for extensive molecular properties
 
-
-#### Mean Aggregation
+**Mean aggregation**
 
 $$
-\frac{1}{|\mathcal N(v)|}
-\sum_{u\in\mathcal N(v)}
-M_t(\cdot)
+\frac{1}{|\mathcal N(v)|} \sum_{u\in\mathcal N(v)} M_t(\cdot)
 $$
 
 * Normalizes for variations in node degree
 * More stable across graphs of different sizes
 
-
-#### Max Aggregation
+**Max aggregation**
 
 $$
-\max_{u\in\mathcal N(v)}
-M_t(\cdot)
+\max_{u\in\mathcal N(v)} M_t(\cdot)
 $$
 
 * Captures the strongest local features
 * May ignore information contributed by less dominant neighbors
 
-
-#### Attention-Based Aggregation
-
-$$
-\sum_{u\in\mathcal N(v)}
-\alpha_{vu}
-M_t(\cdot)
-$$
-
-where $\alpha_{vu}$ are learnable attention coefficients.
-
-This strategy is employed by **Graph Attention Networks (GATs)** and enables the network to assign different importance to neighboring nodes.
-
-
-
-### Readout Phase
-
-After $T$ message-passing iterations, each node has a learned embedding
+**Attention-based aggregation**
 
 $$
-h_v^{(T)}.
+\sum_{u\in\mathcal N(v)} \alpha_{vu}\, M_t(\cdot)
 $$
 
-To predict graph-level properties, the node embeddings are combined into a single graph representation
+where $\alpha_{vu}$ are learnable attention coefficients. This strategy is employed by **Graph
+Attention Networks (GATs)** and enables the network to assign different importance to neighboring
+nodes.
+
+#### Readout phase
+
+After $T$ message-passing iterations, each node has a learned embedding $h_v^{(T)}$. To predict
+graph-level properties, the node embeddings are combined into a single graph representation
 
 $$
-h_G
-=
-R
-\left(
-\{
-h_v^{(T)}
-\}_{v\in V}
-\right),
+h_G = R\left(\{ h_v^{(T)} \}_{v\in V}\right),
 $$
 
-where $R$ denotes the readout function.
+where $R$ denotes the readout function — which, unlike the neighbor aggregation above, pools over
+**all nodes in the graph**. A prediction is then obtained using $\hat y = f(h_G)$.
 
-A prediction is then obtained using
+**Common readout functions:**
 
-$$
-\hat y = f(h_G).
-$$
-
-
-### Common Readout Functions
-
-#### Sum Pooling
+*Sum pooling*
 
 $$
-h_G
-=
-\sum_{v\in V}
-h_v^{(T)}
+h_G = \sum_{v\in V} h_v^{(T)}
 $$
 
-* Appropriate for extensive molecular properties
-* Sensitive to molecular size
+Appropriate for extensive molecular properties; sensitive to molecular size.
 
-#### Mean Pooling
-
-$$
-h_G
-=
-\frac{1}{|V|}
-\sum_{v\in V}
-h_v^{(T)}
-$$
-
-* Produces size-invariant representations
-* Suitable for intensive properties
-
-
-#### Max Pooling
+*Mean pooling*
 
 $$
-h_G
-=
-\max_{v\in V}
-h_v^{(T)}
+h_G = \frac{1}{|V|} \sum_{v\in V} h_v^{(T)}
 $$
 
-* Captures the most prominent node features
+Produces size-invariant representations; suitable for intensive properties.
 
-#### Set2Set Pooling
+*Max pooling*
 
-A learnable attention-based pooling mechanism that iteratively attends to node embeddings using recurrent neural networks, producing expressive graph-level representations.
+$$
+h_G = \max_{v\in V} h_v^{(T)}
+$$
 
+Captures the most prominent node features.
 
-### 3. Receptive Fields and Network Depth
+*Set2Set pooling*
+
+A learnable attention-based pooling mechanism that iteratively attends to node embeddings using a
+recurrent network, producing expressive graph-level representations.
+
+### 1.4 Receptive fields and network depth
 
 The number of message-passing iterations determines the **receptive field** of each node.
 
-* $T=1$: information from immediate neighbors
-* $T=2$: information from neighbors-of-neighbors
-* $T=k$: information propagates across paths containing up to $k$ edges
+* $T = 1$: information from immediate neighbors
+* $T = 2$: information from neighbors-of-neighbors
+* $T = k$: information propagates across paths containing up to $k$ edges
 
-Most molecular GNNs use between three and six message-passing layers, providing sufficient receptive fields for many small and medium-sized molecules.
+Most molecular GNNs use between three and six message-passing layers, providing sufficient receptive
+fields for many small and medium-sized molecules.
 
-### Trade-Off
-
-Increasing the number of message-passing layers expands the receptive field, but excessively deep GNNs may suffer from two well-known problems:
+**Trade-off.** Increasing the number of message-passing layers expands the receptive field, but
+excessively deep GNNs may suffer from two well-known problems:
 
 * **Over-smoothing**, where node embeddings become nearly indistinguishable.
-* **Over-squashing**, where information from distant nodes is compressed into fixed-size vectors, limiting the amount of information that can propagate through the graph.
+* **Over-squashing**, where information from distant nodes is compressed into fixed-size vectors,
+  limiting the amount of information that can propagate through the graph.
 
-
-### 4. Key Variants of Message Passing Networks
+### 1.5 Key variants of message passing networks
 
 #### Graph Convolutional Networks (GCNs)
 
-Graph Convolutional Networks simplify the message-passing framework by using a normalized adjacency matrix to aggregate information from neighboring nodes:
+Graph Convolutional Networks simplify the message-passing framework by using a normalized adjacency
+matrix to aggregate information from neighboring nodes:
 
 $$
 H^{(t+1)}
 =
 \sigma
 \left(
-D^{-1/2}
+\tilde{D}^{-1/2}
 \tilde A
-D^{-1/2}
+\tilde{D}^{-1/2}
 H^{(t)}
 W^{(t)}
 \right),
 $$
 
-Where:
+where:
 
 * $\tilde A = A + I$ is the adjacency matrix with self-loops,
-* $D$ is the degree matrix,
+* $\tilde{D}$ is the degree matrix **of $\tilde A$**, that is $\tilde{D}_{ii} = \sum_j \tilde A_{ij}$,
 * $W^{(t)}$ is a learnable weight matrix, and
 * $\sigma$ is a nonlinear activation function.
 
-### Advantages
+It is important that the degree matrix is computed from $\tilde A$ (with self-loops), not from $A$;
+this is the Kipf & Welling renormalization.
 
-* Computationally efficient
-* Stable normalization
-* Easy to train
+*Advantages:* computationally efficient, stable normalization, easy to train.
 
-### Limitations
+*Limitations:* limited support for edge features, a fixed aggregation strategy, and an inability to
+distinguish certain graph structures that are indistinguishable under the Weisfeiler-Lehman graph
+isomorphism test.
 
-* Limited support for edge features
-* Fixed aggregation strategy
-* Cannot distinguish certain graph structures that are theoretically indistinguishable under the Weisfeiler-Lehman graph isomorphism test
+#### GraphSAGE
 
-
-### GraphSAGE
-
-GraphSAGE introduces neighborhood sampling, making GNNs scalable to very large graphs.
-
-Its update rule can be written as
+GraphSAGE introduces neighborhood sampling, making GNNs scalable to very large graphs. Its update
+rule can be written as
 
 $$
 h_v^{(t+1)}
@@ -310,16 +260,10 @@ h_v^{(t+1)}
 W
 \left[
 h_v^{(t)}
-\,
-\Vert
-\,
+\,\Vert\,
 \mathrm{AGG}
 \left(
-\{
-h_u^{(t)}
-:
-u\in\mathcal N(v)
-\}
+\{ h_u^{(t)} : u\in\mathcal N(v) \}
 \right)
 \right]
 \right),
@@ -327,32 +271,26 @@ $$
 
 where $\Vert$ denotes vector concatenation.
 
-### Key Ideas
+*Key ideas:* it randomly samples neighboring nodes, supports multiple aggregation strategies, and
+enables inductive learning on previously unseen graphs.
 
-* Randomly samples neighboring nodes
-* Supports multiple aggregation strategies
-* Enables inductive learning on previously unseen graphs
+*Benefits:* scales efficiently to very large datasets, is suitable for large molecular databases,
+and handles graphs of varying sizes without requiring the entire graph to reside in memory.
 
-### Benefits
+### 1.6 Neural message passing for quantum chemistry
 
-* Scales efficiently to very large datasets
-* Suitable for large molecular databases
-* Handles graphs of varying sizes without requiring the entire graph to reside in memory
-
-## 2. Neural Message Passing for Quantum Chemistry
-
-The original MPNN framework for quantum chemistry introduced edge-conditioned message functions:
+The original MPNN framework for quantum chemistry (Gilmer et al., 2017) introduced edge-conditioned
+message functions:
 
 $$
 m_v^{(t+1)}
 =
 \sum_{u \in \mathcal{N}(v)}
-A_t(e_{uv}) h_u^{(t)}
+A_t(e_{uv})\, h_u^{(t)}
 $$
 
-where $A_t(e_{uv})$ is a neural network that generates edge-specific transformation matrices.
-
-Node updates are commonly performed using GRUs:
+where $A_t(e_{uv})$ is a neural network that generates edge-specific transformation matrices. Node
+updates are commonly performed using GRUs:
 
 $$
 h_v^{(t+1)}
@@ -364,21 +302,13 @@ m_v^{(t+1)}
 \right)
 $$
 
-### Advantages
+*Advantages:* different bond types can transmit information differently, GRUs improve gradient flow,
+and the scheme supports deeper message passing.
 
-* Different bond types can transmit information differently
-* GRUs improve gradient flow
-* Supports deeper message passing
+**Virtual edges.** Additional edges may connect non-bonded atoms within a spatial cutoff distance to
+capture long-range interactions, conformational effects, and weak intermolecular interactions.
 
-### Virtual Edges
-
-Additional edges may connect non-bonded atoms within a spatial cutoff distance to capture:
-
-* Long-range interactions
-* Conformational effects
-* Weak intermolecular interactions
-
-### Typical MPNN Workflow
+**Typical MPNN workflow:**
 
 ```python
 # Initialize node embeddings
@@ -386,13 +316,9 @@ h_v = embedding(x_v)
 
 # Message passing
 for t in range(T):
-
     for edge (v, u):
-
         m_vu = EdgeNetwork(e_vu) @ h_u
-
     m_v = sum(m_vu)
-
     h_v = GRU(h_v, m_v)
 
 # Graph readout
@@ -402,488 +328,256 @@ h_G = Readout({h_v})
 y = MLP(h_G)
 ```
 
+#### Applications in chemistry and materials science
 
-### Applications in Chemistry and Materials Science
+**Quantum mechanical properties.** MPNNs are effective on QM9-style targets such as HOMO/LUMO
+energies, internal energy, enthalpy, free energy, heat capacity, and atomization energy. These
+properties depend strongly on molecular connectivity and local electronic environments.
 
-#### Molecular Property Prediction
+**Physical properties.** Solubility, density, melting and boiling points, refractive index, and
+viscosity. Incorporating 3D geometry often improves performance.
 
-MPNNs are highly effective for predicting:
+**Biological activity prediction.** Toxicity, binding affinity, ADMET properties, and blood-brain
+barrier permeability — widely used in early-stage drug discovery.
 
-#### Quantum Mechanical Properties
-
-Examples from the QM9 dataset include:
-
-* HOMO/LUMO energies
-* Internal energy
-* Enthalpy
-* Free energy
-* Heat capacity
-* Atomization energy
-
-These properties strongly depend on molecular connectivity and local electronic environments.
-
-
-#### Physical Properties
-
-Examples include:
-
-* Solubility
-* Density
-* Melting and boiling points
-* Refractive index
-* Viscosity
-
-Incorporating 3D geometry often improves performance.
-
-
-#### Biological Activity Prediction
-
-Applications include:
-
-* Toxicity prediction
-* Binding affinity prediction
-* ADMET property estimation
-* Blood-brain barrier permeability
-
-These models are widely used in early-stage drug discovery.
-
-
-#### Reaction Outcome Prediction
-
-MPNNs can predict reaction products from reactants and conditions:
+**Reaction outcome prediction.** MPNNs can predict reaction products from reactants and conditions:
 
 $$
-\text{Reactant Graphs}
-\rightarrow
-\text{MPNN}
-\rightarrow
-\text{Product Distribution}
+\text{Reactant graphs} \rightarrow \text{MPNN} \rightarrow \text{Product distribution}
 $$
 
-Reaction conditions such as temperature, solvent, and catalysts can be incorporated as global features.
+Reaction conditions such as temperature, solvent, and catalysts can be incorporated as global
+features.
 
-#### Retrosynthesis Planning
-
-Retrosynthesis models predict precursor molecules for a target compound:
+**Retrosynthesis planning.**
 
 $$
-\text{Target Molecule}
-\rightarrow
-\text{MPNN}
-\rightarrow
-\text{Candidate Precursors}
+\text{Target molecule} \rightarrow \text{MPNN} \rightarrow \text{Candidate precursors}
 $$
 
 These systems assist chemists in designing synthetic routes.
 
+**Drug discovery and virtual screening.** High-throughput virtual screening, multi-task property
+prediction, active learning, and transfer learning. Once trained, these models can evaluate
+thousands of molecules per second.
 
-### Drug Discovery and Virtual Screening
+**De novo molecular design.** MPNNs are frequently combined with generative approaches —
+reinforcement learning, genetic algorithms, and property-guided generation — to design molecules
+with target properties.
 
-Applications include:
+#### Limitations and challenges
 
-* High-throughput virtual screening
-* Multi-task property prediction
-* Active learning
-* Transfer learning on molecular datasets
-
-Once trained, these models can evaluate thousands of molecules per second.
-
-
-### De Novo Molecular Design
-
-MPNNs are frequently combined with generative models to design molecules with target properties.
-
-Applications include:
-
-* Reinforcement learning
-* Genetic algorithms
-* Property-guided molecular generation
-
-
-#### Limitations and Challenges
-
-#### Over-Smoothing
-
-With many message-passing layers, node embeddings can become nearly identical.
-
-#### Possible Solutions
-
-* Residual connections
-* Jumping knowledge networks
-* Normalization techniques
-
-### Limited Expressivity
-
-Some graph structures cannot be distinguished by standard message-passing schemes.
-
-### Possible Solutions
-
-* Higher-order graph representations
-* More expressive aggregation mechanisms
-* Subgraph-based methods
-
-
-### Scalability
-
-Large molecular systems and protein graphs can become computationally expensive.
-
-### Possible Solutions
-
-* Neighbor sampling
-* Hierarchical pooling
-* Graph coarsening
-
-
-### Lack of 3D Geometric Information
-
-Basic MPNNs operate only on graph topology and often ignore molecular geometry.
-
-### Possible Solutions
-
-* Include distances as edge features
-* Use geometric or equivariant neural networks
-* Incorporate rotationally equivariant architectures such as:
-
-  * SchNet
-  * DimeNet
-  * EGNN
-  * SE(3)-Transformers
+* **Over-smoothing.** With many message-passing layers, node embeddings can become nearly identical.
+  Possible solutions: residual connections, jumping-knowledge networks, and normalization.
+* **Limited expressivity.** Some graph structures cannot be distinguished by standard message-passing
+  schemes. Possible solutions: higher-order graph representations, more expressive aggregation, and
+  subgraph-based methods.
+* **Scalability.** Large molecular systems and protein graphs can become expensive. Possible
+  solutions: neighbor sampling, hierarchical pooling, and graph coarsening.
+* **Lack of 3D geometric information.** Basic MPNNs operate only on graph topology and often ignore
+  molecular geometry. Possible solutions: include distances as edge features, or use geometric and
+  equivariant architectures such as SchNet, DimeNet, EGNN, and SE(3)-Transformers.
 
 ## 2. Graph Attention Networks
 
-Graph Attention Networks (GATs) introduce attention mechanisms to graph learning, allowing the model to learn which neighbors 
-are most important for each node. This is a significant advancement over basic message passing, where all neighbors contribute 
-equally to a node's update.
+Graph Attention Networks (GATs) introduce attention mechanisms to graph learning, allowing the model
+to learn which neighbors are most important for each node. This is a significant advance over basic
+message passing, where all neighbors contribute equally to a node's update.
 
-#### Motivation and Intuition
-
-**Why Attention for Graphs?**
+### 2.1 Motivation and intuition
 
 In molecular contexts, not all bonds are equally important for determining a property:
-- In a large molecule, a specific functional group might dominate reactivity
-- Some atoms are in the "core" structure while others are in peripheral substituents
-- Certain bonds participate in conjugation or resonance, making them more significant
-- In protein-ligand binding, only residues near the binding site matter
 
-**Analogy to NLP**: Just as in language, where "bank" means different things in "river bank" vs "savings bank" depending on 
-context, an atom's role depends on which neighbors are most relevant.
+* In a large molecule, a specific functional group might dominate reactivity.
+* Some atoms are in the "core" structure while others are in peripheral substituents.
+* Certain bonds participate in conjugation or resonance, making them more significant.
+* In protein-ligand binding, only residues near the binding site matter.
 
-GATs allow the network to automatically learn these context-dependent importance weights.
+Just as in language, where "bank" means different things in "river bank" versus "savings bank"
+depending on context, an atom's role depends on which neighbors are most relevant. GATs allow the
+network to automatically learn these context-dependent importance weights.
 
-#### Attention Mechanism
+### 2.2 Attention mechanism
 
-**Core Idea:**
+Unlike MPNNs that use fixed aggregation (sum, mean) or hand-crafted edge weights, GATs learn
+attention coefficients $\alpha_{ij}$ that adaptively weigh the importance of each neighbor $j$ for
+node $i$. The mechanism has three steps.
 
-Unlike MPNNs that use fixed aggregation (sum, mean) or hand-crafted edge weights, GATs learn attention coefficients α_{ij} 
-that adaptively weigh the importance of each neighbor j for node i.
-
-**Mathematical Framework:**
-
-The attention mechanism consists of three steps:
-
-**Step 1: Compute Attention Logits**
+**Step 1: Compute attention logits**
 
 $$
-e_{ij} = LeakyReLU(a^T [W h_i || W h_j])
+e_{ij} = \text{LeakyReLU}\left(\mathbf{a}^T [W h_i \,\|\, W h_j]\right)
 $$
 
 Breaking this down:
-- **$W h_i$** and **$W h_j$**: First, transform node features through a shared weight matrix W
-  - This projects features into a common space where comparisons are meaningful
-  - Dimension: [d_in] → [d_out]
-  
-- **$[W h_i || W h_j]$**: Concatenate transformed features of node i and neighbor j
-  - Creates a pairwise feature vector
-  - Dimension: [2 × d_out]
-  
-- **$a^T [...]$**: Apply learned attention vector a
-  - Reduces to scalar attention logit $e_{ij}$
-  - The attention vector a learns what feature combinations indicate importance
-  - Dimension: [2 × d_out] → [1]
-  
-- **LeakyReLU**: Non-linearity with slope α for negative values (typically α=0.2)
-  - Allows negative attention scores (before softmax)
-  - Prevents dead neurons from ReLU saturation
 
-**Intuition**: The attention logit $e_{ij}$ measures how relevant neighbor $j$ is to node $i$, based on their feature compatibility.
+* $W h_i$ and $W h_j$: transform node features through a shared weight matrix $W$, projecting them
+  into a common space where comparisons are meaningful ($\mathbb{R}^{d_{\text{in}}} \to
+  \mathbb{R}^{d_{\text{out}}}$).
+* $[W h_i \,\|\, W h_j]$: concatenate the transformed features into a pairwise vector of dimension
+  $2 d_{\text{out}}$.
+* $\mathbf{a}^T[\cdots]$: apply a learned attention vector $\mathbf{a}$ to reduce this to a scalar
+  logit $e_{ij}$.
+* LeakyReLU: a nonlinearity with a small negative slope (typically $0.2$). The negative slope keeps
+  gradients flowing for negative inputs, avoiding the dying-ReLU problem.
 
-**Step 2: Normalize to Attention Coefficients**
+The attention logit $e_{ij}$ measures how relevant neighbor $j$ is to node $i$, based on their
+feature compatibility.
+
+**Step 2: Normalize to attention coefficients**
 
 $$
-α_{ij} = softmax_j(e_{ij}) = exp(e_{ij}) / Σ_{k∈N(i)} exp(e_{ik})
+\alpha_{ij} = \mathrm{softmax}_j(e_{ij})
+= \frac{\exp(e_{ij})}{\sum_{k \in \mathcal{N}(i)} \exp(e_{ik})}
 $$
 
-- **Softmax normalization**: Ensures attention weights sum to 1 over all neighbors
-- **Comparison**: Only neighbors compete for attention (not all nodes in graph)
-- **Interpretation**: $α_{ij} ∈ (0, 1)$ represents the probability-like importance of neighbor j
+Softmax normalization ensures the weights sum to 1 over all neighbors; only neighbors compete for
+attention. Each $\alpha_{ij} \in (0, 1)$ represents the probability-like importance of neighbor $j$.
+Softmax is differentiable, creates sharp distinctions, and keeps the aggregated values bounded.
 
-**Why softmax?**
-- Preserves differentiability (can backpropagate)
-- Creates sharp distinctions (high $e_{ij}$ → high $α_{ij}$)
-- Normalized weights prevent exploding values in aggregation
-
-**Step 3: Aggregate with Attention Weights**
+**Step 3: Aggregate with attention weights**
 
 $$
-h_{i'} = σ(Σ_{j∈N(i)} α_{ij} W h_j)
+h_i' = \sigma\left(\sum_{j \in \mathcal{N}(i)} \alpha_{ij}\, W h_j\right)
 $$
 
-- **Weighted sum**: Each neighbor contributes proportionally to its attention weight
-- **$W h_j$**: Uses the same transformation from step 1 (parameter sharing)
-- **σ**: Activation function (typically ELU or ReLU)
+Each neighbor contributes proportionally to its attention weight, using the same transformation $W$
+from Step 1. Here $\sigma$ is typically ELU or ReLU.
 
-**Complete Forward Pass Example:**
+**Worked example.** For an atom with three neighbors and logits $e_{i1} = 0.8,\ e_{i2} = 0.3,\
+e_{i3} = -0.2$:
 
-For an atom with 3 neighbors:
+1. Compute logits: $e_{i1} = 0.8,\ e_{i2} = 0.3,\ e_{i3} = -0.2$
+2. Apply softmax: $\alpha_{i1} = 0.51,\ \alpha_{i2} = 0.31,\ \alpha_{i3} = 0.19$
+3. Aggregate: $h_i' = \sigma\left(0.51 \cdot W h_1 + 0.31 \cdot W h_2 + 0.19 \cdot W h_3\right)$
 
-1. Compute logits: $e_{i1} = 0.8, e_{i2} = 0.3, e_{i3} = -0.2$
-2. Apply softmax: $α_{i1} = 0.52, α_{i2} = 0.31, α_{i3} = 0.17$
-3. Aggregate: $h_{i'} = σ(0.52 × W h_1 + 0.31 × W h_2 + 0.17 × W h_3)$
+**Key properties:**
 
-**Key Properties:**
+* **Self-attention:** self-loops $(i,i)$ can be included so nodes attend to themselves.
+* **Asymmetric:** $\alpha_{ij} \ne \alpha_{ji}$ in general.
+* **Local:** only direct neighbors are attended to, preserving graph structure.
+* **Permutation invariant:** the order of neighbors does not matter.
 
-- **Self-attention**: Can include self-loops (i,i) so nodes attend to themselves
-- **Asymmetric**: $α_{ij} \ne α_{ji}$ (attention from i→j differs from j→i)
-- **Local**: Only attends to direct neighbors (preserves graph structure)
-- **Permutation invariant**: Order of neighbors doesn't matter
+### 2.3 Multi-head attention
 
-#### Multi-Head Attention
+To stabilize learning and capture different types of relationships simultaneously, GATs employ
+multiple independent attention mechanisms (heads).
 
-To stabilize learning and capture different types of relationships simultaneously, GATs employ multiple independent attention mechanisms (heads).
-
-**Multi-Head Aggregation (Hidden Layers):**
-
-$$
-h_{i'} = ||_{k=1}^K σ(Σ_{j∈N(i)} α_{ij}^k W^k h_j)
-$$
-
-Where:
-
-- K = number of attention heads
-- Each head $k$ has its own parameters: $W^k$ and $a^k$
-- || denotes concatenation of head outputs
-- Output dimension: $K × d_{out}$
-
-**Why Multiple Heads?**
-
-Different heads can learn complementary attention patterns:
-
-- **Head 1**: Might focus on electronegative atoms (for polarity)
-- **Head 2**: Might focus on aromatic neighbors (for conjugation)
-- **Head 3**: Might focus on steric bulk (for size effects)
-- **Head 4**: Might attend to formal charges
-
-**Intuition from Chemistry**: Just as a chemist considers multiple factors simultaneously (electronics, sterics, orbital interactions), 
-multiple heads capture different aspects of molecular structure.
-
-**Multi-Head Averaging (Output Layer):**
+**Multi-head aggregation (hidden layers):**
 
 $$
-h_{i'} = σ((1/K) Σ_{k=1}^K Σ_{j∈N(i)} α_{ij}^k W^k h_j)
+h_i' = \Big\|_{k=1}^{K} \sigma\left(\sum_{j \in \mathcal{N}(i)} \alpha_{ij}^k W^k h_j\right)
 $$
 
-For the final layer, averaging instead of concatenation:
-- Keeps output dimension consistent with target
-- Ensembles the predictions from different heads
-- More stable for final predictions
+where $K$ is the number of heads, each head $k$ has its own parameters $W^k$ and $\mathbf{a}^k$,
+$\|$ denotes concatenation, and the output dimension is $K \times d_{\text{out}}$.
 
-**Implementation Considerations:**
+Different heads can learn complementary attention patterns — for example, one head might focus on
+electronegative atoms (polarity), another on aromatic neighbors (conjugation), another on steric
+bulk, and another on formal charges. This mirrors how a chemist considers electronics, sterics, and
+orbital interactions simultaneously.
+
+**Multi-head averaging (output layer):**
+
+$$
+h_i' = \sigma\left(\frac{1}{K} \sum_{k=1}^{K} \sum_{j \in \mathcal{N}(i)} \alpha_{ij}^k W^k h_j\right)
+$$
+
+Averaging (rather than concatenation) is used only at the **final** layer, so that the output
+dimension matches the target and the heads are effectively ensembled. Hidden layers concatenate.
+
+**Implementation considerations:**
 
 ```python
 # Typical hyperparameters
-num_heads = 4-8  # More heads = more capacity but more parameters
-hidden_dim = 64-256  # Per-head dimension
-dropout = 0.1-0.3  # On attention coefficients (attention dropout)
+num_heads = 4-8       # More heads = more capacity but more parameters
+hidden_dim = 64-256   # Per-head dimension
+dropout = 0.1-0.3     # On attention coefficients (attention dropout)
 ```
 
-**Computational Complexity:**
+**Computational complexity:** attention computation is $O(|E| \times d_{\text{out}})$ — linear in
+the number of edges — and highly parallelizable, since all coefficients are computed independently.
 
-- Attention computation: $O(|E| × d_out)$ - linear in edges
-- Memory for attention: $O(|E| × K)$ - stores attention per head
-- Highly parallelizable (all attention coefficients computed independently)
+### 2.4 Advantages of GATs
 
-#### Advantages of GATs
-
-**1. Adaptive Neighborhoods**
-
-Unlike fixed aggregation:
-
-##### Fixed (GCN-style)
-predetermined weights
+**Adaptive neighborhoods.** Unlike the fixed, degree-based weights of a GCN,
 
 $$
-h_{i'} = Σ_{j∈N(i)} (1/√(d_i × d_j)) W h_j
+\text{GCN:}\quad h_i' = \sum_{j \in \mathcal{N}(i)} \frac{1}{\sqrt{d_i\, d_j}}\, W h_j,
+\qquad
+\text{GAT:}\quad h_i' = \sum_{j \in \mathcal{N}(i)} \alpha_{ij}\, W h_j,
 $$
 
-##### Adaptive (GAT)
-learned weights
+GAT learns which neighbors matter. In a drug molecule, it can focus on pharmacophore groups,
+hydrogen-bond donors/acceptors, and hydrophobic regions while downweighting inert carbon chains.
 
-$$
-h_{i'} = Σ_{j∈N(i)} α_{ij} W h_j  
-$$
-
-**Benefits:**
-
-- Automatically focuses on relevant neighbors
-- Can ignore uninformative connections
-- Adapts to different chemical contexts
-
-**Example**: In a drug molecule, GAT can learn to focus on:
-
-- Pharmacophore groups (active parts)
-- Hydrogen bond donors/acceptors
-- Hydrophobic regions
-
-While downweighting inert carbon chains.
-
-**2. Interpretability**
-
-Attention weights $α_{ij}$ can be visualized and interpreted:
+**Interpretability.** Attention weights $\alpha_{ij}$ can be visualized and interpreted:
 
 ```python
-# Extract attention weights
 attention_weights = model.get_attention()  # shape: [num_edges, num_heads]
-
-# Visualize for a molecule
 mol_graph = molecule.to_graph()
 highlight_edges_by_weight(mol_graph, attention_weights, threshold=0.3)
 ```
 
-**What we can learn:**
+This can reveal which atoms influence predictions most, and whether the model has learned chemically
+meaningful patterns. As with any attention mechanism, though, these weights are suggestive rather
+than definitive explanations, and should be corroborated with other evidence.
 
-- Which atoms influence predictions most
-- How information flows through the molecule
-- Whether the model learned chemically meaningful patterns
-- Debugging: Are attention patterns reasonable?
+**Parallelizability.** All attention coefficients for all edges can be computed in parallel, which is
+GPU-friendly and has no sequential dependencies (unlike RNNs).
 
-**Example insights:**
+**Inductive learning.** GATs can generalize to entirely new graph structures — train on small
+molecules and test on larger ones — which is critical for novel drug candidates and transfer
+learning across datasets.
 
-- High attention on C=O bonds for carbonyl chemistry
-- Focus on aromatic rings for π-stacking predictions
-- Attention following conjugation pathways
+### 2.5 GAT variants and extensions
 
-**3. Parallelizability**
-
-All attention coefficients for all edges can be computed in parallel:
-
-```python
-# Pseudo-code
-edge_features = concat(h[edges[:,0]], h[edges[:,1]])  # All edges at once
-attention_logits = attention_network(edge_features)  # Parallel
-attention_weights = softmax_per_node(attention_logits)  # Parallel within neighbors
-```
-
-**Speed advantages:**
-
-- GPU-friendly (matrix operations)
-- Scales well to large molecules
-- No sequential dependencies (unlike RNNs)
-
-**4. Inductive Learning**
-
-GATs can generalize to completely new graph structures:
-
-- Train on small molecules, test on large ones
-- Learn patterns that transfer across different molecular classes
-- No fixed graph structure required during training
-
-This is critical for:
-
-- Generalizing to novel drug candidates
-- Transfer learning across datasets
-- Handling molecules with varying sizes
-
-#### GAT Variants and Extensions
-
-**GATv2: More Expressive Attention**
-
-Original GAT limitation: Attention is somewhat static
-
-##### GAT: Transform then attend
+**GATv2: more expressive attention.** The original GAT applies the learned vector after a fixed
+linear transform, which makes the attention *static*: the ranking of neighbors does not depend on the
+query node. GATv2 (Brody, Alon, and Yahav, 2022) moves the nonlinearity so that the attention becomes
+*dynamic*:
 
 $$
-e_{ij} = a^T [W h_i || W h_j]  
+\text{GAT:}\quad e_{ij} = \mathbf{a}^T [W h_i \,\|\, W h_j],
+\qquad
+\text{GATv2:}\quad e_{ij} = \mathbf{a}^T\, \text{LeakyReLU}\left(W [h_i \,\|\, h_j]\right).
 $$
 
-$a$ can only linearly combine features
+Applying the nonlinearity after the concatenation yields a strictly more expressive attention
+function and fixes a known theoretical limitation of the original GAT. It often improves performance,
+though the size of the gain is task-dependent. GATv2 is a good choice for complex molecules with
+subtle structural differences, or when the original GAT plateaus.
 
-GATv2 improvement: Dynamic attention
-
-##### GATv2: Attend then transform
-
-$$
-e_{ij} = a^T LeakyReLU(W [h_i || h_j])  
-$$
-
-Non-linearity before attention
-
-**Why it's better:**
-- The non-linearity is applied AFTER concatenation
-- Allows more complex attention functions
-- Empirically: 10-30% better performance on many benchmarks
-- Fixes theoretical expressivity limitations of original GAT
-
-**When to use GATv2:**
-- Complex molecules with subtle structural differences
-- When original GAT plateaus in performance
-- Tasks requiring fine-grained attention distinctions
-
-**Molecular GAT: Edge Features**
-
-Challenge: Chemical bonds have important attributes (single/double/triple, stereochemistry) that basic GAT ignores.
-
-**Solution**: Incorporate edge features into attention
+**Molecular GAT: edge features.** Basic GAT ignores bond attributes (single/double/triple,
+stereochemistry). These can be incorporated into the attention logit:
 
 $$
-e_{ij} = a^T [W h_i || W h_j || E e_{ij}]
+e_{ij} = \mathbf{a}^T [W h_i \,\|\, W h_j \,\|\, E e_{ij}]
 $$
 
-Where:
+where $e_{ij}$ is the edge feature vector (bond type, distance, ring membership) and $E$ is an edge
+embedding matrix. This lets attention depend on both node and edge features — distinguishing single
+from double bonds, incorporating 3D distances, and representing stereochemistry.
 
-- $e_{ij}$ = edge feature vector (bond type, distance, ring membership)
-- E = edge embedding matrix
-- Now attention depends on both node features AND edge features
+**Graph Transformer Networks.** These extend attention to *all* pairs of nodes, not just neighbors,
+computing $\alpha_{ij}$ for every pair $(i,j)$. This captures long-range interactions and allows more
+flexible attention patterns, at the cost of $O(|V|^2)$ complexity (versus $O(|E|)$ for GAT) and a
+weaker structural inductive bias. Use them when long-range interactions matter (large molecules,
+proteins).
 
-**Applications:**
+### 2.6 Practical tips for using GATs
 
-- Distinguishing single vs double bonds
-- Incorporating 3D distances
-- Using bond order information
-- Representing stereochemistry
-
-**Example**: In conjugated systems, π-bonds should have higher attention than σ-bonds:
-
-##### Single bond: $e_{ij} = [1,0,0]$ → lower attention
-##### Double bond: $e_{ij} = [0,1,0]$ → higher attention (for delocalization)
-##### Triple bond: $e_{ij} = [0,0,1]$ → highest attention
-
-
-**Graph Transformer Networks:**
-
-Extension to full graph attention (not just neighbors):
-$α_{ij}$, for all pairs $(i,j)$ in graph
-
-**Trade-offs:**
-- **Pro**: Can capture long-range interactions
-- **Pro**: More flexible attention patterns
-- **Con**: O(|V|²) complexity (vs O(|E|) for GAT)
-- **Con**: May lose graph structural bias
-
-**Use when:** Long-range interactions matter (large molecules, proteins)
-
-#### Practical Tips for Using GATs
-
-**Hyperparameter Selection:**
+**Hyperparameter selection:**
 
 ```python
 # Good starting points
-num_layers = 3-5  # Deeper than this risks over-smoothing
-num_heads = 4-8  # More heads for complex tasks
-hidden_dim = 64-128 per head
-dropout = 0.1-0.3  # Higher dropout for small datasets
+num_layers = 3-5    # Deeper than this risks over-smoothing
+num_heads = 4-8     # More heads for complex tasks
+hidden_dim = 64-128 # per head
+dropout = 0.1-0.3   # Higher dropout for small datasets
 learning_rate = 0.001  # Adam optimizer
 
-# For QM9 dataset
+# For QM9
 config = {
     'num_layers': 4,
     'num_heads': 4,
@@ -893,1106 +587,387 @@ config = {
 }
 ```
 
-**Common Pitfalls:**
+**Common pitfalls:**
 
-1. **Forgetting self-loops**: Add explicit (i,i) edges or include h_i in aggregation
-2. **Over-smoothing**: Too many layers → all nodes become similar
-3. **Attention collapse**: All attention goes to one neighbor (use attention dropout)
-4. **Memory issues**: K heads × L layers can use lots of GPU memory
+1. **Forgetting self-loops**: add explicit $(i,i)$ edges or include $h_i$ in the aggregation.
+2. **Over-smoothing**: too many layers make all nodes similar.
+3. **Attention collapse**: all attention concentrates on one neighbor (use attention dropout).
+4. **Memory**: $K$ heads $\times$ $L$ layers can use a lot of GPU memory.
 
-**Best Practices:**
-
-```python
-# 1. Add residual connections
-h_i' = h_i + GAT(h_i)  # Prevents over-smoothing
-
-# 2. Use layer normalization
-h_i' = LayerNorm(h_i + GAT(h_i))  # Stabilizes training
-
-# 3. Attention dropout
-α_{ij} = Dropout(softmax(e_{ij}))  # Regularizes attention
-
-# 4. Edge features when available
-e_{ij} = [bond_type, distance, ring_membership]  # Richer edges
-```
-
-**Visualization Strategies:**
+**Best practices:**
 
 ```python
-# 1. Attention heatmaps
-plot_attention_matrix(attention_weights, molecule)
-
-# 2. Highlight important edges
-highlight_edges_above_threshold(molecule, attention_weights > 0.3)
-
-# 3. Track attention across layers
-for layer in model.layers:
-    visualize_attention_distribution(layer.attention)
-
-# 4. Compare heads
-for head in range(num_heads):
-    visualize_attention_head(head, attention_weights)
+h_i' = h_i + GAT(h_i)              # 1. Residual connections mitigate over-smoothing
+h_i' = LayerNorm(h_i + GAT(h_i))   # 2. Layer normalization stabilizes training
+alpha_ij = Dropout(softmax(e_ij))  # 3. Attention dropout regularizes attention
+e_ij = [bond_type, distance, ring_membership]  # 4. Edge features when available
 ```
 
-### 3. Equivariant Networks for 3D Structures
+## 3. Equivariant Networks for 3D Structures
 
-Geometric deep learning architectures respect the symmetries and geometric properties of 3D molecular structures, making them particularly powerful for computational chemistry and materials science. These networks go beyond simple graph connectivity to leverage the full 3D geometry of molecules.
+Geometric deep learning architectures respect the symmetries and geometric properties of 3D molecular
+structures, making them particularly powerful for computational chemistry and materials science.
+These networks go beyond graph connectivity to use the full 3D geometry of molecules.
 
-#### Motivation: Why Geometry Matters
+### 3.1 Motivation: why geometry matters
 
-**The 3D Problem:**
+Traditional GNNs treat molecular graphs as topological structures, ignoring spatial arrangement:
 
-Traditional GNNs treat molecular graphs as topological structures, ignoring spatial arrangements:
+* Two molecules with the same connectivity but different 3D shapes (stereoisomers) are treated
+  identically.
+* Bond and dihedral angles carry crucial information.
+* Distance-based interactions (van der Waals, electrostatics) are not captured.
+* Forces and other vector properties require 3D information.
 
-- Two molecules with the same connectivity but different 3D shapes (stereoisomers) would be treated identically
-- Bond angles and dihedral angles contain crucial information
-- 3D distance-based interactions (van der Waals, electrostatics) are not captured
-- Forces and other vector properties require 3D information
+Consider cis- and trans-2-butene. Both are written as `H3C-CH=CH-CH3` and have identical graph
+connectivity, but they differ in 3D structure and in physical properties (melting point, boiling
+point, reactivity). A topology-only GNN cannot distinguish them; a plain 2D graph without explicit
+E/Z bond annotations cannot either, so the distinguishing information is specifically the 3D geometry.
+A geometry-aware network can.
 
-**Example**: Consider two stereoisomers:
-```
-cis-2-butene:  H₃C-CH=CH-CH₃ (groups on same side)
-trans-2-butene: H₃C-CH=CH-CH₃ (groups on opposite sides)
-```
-These have:
-- Identical graph connectivity
-- Different 3D structures
-- Different physical properties (melting point, boiling point, reactivity)
+### 3.2 Understanding symmetries
 
-A topology-only GNN cannot distinguish them, but a geometry-aware network can.
+Molecular properties must respect fundamental physical symmetries.
 
-#### Understanding Symmetries
+1. **Translation invariance.** Moving the whole molecule does not change its energy or properties;
+   only relative positions matter: $E(R + t) = E(R)$ for any translation $t$.
+2. **Rotation invariance.** Rotating the molecule does not change scalar properties (energy, dipole
+   magnitude): $E(QR) = E(R)$ for any rotation matrix $Q$.
+3. **Permutation invariance.** Relabeling atoms does not change properties; node ordering is an
+   artifact of the representation.
+4. **Reflection.** Chiral molecules break reflection symmetry; achiral molecules satisfy
+   $E(R) = E(\text{mirror}(R))$.
 
-**Physical Symmetries in Molecular Systems:**
+**Invariance versus equivariance.** An *invariant* output does not change under a transformation:
+energy is a rotation-invariant scalar, $E(QR) = E(R)$. An *equivariant* output transforms
+consistently with the input: forces are rotation-equivariant vectors, $F(QR) = Q\, F(R)$ — rotate the
+molecule and the forces rotate the same way.
 
-Molecular properties must respect fundamental physical symmetries:
+Networks that violate these symmetries treat rotated copies as different molecules, need far more
+training data, and can predict unphysical results (energy changing with rotation). Networks that
+respect them are more data-efficient, generalize better, and satisfy physical laws by construction.
 
-1. **Translation Invariance**: 
-   ```
-   Property(molecule) = Property(molecule + translation vector)
-   ```
+### 3.3 SchNet (continuous-filter convolutional neural network)
 
-   - Moving the entire molecule in space doesn't change its energy or properties
-   - Only relative positions matter, not absolute coordinates
-   - Mathematically: E(R + t) = E(R) for any translation t
+SchNet pioneered continuous convolutions for molecular modeling, treating molecules as continuous 3D
+objects rather than discrete graphs. Instead of learning fixed filters for discrete bond types, it
+learns continuous functions that depend smoothly on interatomic distances — mirroring the physics,
+where interactions depend on distance continuously.
 
-2. **Rotation Invariance**:
-   ```
-   Property(molecule) = Property(rotate(molecule, θ))
-   ```
-
-   - Rotating the molecule doesn't change scalar properties (energy, dipole magnitude)
-   - Physical measurements don't depend on orientation in space
-   - Mathematically: E(QR) = E(R) for any rotation matrix Q
-
-3. **Permutation Invariance**:
-   ```
-   Property(atoms[1,2,3,...]) = Property(atoms[permutation])
-   ```
-
-   - Labeling atoms 1,2,3 vs 3,1,2 shouldn't change properties
-   - Physical reality has no preferred ordering
-   - Node ordering is an artifact of representation
-
-4. **Reflection (for some properties)**:
-
-   - Chiral molecules break reflection symmetry
-   - Achiral molecules maintain E(R) = E(mirror(R))
-
-**Invariance vs Equivariance:**
-
-- **Invariant**: Output doesn't change under transformation
-
-  - Example: Energy is rotation-invariant scalar
-  - E(rotate(molecule)) = E(molecule)
-
-- **Equivariant**: Output transforms consistently with input
-
-  - Example: Forces are rotation-equivariant vectors
-  - F(rotate(molecule)) = rotate(F(molecule))
-  - If you rotate the molecule, forces rotate the same way
-
-**Why This Matters:**
-
-Networks that violate these symmetries will:
-
-- Learn to recognize rotated versions as different molecules (inefficient)
-- Require much more training data to learn all orientations
-- Fail to generalize to new orientations
-- Predict unphysical results (energy changing with rotation)
-
-Networks that respect symmetries:
-
-- Are more data-efficient (one orientation teaches all)
-- Generalize better to new configurations
-- Satisfy physical laws by construction
-- Often achieve better accuracy with fewer parameters
-
-#### SchNet (Continuous-filter Convolutional Neural Network)
-
-SchNet pioneered the use of continuous convolutions for molecular modeling, treating molecules as continuous 3D objects rather than discrete graphs.
-
-Instead of learning fixed filters for discrete bond types, SchNet learns continuous functions that depend smoothly on interatomic distances. This mirrors physics: interactions depend on distance in a continuous way (not discrete jumps).
-
-**Architecture Overview:**
+**Architecture overview:**
 
 ```
-Input: 
-  - Atomic numbers Z = [Z₁, Z₂, ..., Z_N]
-  - 3D coordinates R = [r₁, r₂, ..., r_N]
+Input:
+  - Atomic numbers Z = [Z1, Z2, ..., Z_N]
+  - 3D coordinates R = [r1, r2, ..., r_N]
 
 Output:
   - Molecular property (energy, HOMO, etc.)
 ```
 
-**Step 1: Atomic Embeddings**
-
-Each atom type is embedded into a feature space:
-```
-x_i^(0) = Embedding(Z_i)  # Lookup table: atomic number → d-dimensional vector
-```
-
-For example:
-- Carbon (Z=6) → [0.12, -0.34, 0.56, ...]
-- Nitrogen (Z=7) → [0.08, -0.29, 0.61, ...]
-- Oxygen (Z=8) → [0.15, -0.41, 0.48, ...]
-
-**Step 2: Continuous Filter Generation**
-
-The innovation of SchNet: filters are functions of distance, not learned for discrete bins.
+**Step 1: Atomic embeddings.** Each atom type is embedded into a feature space:
 
 ```
-# Compute all pairwise distances
-d_ij = ||r_i - r_j||  # Euclidean distance
-
-# Expand distances using radial basis functions (RBFs)
-e_ij = [exp(-(d_ij - μ_k)² / σ²) for k in range(K)]
-
-# Generate filter weights from expanded distances
-W_ij = MLP(e_ij)  # Neural network: ℝ^K → ℝ^(d×d)
+x_i^(0) = Embedding(Z_i)   # atomic number -> d-dimensional vector
 ```
 
-**Radial Basis Functions (RBFs):**
-
-RBFs create a smooth representation of distances:
-```
-# Example: Gaussian RBFs centered at different distances
-μ = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, ...]  # Centers in Ångströms
-σ = 0.1  # Width
-
-For distance d_ij = 1.8 Å:
-  RBF₁(1.8) = exp(-(1.8-0.5)²/0.01) ≈ 0.00  # Far from center
-  RBF₂(1.8) = exp(-(1.8-1.0)²/0.01) ≈ 0.00
-  RBF₃(1.8) = exp(-(1.8-1.5)²/0.01) ≈ 0.74  # Close to center
-  RBF₄(1.8) = exp(-(1.8-2.0)²/0.01) ≈ 0.82  # Closest center
-  ...
-```
-
-This creates a smooth, continuous representation that:
-- Captures nuances between bond lengths
-- Allows interpolation to unseen distances
-- Provides smooth gradients for optimization
-
-**Step 3: Interaction Blocks (Message Passing)**
+**Step 2: Continuous filter generation.** Filters are functions of distance, not learned for discrete
+bins:
 
 ```
-# For each interaction layer t:
-x_i^(t+1) = x_i^(t) + Σ_{j≠i} x_j^(t) ⊙ W_ij^(t)
-
-Where:
-  ⊙ is element-wise multiplication (Hadamard product)
-  W_ij^(t) = FilterNetwork_t(d_ij) is the distance-dependent filter
+d_ij = ||r_i - r_j||                                  # distance
+e_ij = [exp(-(d_ij - mu_k)^2 / sigma^2) for k in K]   # RBF expansion
+W_ij = MLP(e_ij)                                       # filter weights
 ```
 
-**Detailed Breakdown:**
+**Radial basis functions.** RBFs create a smooth representation of distances. With centers spaced
+about $0.5$ Å apart, a comparable width $\sigma \approx 0.5$ Å gives smooth, overlapping basis
+functions (a width as small as $0.1$ Å would leave large gaps between centers). For example, at a
+distance $d_{ij} = 1.8$ Å with $\sigma = 0.5$ Å:
 
-1. **Cutoff Function**: Only interact with nearby atoms
-   ```
-   if d_ij > r_cutoff (typically 5-10 Å):
-       W_ij = 0  # No interaction
-   else:
-       W_ij = FilterNetwork(d_ij) × smooth_cutoff(d_ij)
-   ```
-
-   Smooth cutoff prevents discontinuities:
-   ```
-   f_cutoff(d) = 0.5 × [cos(π × d / r_cutoff) + 1]  if d < r_cutoff
-                 0                                     otherwise
-   ```
-
-2. **Filter Network Architecture**:
-   ```
-   e = RBF_expansion(d_ij)      # [K] vector
-   h = Dense(e)                  # [K] → [hidden_dim]
-   h = ShiftedSoftplus(h)        # Smooth non-linearity
-   W = Dense(h)                  # [hidden_dim] → [d×d]
-   W = W × f_cutoff(d_ij)       # Apply cutoff
-   ```
-
-3. **Atom-wise Update**:
-   ```
-   # Aggregate filtered neighbor features
-   m_i = Σ_{j∈neighbors(i)} x_j ⊙ W_ij
-   
-   # Update with residual connection
-   x_i = x_i + m_i
-   ```
-
-**Step 4: Output Modules**
-
-After T interaction blocks:
 ```
-# Atom-wise energy contributions
-E_i = MLP_atom(x_i^(T))  # Scalar per atom
-
-# Sum for total energy (size-extensive property)
-E_total = Σ_i E_i
-
-# Or average for intensive properties
-Property = (1/N) Σ_i MLP(x_i^(T))
+RBF(mu=1.0) = exp(-(1.8-1.0)^2 / 0.25) = exp(-2.56) ~ 0.08
+RBF(mu=1.5) = exp(-(1.8-1.5)^2 / 0.25) = exp(-0.36) ~ 0.70
+RBF(mu=2.0) = exp(-(1.8-2.0)^2 / 0.25) = exp(-0.16) ~ 0.85
+RBF(mu=2.5) = exp(-(1.8-2.5)^2 / 0.25) = exp(-1.96) ~ 0.14
 ```
 
-**Key Design Choices:**
+This smooth, continuous representation captures nuances between bond lengths, interpolates to unseen
+distances, and provides smooth gradients.
 
-1. **Only distances, not coordinates**:
+**Step 3: Interaction blocks (message passing).**
 
-   - Distances are rotation and translation invariant
-   - ||r_i - r_j|| is the same regardless of overall position/orientation
-   - This guarantees the network is invariant
-
-2. **Continuous filters**:
-
-   - Smoothly adapts to any distance
-   - Better than discrete binning (1.0-1.5 Å, 1.5-2.0 Å, ...)
-   - Allows accurate interpolation
-
-3. **Shifted Softplus activation**:
-   ```
-   ShiftedSoftplus(x) = log(0.5 × exp(x) + 0.5)
-   ```
-
-   - Smooth everywhere (unlike ReLU)
-   - Important for force prediction: forces = -∇E
-   - Provides smooth gradients
-
-**Strengths:**
-
-- **Efficient**: Linear in number of atoms (with cutoff)
-- **Scalable**: Handles molecules from 10 to 1000+ atoms
-- **Accurate**: State-of-the-art on QM9 and other benchmarks
-- **End-to-end differentiable**: Can predict forces via backpropagation
-- **Physically motivated**: Design mirrors physics of interactions
-
-**Limitations:**
-
-- **Distance-only**: Doesn't explicitly capture angles
-- **Isotropic**: Treats all directions equally (no directionality)
-- **Cannot predict vector properties directly**: Forces require gradients
-
-**Implementation Notes:**
-
-```python
-# Typical hyperparameters
-num_interactions = 6        # Depth of network
-num_gaussians = 50          # Number of RBF centers
-cutoff = 5.0                # Interaction cutoff (Å)
-hidden_dim = 128            # Feature dimension
-num_filters = 128           # Filter network dimension
+```
+x_i^(t+1) = x_i^(t) + sum_{j != i} x_j^(t) (*) W_ij^(t)
 ```
 
-#### DimeNet (Directional Message Passing Neural Network)
+where $(*)$ is element-wise (Hadamard) multiplication and $W_{ij}^{(t)}$ is the distance-dependent
+filter. A smooth cutoff keeps interactions local without introducing discontinuities:
 
-DimeNet extends SchNet by incorporating angular information, making it significantly more expressive for molecular modeling.
+```
+f_cutoff(d) = 0.5 * [cos(pi * d / r_cutoff) + 1]   if d < r_cutoff
+              0                                     otherwise
+```
 
-**Key Innovation: Beyond Distances**
+The filter network expands the distance in RBFs, passes it through a dense layer and a shifted
+softplus nonlinearity, produces the filter, and multiplies by the cutoff. Atom-wise updates aggregate
+the filtered neighbor features and add them with a residual connection.
 
-While distances capture bond lengths, many properties depend on:
+**Step 4: Output modules.** After $T$ interaction blocks:
 
-- **Bond angles**: H-O-H angle in water determines properties
-- **Dihedral angles**: Rotations around single bonds affect conformation
-- **Triplet interactions**: Three-body terms in force fields
+```
+E_i = MLP_atom(x_i^(T))     # per-atom scalar
+E_total = sum_i E_i         # size-extensive property
+```
 
-**Physics Analogy**: 
+**Key design choices:**
 
-- SchNet ≈ Lennard-Jones potential (pairwise, distance-only)
-- DimeNet ≈ Force fields with angle terms (CHARMM, AMBER)
+* **Distances, not coordinates.** $\|r_i - r_j\|$ is rotation- and translation-invariant, which
+  guarantees the network is invariant.
+* **Continuous filters.** Adapt smoothly to any distance; better than discrete binning.
+* **Shifted softplus.** $\text{ssp}(x) = \log(0.5 e^x + 0.5)$ is smooth everywhere (unlike ReLU),
+  which matters for force prediction, since forces are $-\nabla E$ and require smooth gradients.
 
-**Architecture: Directional Messages**
+*Strengths:* efficient (linear in atoms with a cutoff), scalable, accurate, end-to-end
+differentiable, and physically motivated.
 
-DimeNet introduces messages that depend on triplets of atoms (i,j,k):
+*Limitations:* distance-only (no explicit angles), isotropic (no directionality), and cannot predict
+vector properties directly (forces require gradients).
+
+### 3.4 DimeNet (directional message passing)
+
+DimeNet extends SchNet by incorporating angular information. While distances capture bond lengths,
+many properties depend on bond angles (the H-O-H angle in water), dihedral angles, and three-body
+interactions. Roughly: SchNet is like a pairwise, distance-only potential, while DimeNet is like a
+force field with angle terms.
+
+**Directional messages.** DimeNet uses messages that depend on triplets of atoms $(i, j, k)$ with $j$
+as the central atom:
 
 ```
                 k
                /
-              /θ_{ijk}
+              / theta_ijk
              /
             j -------- i
           d_jk      d_ij
 ```
 
-**Step 1: Distance and Angle Embeddings**
+**Step 1: Distance and angle embeddings.**
 
 ```
-# Distance embedding (like SchNet)
 e_dist(d_ij) = RBF_expansion(d_ij)
-
-# NEW: Angle embedding
-θ_{ijk} = angle between vectors (r_j - r_i) and (r_k - r_j)
-e_angle(θ_{ijk}) = SphericalBasisFunctions(θ_{ijk})
+theta_ijk    = interior bond angle at the central atom j,
+               i.e. the angle between (r_i - r_j) and (r_k - r_j)
+e_angle      = SphericalBasisFunctions(theta_ijk)
 ```
 
-**Spherical Basis Functions:**
+Note that the angle is centered on $j$ and is defined between the two vectors pointing *away from*
+$j$, namely $(r_i - r_j)$ and $(r_k - r_j)$. Distances use Gaussian RBFs; angles use spherical basis
+functions, which respect the periodicity of angles.
 
-Instead of Gaussians (for distances), use spherical harmonics for angles:
-```
-# Angles are periodic: 0° = 360°
-# Use basis that respects this periodicity
-
-SBF_k(θ) = Σ_n c_{nk} × exp(-(n - n_0)²/σ²) × sin(nθ)
-
-# These form a complete basis for representing angular functions
-```
-
-**Step 2: Directional Message Passing**
-
-The crucial innovation - messages depend on geometric triplets:
+**Step 2: Directional message passing.** Messages depend on geometric triplets:
 
 ```
-# For each atom i:
-m_ij = Σ_{k∈N(j), k≠i} MessageBlock(d_ij, d_jk, θ_{ijk}) ⊙ x_k
+m_ij = sum_{k in N(j), k != i} MessageBlock(d_ij, d_jk, theta_ijk) (*) x_k
 ```
 
-Let's break down `MessageBlock(d_ij, d_jk, θ_{ijk})`:
+The message block embeds both distances and the angle, then combines them with a bilinear layer that
+learns correlations between distances and angles — for example, that a particular combination of
+$d_{ij}$, $d_{jk}$, and $\theta$ signals a strong interaction. This is more expressive than treating
+the geometric features independently.
+
+**Step 3: Update.** Aggregate the directional messages and update the node features, typically with a
+residual network.
+
+**Why it helps:** angular information distinguishes linear from bent from tetrahedral geometries
+(CO$_2$ at $180°$ versus H$_2$O at $104.5°$), captures rotational barriers via dihedral sensitivity,
+and models three-body interactions. Despite using angles, DimeNet remains rotationally invariant,
+because angles and distances are themselves invariant.
+
+**DimeNet++** optimizes the message aggregation for a 2–5$\times$ speedup at the same or better
+accuracy, using shared bilinear layers, efficient triplet enumeration, and a lower memory footprint.
+
+*Advantages:* higher accuracy than SchNet on QM9, captures geometry, physics-aware, still rotationally
+invariant. *Disadvantages:* higher computational cost ($O(N k^2)$, with $k$ the coordination number),
+higher memory (stores triplets), and more hyperparameters.
+
+### 3.5 PaiNN (polarizable atom interaction neural network)
+
+PaiNN maintains both scalar (invariant) and vector (equivariant) representations, rather than
+invariant features alone. This matters because many important properties are vectors: forces
+($F = -\nabla E$), dipole moments, and polarizability. Earlier models (SchNet, DimeNet) predict only
+scalars and obtain forces by differentiating the energy; PaiNN can predict vectors directly and learn
+force fields end-to-end.
+
+**Equivariance.** For a rotation matrix $Q$: an invariant scalar satisfies $f(QR) = f(R)$; an
+equivariant vector satisfies $f(QR) = Q f(R)$; and a rank-2 tensor transforms as $f(QR) = Q f(R) Q^T$.
+
+**Feature representation.** Each atom $i$ carries two kinds of features: **scalar features** $s_i \in
+\mathbb{R}^d$, which are rotation-invariant and transform as $s_i \to s_i$; and **vector features**
+$v_i \in \mathbb{R}^{d \times 3}$, which are rotation-equivariant and transform as $v_i \to Q v_i$.
+
+**Message passing.** Scalar messages are built from invariants such as distances and $\|v_j\|^2$.
+Vector messages achieve equivariance by multiplying scalar filters with the unit direction vector
+$\hat{r}_{ij} = (r_j - r_i)/\|r_j - r_i\|$ and with the vector features $v_j$. The construction is
+equivariant because, under a rotation $Q$, both $\hat{r}_{ij}$ and $v_j$ rotate, so the message
+transforms as $m_v \to Q m_v$. Scalar and vector channels then mix through invariant combinations
+($\|v_i\|$, $v_i \cdot v_i$) and gating.
+
+**Output predictions.** Energy is read from the scalar channel ($E = \sum_i \text{MLP}(s_i)$), while
+vector properties such as forces are read directly from the vector channel.
+
+*Advantages:* direct vector prediction (forces without numerical differentiation), true equivariance,
+expressive directional representations, and end-to-end force-field learning.
+
+**Training** typically combines energy and force losses:
 
 ```python
-def MessageBlock(d_ij, d_jk, theta_ijk):
-    # Embed distances
-    rbf_ij = RBF(d_ij)        # [n_rbf]
-    rbf_jk = RBF(d_jk)        # [n_rbf]
-    
-    # Embed angle
-    sbf = SphericalBasis(theta_ijk)  # [n_sbf]
-    
-    # Combine using bilinear layer
-    # This learns correlations between distances and angles
-    W = BilinearLayer(rbf_ij, rbf_jk, sbf)  # [d × d] matrix
-    
-    return W
+loss = w_E * ||E_pred - E_true||^2 + w_F * ||F_pred - F_true||^2
+# Forces are smaller in magnitude, so w_F is usually >> w_E
 ```
 
-**Bilinear Layer Explained:**
-
-The bilinear layer is crucial for combining geometric features:
-
-```
-W = Σ_m Σ_n Σ_l  U_{mnl} × rbf_ij[m] × rbf_jk[n] × sbf[l]
-
-Where U is a learned tensor of parameters
-```
-
-This allows the network to learn patterns like:
-- "When d_ij ≈ 1.5 Å AND d_jk ≈ 1.2 Å AND θ ≈ 120°" → strong interaction
-- Captures correlations between geometric features
-- More expressive than treating features independently
-
-**Step 3: Update with Directional Information**
-
-```
-# Aggregate directional messages
-m_i = Σ_{j∈N(i)} m_ij
-
-# Update node features
-x_i = Update(x_i, m_i)  # Typically a residual network
-```
-
-**Why This Works Better:**
-
-1. **Angular Information**: Distinguishes linear vs bent vs tetrahedral
-   - Example: CO₂ (linear, 180°) vs H₂O (bent, 104.5°)
-   - Same atom types, different angles → different properties
-
-2. **Dihedral Sensitivity**: Captures rotational barriers
-   - Ethane: staggered vs eclipsed conformations
-   - Different angles → different energies
-
-3. **Three-Body Interactions**: More realistic physics
-   - Many quantum effects involve three atoms
-   - Necessary for accurate force fields
-
-**Maintaining Rotational Invariance:**
-
-Despite using angles, DimeNet remains rotationally invariant because:
-- Angles are invariant: θ_{ijk} doesn't change under rotation
-- Only distances and angles used (not absolute coordinates)
-- No preferred orientation in space
-
-**DimeNet++ Improvements:**
-
-The original DimeNet was slow. DimeNet++ optimized:
-
-```
-# DimeNet: T-shaped message passing
-Message: k → j → i  (sequential)
-
-# DimeNet++: Optimized message aggregation
-Message: All k → all j → all i  (more parallel)
-```
-
-**Optimization strategies:**
-
-1. **Shared bilinear layers**: Reduce parameters
-2. **Efficient triplet enumeration**: Better data structures
-3. **Grouped convolutions**: Reduce computational cost
-4. **Memory-efficient attention**: Lower memory footprint
-
-**Performance:**
-
-- DimeNet++: 2-5× faster than DimeNet
-- Same or better accuracy
-- Can handle larger molecules (100+ atoms)
-
-**Advantages:**
-
-- **Higher accuracy**: 20-40% better MAE on QM9 vs SchNet
-- **Captures geometry**: Angles and dihedrals encoded
-- **Physics-aware**: Mirrors force field design
-- **Still rotationally invariant**: Maintains symmetries
-
-**Disadvantages:**
-
-- **Computational cost**: O(N × k²) where k is coordination number
-- **Memory**: Stores triplets, not just pairs
-- **Complexity**: More hyperparameters to tune
-
-**Use Cases:**
-
-- High-accuracy property prediction
-- Conformational energy differences
-- Transition state geometries
-- Systems where angles matter (chelates, rings, etc.)
-
-#### PaiNN (Polarizable Atom Interaction Neural Network)
-
-PaiNN represents a paradigm shift: instead of just invariant features, it maintains both scalar (invariant) and vector (equivariant) representations.
-
-**Motivation: Vector Properties**
-
-Many important properties are vectors (have direction):
-
-- **Forces**: F = -∇E (gradient of energy)
-- **Dipole moments**: μ = Σ_i q_i r_i
-- **Magnetic moments**: Direction matters
-- **Polarizability**: Tensorial response to fields
-
-Previous models (SchNet, DimeNet):
-- Can only predict scalar outputs directly
-- Forces require numerical differentiation: F = -dE/dR
-- Inefficient and sometimes inaccurate
-
-PaiNN: 
-- Predicts vectors directly
-- Learns force fields end-to-end
-- Truly equivariant architecture
-
-**Equivariance Explained:**
-
-For a rotation matrix Q:
-```
-Invariant (scalar): f(QR) = f(R)
-    Example: ||v|| = ||Qv||  (length unchanged)
-
-Equivariant (vector): f(QR) = Q f(R)
-    Example: Qv rotates the same way as input
-
-Equivariant (rank-2 tensor): f(QR) = Q f(R) Q^T
-    Example: Stress tensor transforms
-```
-
-**Feature Representation:**
-
-Each atom i has TWO types of features:
-
-1. **Scalar features** s_i ∈ ℝ^d:
-   - Rotation invariant
-   - Examples: atomic charge, energy contribution, electron density
-   - Transforms: s_i → s_i (unchanged under rotation)
-
-2. **Vector features** v_i ∈ ℝ^(d×3):
-   - Rotation equivariant  
-   - Examples: dipole moment, force vector, polarization
-   - Transforms: v_i → Q v_i (rotates with molecule)
-
-**Architecture Overview:**
-
-```
-Input: (s_i^(0), v_i^(0)) for each atom
-       s_i^(0) = embedding(Z_i)  # Initial: just element type
-       v_i^(0) = 0                # Initial: no directional info
-
-Message Passing Layers:
-    (s_i, v_i) → MessagePass → (s_i', v_i')
-    
-Output: 
-    Scalar: energy = Σ_i MLP(s_i^(T))
-    Vector: forces = Σ_i v_i^(T)  # Or per-atom force contribution
-```
-
-**Message Passing in PaiNN:**
-
-Each layer consists of three parts:
-
-**Part 1: Scalar Message Passing**
-
-```python
-# Compute scalar messages from neighbors
-for j in neighbors(i):
-    d_ij = ||r_j - r_i||  # Distance
-    dir_ij = (r_j - r_i) / d_ij  # Unit direction vector
-    
-    # Filter based on distance
-    φ_ij = FilterNetwork(d_ij)  # Like SchNet
-    
-    # Scalar message (rotation invariant)
-    m_s_ij = φ_ij ⊙ s_j
-    
-    # Also incorporate magnitude of vector features
-    m_s_ij += φ_ij ⊙ ||v_j||²  # Invariant: length squared
-
-# Aggregate
-m_s_i = Σ_j m_s_ij
-
-# Update scalars
-s_i = s_i + MLP(m_s_i)
-```
-
-**Part 2: Vector Message Passing**
-
-This is where equivariance happens:
-
-```python
-# Compute vector messages
-for j in neighbors(i):
-    d_ij = ||r_j - r_i||
-    dir_ij = (r_j - r_i) / d_ij  # ← KEY: Direction vector
-    
-    φ_ij = FilterNetwork(d_ij)
-    
-    # Vector message (rotation equivariant!)
-    # Multiply by direction to make equivariant
-    m_v_ij = φ_ij ⊙ v_j  # Element-wise filter
-    m_v_ij += (φ_ij ⊙ s_j) × dir_ij  # Scalar-to-vector term
-    
-# Aggregate vectors
-m_v_i = Σ_j m_v_ij
-
-# Update vectors
-v_i = v_i + m_v_i
-```
-
-**Why this is equivariant:**
-
-```
-Under rotation Q:
-    dir_ij → Q dir_ij  (direction rotates)
-    v_j → Q v_j        (vector features rotate)
-    
-    m_v_ij = φ_ij ⊙ v_j + (φ_ij ⊙ s_j) × dir_ij
-         → φ_ij ⊙ (Q v_j) + (φ_ij ⊙ s_j) × (Q dir_ij)
-         = Q [φ_ij ⊙ v_j + (φ_ij ⊙ s_j) × dir_ij]
-         = Q m_v_ij  ✓
-```
-
-**Part 3: Mixing Scalars and Vectors**
-
-Cross-interactions between scalar and vector features:
-
-```python
-# Vector → Scalar: Extract invariant info from vectors
-s_i = s_i + MLP(||v_i||)  # Length is invariant
-s_i = s_i + MLP(v_i · v_i)  # Dot product is invariant
-
-# Scalar → Vector: Modulate vectors by scalars
-v_i = v_i ⊙ σ(U s_i)  # Element-wise gating
-```
-
-**Complete Update Equations:**
-
-```
-# Scalar update
-Δs_i = Σ_j [W_s(d_ij) ⊙ s_j + W_vs(d_ij) ⊙ ||v_j||²]
-s_i = s_i + MLP(Δs_i + ||v_i||²)
-
-# Vector update  
-Δv_i = Σ_j [W_v(d_ij) ⊙ v_j + W_sv(d_ij) ⊙ s_j ⊙ (r_j - r_i) / d_ij]
-v_i = v_i + Δv_i
-
-# Mix scalar and vector
-s_i = s_i + U_vs ||v_i||
-v_i = (W_vv v_i) ⊙ σ(U_sv s_i)
-```
-
-**Output Predictions:**
-
-```python
-# Energy (scalar invariant)
-E_i = MLP_scalar(s_i)
-E_total = Σ_i E_i
-
-# Forces (vector equivariant)
-F_i = v_i  # Already in correct format!
-# Or: F_i = Linear(v_i) for learned scaling
-
-# Other vector properties
-dipole = Σ_i q_i × v_i  # If q_i are charges
-```
-
-**Advantages of PaiNN:**
-
-1. **Direct vector prediction**:
-   - Forces without numerical differentiation
-   - More accurate and efficient
-   - Can predict multiple vector properties
-
-2. **True equivariance**:
-   - Guarantees physical consistency
-   - Rotated inputs → correctly rotated outputs
-   - No violation of physics
-
-3. **Expressive representations**:
-   - Vectors encode directional information
-   - Richer than scalar-only features
-   - Better for anisotropic systems
-
-4. **Force field learning**:
-   - Can be trained on forces directly
-   - Learns better potential energy surfaces
-   - Useful for molecular dynamics
-
-**Training Considerations:**
-
-```python
-# Loss function combining energy and forces
-loss = w_E ||E_pred - E_true||² + w_F ||F_pred - F_true||²
-
-# Typical weights
-w_E = 1.0   # Energy in eV or kcal/mol
-w_F = 100.0  # Forces in eV/Å (forces are smaller, need higher weight)
-```
-
-**Applications:**
-
-1. **Molecular Dynamics**:
-   - Learn accurate force fields from DFT
-   - 1000× faster than ab initio MD
-   - Maintains accuracy of quantum calculations
-
-2. **Transition State Search**:
-   - Accurate forces guide optimization
-   - Find saddle points efficiently
-   - Predict reaction barriers
-
-3. **Dipole Moment Prediction**:
-   - Important for spectroscopy
-   - Drug-like properties
-   - Solvent effects
-
-4. **Polarizability**:
-   - Response to external fields
-   - Optical properties
-   - Intermolecular interactions
-
-**Implementation Notes:**
-
-```python
-# Hyperparameters
-num_layers = 5
-hidden_dim_scalar = 128
-hidden_dim_vector = 64  # Vectors have 3× more parameters (x,y,z)
-num_rbf = 20
-cutoff = 5.0
-
-# Vector features typically smaller dimension to save memory
-# v_i ∈ ℝ^(d×3) uses 3× memory of s_i ∈ ℝ^d
-```
-
-#### Comparison of Approaches
-
-| Model | Distance | Angles | Equivariance | Outputs | Complexity | Use Case |
-|-------|----------|--------|--------------|---------|------------|----------|
-| **SchNet** | ✓ | ✗ | Invariant | Scalars | O(N×k) | Fast, general purpose, good baseline |
-| **DimeNet** | ✓ | ✓ | Invariant | Scalars | O(N×k²) | High accuracy, angle-dependent properties |
-| **DimeNet++** | ✓ | ✓ | Invariant | Scalars | O(N×k²)* | DimeNet with 3-5× speedup |
-| **PaiNN** | ✓ | Implicit | Equivariant | Scalars + Vectors | O(N×k) | Forces, vector properties, MD |
-
-*DimeNet++ optimized but same computational complexity
-
-**When to Choose Each:**
-
-**SchNet:**
--  Need fast inference
--  Large molecules (>100 atoms)
--  Don't need highest accuracy
--  Conformational search (many evaluations)
-- X Highly angle-dependent properties
-- X Need force predictions
-
-**DimeNet/DimeNet++:**
--  Need highest accuracy
--  Angle and dihedral effects important
--  Small to medium molecules (<50 atoms)
--  Property prediction only
-- X Computational budget limited
-- X Need force predictions
-- X Very large molecules
-
-**PaiNN:**
--  Need force predictions
--  Molecular dynamics simulations
--  Vector property prediction
--  Want equivariant representations
--  Good accuracy/speed trade-off
-- X Only need scalar properties
-- X Maximum simplicity desired
-
-**Practical Decision Tree:**
+*Applications:* machine-learned force fields for molecular dynamics (orders of magnitude faster than
+ab initio MD at near-DFT accuracy), transition-state search, dipole prediction, and polarizability.
+
+### 3.6 Comparison of approaches
+
+| Model      | Distance | Angles   | Equivariance | Outputs           | Complexity | Use case                                  |
+| ---------- | -------- | -------- | ------------ | ----------------- | ---------- | ----------------------------------------- |
+| SchNet     | Yes      | No       | Invariant    | Scalars           | O(N·k)     | Fast, general purpose, good baseline      |
+| DimeNet    | Yes      | Yes      | Invariant    | Scalars           | O(N·k²)    | High accuracy, angle-dependent properties |
+| DimeNet++  | Yes      | Yes      | Invariant    | Scalars           | O(N·k²)*   | DimeNet with a 2–5× speedup               |
+| PaiNN      | Yes      | Implicit | Equivariant  | Scalars + vectors | O(N·k)     | Forces, vector properties, MD             |
+
+\*DimeNet++ is optimized but has the same asymptotic complexity.
+
+**Choosing a model:**
+
+* **SchNet** — fast inference, large molecules, when the highest accuracy is not required, and for
+  conformational search with many evaluations. Less suited to strongly angle-dependent properties or
+  direct force prediction.
+* **DimeNet / DimeNet++** — highest accuracy, angle and dihedral effects, small to medium molecules.
+  Less suited to tight compute budgets or very large molecules.
+* **PaiNN** — force prediction, molecular dynamics, vector properties, with a good accuracy/speed
+  trade-off. Overkill if only scalar properties are needed.
+
+**Decision guide:**
 
 ```
 Do you need vector outputs (forces, dipoles)?
-├─ Yes → Use PaiNN
-└─ No
-    │
-    └─ Is accuracy critical and dataset small?
-        ├─ Yes → Use DimeNet++
-        └─ No → Use SchNet (fastest)
+- Yes -> PaiNN
+- No  -> Is accuracy critical and the dataset small?
+         - Yes -> DimeNet++
+         - No  -> SchNet (fastest)
 ```
 
-**Benchmarks (QM9 dataset, HOMO energy):**
+**Illustrative benchmarks (QM9, HOMO energy).** These are approximate values that vary by
+implementation and hardware; treat them as rough guidance, not exact figures, and cite the source you
+take them from.
 
 ```
-Method          MAE (meV)   Time/molecule   Parameters
-SchNet          41          0.5 ms          600K
-DimeNet         33          3.0 ms          2M  
-DimeNet++       29          1.2 ms          2M
-PaiNN           35          0.8 ms          800K
-
-Note: Exact numbers vary by implementation and hardware
+Method      MAE (meV)   Time/molecule   Parameters
+SchNet      ~41         ~0.5 ms         ~600K
+DimeNet     ~28         ~3.0 ms         ~2M
+DimeNet++   ~25         ~1.2 ms         ~2M
+PaiNN       ~35         ~0.8 ms         ~800K
 ```
 
+## 4. Protein-Ligand Interaction Modeling
 
-### 4. Protein-Ligand Interaction Modeling
+Understanding how small molecules (ligands) bind to proteins is central to drug discovery. GNNs
+provide powerful tools for modeling these interactions, potentially accelerating the development
+pipeline.
 
-Understanding how small molecules (ligands) bind to proteins is crucial for drug discovery. GNNs provide powerful tools for modeling these complex interactions, potentially accelerating the drug development pipeline from years to months.
+### 4.1 The drug discovery challenge
 
-#### The Drug Discovery Challenge
+Traditional drug discovery proceeds through target identification, hit discovery (experimentally
+screening $10^5$–$10^6$ compounds), lead optimization, and clinical trials, and typically takes 10–15
+years at a cost often cited around \$1–2 billion per approved drug. GNNs can predict binding without
+experiments: virtual screening of $10^6$ compounds in hours, structure-based optimization, and
+reduced experimental testing. Several AI-assisted candidates are now in clinical trials.
 
-**Traditional Drug Discovery:**
+### 4.2 Problem formulation
 
-1. **Target Identification**: Identify disease-related protein (months-years)
-2. **Hit Discovery**: Screen 10⁵-10⁶ compounds experimentally (months, $$$)
-3. **Lead Optimization**: Iteratively improve binding (years, $$$$)
-4. **Clinical Trials**: Test in humans (years, $$$$$)
+**Key tasks:**
 
-**Total**: 10-15 years, $1-2 billion per drug
+1. **Binding affinity prediction** — the strength of protein-ligand binding (IC$_{50}$, $K_i$, $K_d$,
+   $\Delta G_{\text{bind}}$), from nM (strong) to mM (weak). Used in virtual screening and lead
+   optimization.
+2. **Binding pose prediction** — the 3D orientation of the ligand in the pocket, subject to spatial
+   constraints and protein flexibility.
+3. **Virtual screening** — ranking large libraries, requiring fast inference.
+4. **Selectivity prediction** — binding to the target versus off-targets, crucial for safety.
 
-**AI-Accelerated Discovery:**
-
-GNNs can predict binding without experiments:
-- Virtual screening: 10⁶ compounds in hours
-- Structure-based optimization
-- Reduced experimental testing
-- Faster iteration cycles
-
-**Impact**: Several AI-discovered drugs now in clinical trials
-
-#### Problem Formulation
-
-**Key Tasks:**
-
-1. **Binding Affinity Prediction**: 
-   - Predict the strength of protein-ligand binding
-   - Metrics: IC₅₀, Ki, Kd, ΔG_bind
-   - Range: nM (strong) to mM (weak)
-   - Applications: Virtual screening, lead optimization
-
-2. **Binding Pose Prediction**: 
-   - Determine the 3D orientation of ligand in binding pocket
-   - Must satisfy spatial constraints
-   - Account for protein flexibility
-   - Applications: Structure-based drug design
-
-3. **Virtual Screening**: 
-   - Rank large libraries of compounds
-   - Prioritize for experimental testing
-   - Requires fast inference (<1s per compound)
-   - Applications: Hit discovery, library filtering
-
-4. **Selectivity Prediction**:
-   - Binding to target vs off-targets
-   - Crucial for drug safety
-   - Multi-protein modeling
-   - Applications: Toxicity prediction, side effect profiling
-
-**Input Data:**
+**Input data:**
 
 ```
-Protein:
-  - Sequence: MKTAYIAKQRQ... (amino acid sequence)
-  - Structure: 3D coordinates of atoms or residues
-  - Features: Secondary structure, surface accessibility, physicochemical properties
-
-Ligand:
-  - SMILES: CC(C)CC1=CC=C(C=C1)C(C)C(=O)O (structure string)
-  - 3D Conformation: Atomic coordinates
-  - Features: Atom types, charges, pharmacophore points
-
-Complex:
-  - Binding pose (if known from X-ray crystallography)
-  - Interaction types (H-bonds, hydrophobic, π-stacking)
+Protein: sequence, 3D structure, and features
+         (secondary structure, surface accessibility, physicochemical properties)
+Ligand:  SMILES, 3D conformation, atom types, charges, pharmacophore points
+Complex: binding pose (if known) and interaction types (H-bonds, hydrophobic, pi-stacking)
 ```
 
-#### Representation Strategies
+### 4.3 Representation strategies
 
-**Challenge**: How to represent a protein-ligand complex as a graph?
-
-**Strategy 1: Separate Protein and Ligand Graphs**
-
-```
-   [Protein Graph]    [Ligand Graph]
-   Nodes: Residues    Nodes: Atoms
-   Edges: Contacts    Edges: Bonds
-          ↓                  ↓
-      [GNN_prot]        [GNN_lig]
-          ↓                  ↓
-      h_protein         h_ligand
-          └─────→ [Concatenate] ←─────┘
-                       ↓
-                   [MLP head]
-                       ↓
-                   Affinity
-```
-
-**Protein Graph Construction:**
+**Strategy 1: separate protein and ligand graphs.** Encode each with its own GNN, then concatenate
+the pooled representations and predict with an MLP.
 
 ```python
-# Option A: Residue-level (coarse-grained)
+# Protein graph (residue-level, coarse-grained)
 for residue in protein.residues:
     node_features = [
-        residue.amino_acid_type,     # One-hot: 20 amino acids
-        residue.secondary_structure,  # Helix, sheet, coil
-        residue.surface_accessibility,
-        residue.charge,
-        residue.hydrophobicity
+        residue.amino_acid_type, residue.secondary_structure,
+        residue.surface_accessibility, residue.charge, residue.hydrophobicity
     ]
-    
-# Edges: spatial proximity
 for i, j in combinations(residues, 2):
-    if distance(i.CA, j.CA) < 10.0:  # C-alpha distance
+    if distance(i.CA, j.CA) < 10.0:
         add_edge(i, j, distance=distance(i.CA, j.CA))
 
-# Option B: Atom-level (fine-grained)
-for atom in protein.atoms:
-    node_features = [
-        atom.element,
-        atom.charge,
-        atom.in_backbone,
-        atom.in_sidechain
-    ]
-```
-
-**Ligand Graph Construction:**
-
-```python
-# Atoms as nodes
+# Ligand graph (atom-level)
 for atom in ligand.atoms:
     node_features = [
-        atom.atomic_number,
-        atom.formal_charge,
-        atom.hybridization,    # sp, sp2, sp3
-        atom.is_aromatic,
-        atom.num_hydrogens,
-        atom.degree,
-        atom.chirality
+        atom.atomic_number, atom.formal_charge, atom.hybridization,
+        atom.is_aromatic, atom.num_hydrogens, atom.degree, atom.chirality
     ]
-
-# Bonds as edges
 for bond in ligand.bonds:
-    edge_features = [
-        bond.bond_type,    # Single, double, triple, aromatic
-        bond.is_conjugated,
-        bond.is_in_ring,
-        bond.stereo        # E/Z, cis/trans
-    ]
+    edge_features = [bond.bond_type, bond.is_conjugated, bond.is_in_ring, bond.stereo]
 ```
 
-**Pros:**
-- Simple architecture
-- Can pre-train on protein/ligand datasets separately
-- Modular: easy to swap GNN architectures
+*Pros:* simple, modular, separately pre-trainable. *Cons:* no explicit inter-molecular interactions,
+and late fusion may miss binding details.
 
-**Cons:**
-- No explicit inter-molecular interactions
-- Late fusion may miss important binding details
-- Less interpretable (black box combination)
-
-**Strategy 2: Joint Protein-Ligand Interaction Graph**
-
-```
-    Protein nodes + Ligand nodes
-            ↓
-    Intra-molecular edges (protein bonds, ligand bonds)
-            +
-    Inter-molecular edges (binding interactions)
-            ↓
-        [Joint GNN]
-            ↓
-      [Global pooling]
-            ↓
-         Affinity
-```
-
-**Interaction Graph Construction:**
+**Strategy 2: joint protein-ligand interaction graph.** Combine both molecules into one graph, with
+intra-molecular edges (bonds) and inter-molecular edges (binding interactions).
 
 ```python
-# Combine protein and ligand into one graph
 G = Graph()
-
-# Add protein nodes
 G.add_nodes(protein_atoms, type='protein')
-
-# Add ligand nodes  
 G.add_nodes(ligand_atoms, type='ligand')
-
-# Add intra-molecular edges
 G.add_edges(protein_bonds)
 G.add_edges(ligand_bonds)
 
-# Add inter-molecular edges (KEY!)
 for p_atom in protein_atoms:
     for l_atom in ligand_atoms:
         dist = distance(p_atom, l_atom)
-        if dist < 5.0:  # Interaction cutoff
+        if dist < 5.0:
             interaction_type = classify_interaction(p_atom, l_atom, dist)
-            G.add_edge(p_atom, l_atom, 
-                      distance=dist,
-                      interaction=interaction_type)
+            G.add_edge(p_atom, l_atom, distance=dist, interaction=interaction_type)
 ```
 
-**Interaction Types:**
+Inter-molecular edges can be typed by interaction (hydrogen bond, hydrophobic, pi-stacking,
+electrostatic, salt bridge), each with its own geometric criteria. *Pros:* explicit interaction
+modeling, direct message passing across the interface, more interpretable, and better geometry.
+*Cons:* larger graphs, a required 3D pose, and more complexity.
 
-Classify inter-molecular edges by interaction:
+**Strategy 3: attention-based cross-attention.** Encode protein and ligand separately, then let each
+attend to the other, weighting pairs by both feature similarity and geometric proximity. *Pros:*
+flexible, handles multiple binding modes, and interpretable. *Cons:* $O(N_{\text{protein}} \times
+N_{\text{ligand}})$ complexity and a risk of overfitting on small datasets.
 
-```python
-def classify_interaction(p_atom, l_atom, distance):
-    interactions = []
-    
-    # Hydrogen bond
-    if is_h_bond_donor(p_atom) and is_h_bond_acceptor(l_atom):
-        if distance < 3.5 and angle_ok:
-            interactions.append('H-bond')
-    
-    # Hydrophobic
-    if is_hydrophobic(p_atom) and is_hydrophobic(l_atom):
-        if distance < 4.5:
-            interactions.append('hydrophobic')
-    
-    # Pi-stacking
-    if is_aromatic(p_atom) and is_aromatic(l_atom):
-        if 3.5 < distance < 4.5:
-            interactions.append('pi-stacking')
-    
-    # Electrostatic
-    if charge(p_atom) * charge(l_atom) < 0:  # Opposite charges
-        interactions.append('electrostatic')
-    
-    # Salt bridge
-    if is_charged_residue(p_atom) and is_charged_group(l_atom):
-        if distance < 4.0:
-            interactions.append('salt-bridge')
-    
-    return interactions
-```
+### 4.4 Architecture patterns
 
-**Pros:**
-- Explicit interaction modeling
-- Message passing directly between protein and ligand
-- More interpretable (can visualize key interactions)
-- Better captures binding geometry
-
-**Cons:**
-- Larger graphs (more nodes and edges)
-- Requires 3D structure (binding pose)
-- More complex to implement
-
-**Strategy 3: Attention-Based Cross-Attention**
-
-```
-    [Protein GNN] → h_protein_nodes
-    [Ligand GNN]  → h_ligand_nodes
-          ↓              ↓
-    [Cross-Attention Layer]
-          ↓
-    Attended features
-          ↓
-    [Prediction head]
-```
-
-**Cross-Attention Mechanism:**
-
-```python
-# Protein attends to ligand
-for p_node in protein_nodes:
-    # Compute attention to all ligand nodes
-    attention = []
-    for l_node in ligand_nodes:
-        # Attention score based on features and geometry
-        score = attention_function(
-            h_protein[p_node], 
-            h_ligand[l_node],
-            distance(p_node, l_node)
-        )
-        attention.append(score)
-    
-    # Softmax normalize
-    attention = softmax(attention)
-    
-    # Attended ligand features
-    h_protein[p_node] += weighted_sum(attention, h_ligand)
-
-# Ligand attends to protein (symmetric)
-for l_node in ligand_nodes:
-    # Similar process in reverse
-    ...
-```
-
-**Attention Function:**
-
-```python
-def attention_function(h_p, h_l, distance):
-    # Feature similarity
-    feat_sim = dot_product(W_p @ h_p, W_l @ h_l)
-    
-    # Distance penalty (closer = more attention)
-    dist_weight = exp(-distance / sigma)
-    
-    # Combined score
-    score = feat_sim * dist_weight
-    return score
-```
-
-**Pros:**
-- Learns which protein-ligand pairs interact
-- Flexible: works without predefined interaction edges
-- Can handle multiple binding modes
-- Interpretable attention weights
-
-**Cons:**
-- O(N_protein × N_ligand) complexity
-- May overfit on small datasets
-- Requires careful regularization
-
-#### Architecture Patterns
-
-**Pattern 1: Separate Encoding with Late Fusion**
+**Separate encoding with late fusion:**
 
 ```python
 class SeparateFusionModel(nn.Module):
@@ -2000,23 +975,16 @@ class SeparateFusionModel(nn.Module):
         self.protein_gnn = GNN(protein_features, hidden_dim)
         self.ligand_gnn = GNN(ligand_features, hidden_dim)
         self.fusion_mlp = MLP(2 * hidden_dim, output_dim)
-    
+
     def forward(self, protein_graph, ligand_graph):
-        # Encode separately
         h_prot = self.protein_gnn(protein_graph)
         h_lig = self.ligand_gnn(ligand_graph)
-        
-        # Global pooling
         z_prot = global_mean_pool(h_prot, protein_graph.batch)
         z_lig = global_mean_pool(h_lig, ligand_graph.batch)
-        
-        # Concatenate and predict
-        z = torch.cat([z_prot, z_lig], dim=-1)
-        affinity = self.fusion_mlp(z)
-        return affinity
+        return self.fusion_mlp(torch.cat([z_prot, z_lig], dim=-1))
 ```
 
-**Pattern 2: Joint Encoding**
+**Joint encoding:**
 
 ```python
 class JointGraphModel(nn.Module):
@@ -2025,25 +993,15 @@ class JointGraphModel(nn.Module):
         self.interaction_embedding = nn.Embedding(num_interactions, edge_dim)
         self.readout = Set2Set(hidden_dim)
         self.predictor = MLP(hidden_dim, 1)
-    
+
     def forward(self, complex_graph):
-        # Embed interactions
         edge_attr = self.interaction_embedding(complex_graph.edge_type)
-        
-        # Joint message passing
-        h = self.gnn(complex_graph.x, 
-                     complex_graph.edge_index,
-                     edge_attr)
-        
-        # Global pooling
+        h = self.gnn(complex_graph.x, complex_graph.edge_index, edge_attr)
         z = self.readout(h, complex_graph.batch)
-        
-        # Predict affinity
-        affinity = self.predictor(z)
-        return affinity
+        return self.predictor(z)
 ```
 
-**Pattern 3: Cross-Attention**
+**Cross-attention:**
 
 ```python
 class CrossAttentionModel(nn.Module):
@@ -2052,1093 +1010,241 @@ class CrossAttentionModel(nn.Module):
         self.ligand_encoder = GNN(ligand_features, hidden_dim)
         self.cross_attention = CrossAttentionLayer(hidden_dim)
         self.predictor = MLP(hidden_dim, 1)
-    
+
     def forward(self, protein_graph, ligand_graph, distances):
-        # Encode separately
         h_prot = self.protein_encoder(protein_graph)
         h_lig = self.ligand_encoder(ligand_graph)
-        
-        # Cross-attention
-        h_prot_updated, h_lig_updated = self.cross_attention(
-            h_prot, h_lig, distances
-        )
-        
-        # Pool both
-        z_prot = global_attention_pool(h_prot_updated)
-        z_lig = global_attention_pool(h_lig_updated)
-        
-        # Predict from combined representation
-        affinity = self.predictor(z_prot + z_lig)
-        return affinity
+        h_prot, h_lig = self.cross_attention(h_prot, h_lig, distances)
+        z_prot = global_attention_pool(h_prot)
+        z_lig = global_attention_pool(h_lig)
+        return self.predictor(z_prot + z_lig)
 ```
 
-#### Key Considerations
+### 4.5 Key considerations
 
-**1. Geometric Information**
+**Geometric information.** 3D coordinates are essential: pocket shape determines complementarity,
+hydrogen bonds have distance and angle constraints, hydrophobic interactions are distance-dependent,
+and steric clashes prevent binding. Distances are typically encoded with RBFs and, for equivariant
+models, unit direction vectors.
 
-3D coordinates are essential for accurate binding prediction:
+**Data challenges.** Structural binding data is limited (PDBbind has roughly 20,000 complexes;
+BindingDB and ChEMBL hold millions of affinity values, but many without structures), which is small
+by deep-learning standards. Common remedies: **data augmentation** (rotations, conformer sampling,
+coordinate noise); **transfer learning** (pre-train on a large molecular dataset, then fine-tune on
+binding data with a lower learning rate); and **multi-task learning** (learn related endpoints
+jointly). When 3D structures are missing, sequence-based protein representations (e.g. protein
+language model embeddings) can substitute for structure-based GNNs.
+
+**Interpretability.** Understanding *why* a compound binds matters as much as predicting *whether* it
+binds. Attention weights can highlight key residues, ablations can estimate the contribution of each
+interaction type, and gradient-based explanations can rank important ligand atoms. These support
+structure-activity analysis, failure analysis, and hypothesis generation — while remaining suggestive
+rather than definitive.
+
+### 4.6 State-of-the-art models
+
+* **EquiBind (2021)** — SE(3)-equivariant blind docking with direct coordinate prediction (no
+  search), reported around a 38% success rate (below 2 Å RMSD) on PDBbind and roughly three orders of
+  magnitude faster than traditional docking.
+* **GraphDTA / DeepDTA (2018)** — end-to-end affinity prediction from sequences and ligand graphs,
+  competitive on Davis and KIBA and usable without 3D structures.
+* **ATOM3D (2021)** — a suite of 3D biomolecular structure benchmarks with baseline models (SchNet,
+  DimeNet, 3D transformers).
+* **TANKBind (2023)** — equivariant blind docking with trigonometry-aware pocket prediction and
+  confidence estimation.
+
+### 4.7 Practical workflow
 
 ```python
-# Distance features (crucial!)
-edge_features = []
-
-for edge in edges:
-    i, j = edge
-    d = distance(coords[i], coords[j])
-    
-    # Distance encoding
-    rbf = gaussian_rbf(d, centers=[1.0, 2.0, 3.0, 4.0, 5.0])
-    edge_features.append(rbf)
-    
-    # Direction (for equivariant models)
-    direction = (coords[j] - coords[i]) / d
-    
-# Use in GNN
-h = GNN(nodes, edges, edge_features)
-```
-
-**Why geometry matters:**
-- Binding pocket shape determines complementarity
-- Hydrogen bonds have geometric constraints (distance + angle)
-- Hydrophobic interactions are distance-dependent
-- Steric clashes prevent binding
-
-**2. Data Challenges**
-
-**Limited Experimental Data:**
-
-```
-Available binding data:
-- PDBbind: ~20,000 protein-ligand complexes
-- ChEMBL: ~2M bioactivity measurements (but many without structures)
-- BindingDB: ~2M Ki/Kd values
-
-Compare to:
-- ImageNet: 14M images
-- GPT training: trillions of tokens
-
-Challenge: Deep learning typically needs more data
-```
-
-**Solutions:**
-
-a) **Data Augmentation:**
-```python
-# Rotation augmentation
-for angle in [0, 90, 180, 270]:
-    rotated_complex = rotate(complex, angle)
-    train_on(rotated_complex)
-
-# Conformational sampling
-for conf in generate_conformations(ligand, n=10):
-    augmented_complex = (protein, conf)
-    train_on(augmented_complex)
-
-# Noise injection
-for noise_level in [0.1, 0.2]:
-    noisy_coords = coords + noise_level * random_normal()
-    train_on(noisy_coords)
-```
-
-b) **Transfer Learning:**
-```python
-# Pre-train on easier tasks
-model.pretrain(
-    task='molecular_property_prediction',
-    dataset='QM9',  # Millions of molecules
-    epochs=100
-)
-
-# Fine-tune on binding
-model.finetune(
-    task='binding_affinity',
-    dataset='PDBbind',  # Thousands of complexes
-    epochs=50,
-    learning_rate=1e-4  # Lower learning rate
-)
-```
-
-c) **Multi-Task Learning:**
-```python
-# Learn related tasks simultaneously
-loss = (w1 * loss_binding_affinity +
-        w2 * loss_binding_pose +
-        w3 * loss_protein_function +
-        w4 * loss_ligand_properties)
-
-# Shared representations benefit all tasks
-# More efficient use of limited data
-```
-
-**Missing Structures:**
-
-Many bioactivity measurements lack 3D structures:
-
-```python
-# Sequence-only prediction (when no structure)
-if protein_structure is None:
-    # Use sequence-based protein representation
-    h_prot = ProteinLanguageModel(protein_sequence)
-else:
-    # Use structure-based GNN
-    h_prot = ProteinGNN(protein_structure)
-```
-
-**3. Interpretability**
-
-Understanding WHY a compound binds is as important as predicting IF it binds:
-
-**Attention Visualization:**
-
-```python
-# Extract attention weights
-attentions = model.get_attention_weights()
-
-# Identify key protein residues
-important_residues = []
-for residue, attention in zip(residues, attentions):
-    if attention > threshold:
-        important_residues.append(residue)
-
-# Visualize in 3D
-visualize_protein_ligand(
-    protein, 
-    ligand,
-    highlight_residues=important_residues,
-    highlight_atoms=high_attention_ligand_atoms
-)
-```
-
-**Interaction Decomposition:**
-
-```python
-# Analyze contribution of each interaction type
-for interaction_type in ['H-bond', 'hydrophobic', 'pi-stack']:
-    # Ablation: remove this interaction type
-    affinity_without = model.predict(
-        complex, 
-        exclude_interaction=interaction_type
-    )
-    
-    contribution = affinity_full - affinity_without
-    print(f"{interaction_type}: {contribution:.2f} kcal/mol")
-```
-
-**Gradient-Based Explanations:**
-
-```python
-# Which atoms matter most?
-ligand.requires_grad = True
-affinity = model(protein, ligand)
-affinity.backward()
-
-# Atoms with large gradients are important
-importance = ligand.grad.norm(dim=-1)
-visualize_atom_importance(ligand, importance)
-```
-
-**Applications:**
-
-1. **SAR (Structure-Activity Relationship)**:
-   - "This hydrogen bond donor is crucial"
-   - "Hydrophobic tail can be modified"
-   - Guides medicinal chemistry
-
-2. **Failure Analysis**:
-   - "Model focuses on wrong pocket"
-   - "Missed key water-mediated H-bond"
-   - Improves model training
-
-3. **Knowledge Discovery**:
-   - Identify novel binding motifs
-   - Understand selectivity patterns
-   - Generate hypotheses for experiments
-
-#### State-of-the-Art Models
-
-**EquiBind (2021)**
-
-```
-Key Innovation: SE(3)-equivariant blind docking
-
-Architecture:
-- Separate protein and ligand encoders
-- Equivariant graph neural network (EGNN)
-- Predicts keypoint matches
-- Direct coordinate prediction (no search)
-
-Performance:
-- 38% success rate (<2Å RMSD) on PDBbind
-- 1000× faster than traditional docking
-- Fully differentiable
-```
-
-**GraphDTA / DeepDTA (2018)**
-
-```
-Key Innovation: End-to-end learning from sequences
-
-Architecture:
-- CNN for protein sequences
-- GNN for ligand graphs
-- Concatenation + MLP
-- Trained on drug-target affinity
-
-Performance:
-- Competitive on Davis and KIBA datasets
-- Works without 3D structures
-- Fast inference for virtual screening
-```
-
-**ATOM3D (2021)**
-
-```
-Key Innovation: 3D structure benchmarks
-
-Datasets:
-- Protein-ligand binding (PDB)
-- Protein structure prediction
-- RNA structure
-- Molecular dynamics
-
-Models:
-- SchNet, DimeNet applied to biomolecules
-- Transformers with 3D positional encoding
-- Graph transformers
-```
-
-**TANKBind (2023)**
-
-```
-Key Innovation: Equivariant blind docking with diffusion
-
-Architecture:
-- Diffusion model for pose generation
-- Equivariant score matching
-- Iterative refinement
-- Confidence estimation
-
-Performance:
-- State-of-the-art on blind docking
-- Handles protein flexibility
-- Generalizes to unseen proteins
-```
-
-#### Practical Workflow
-
-```python
-# 1. Data preparation
 from biopandas.pdb import PandasPdb
 
-# Load protein
 protein = PandasPdb().fetch_pdb('1a2b')
 protein_graph = protein_to_graph(protein)
-
-# Load ligand
 ligand = Chem.MolFromMol2File('ligand.mol2')
 ligand_graph = mol_to_graph(ligand)
 
-# 2. Model training
-model = ProteinLigandGNN(
-    protein_features=37,
-    ligand_features=11,
-    hidden_dim=128,
-    num_layers=4
-)
-
+model = ProteinLigandGNN(protein_features=37, ligand_features=11,
+                         hidden_dim=128, num_layers=4)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-
 for epoch in range(100):
     for protein_graph, ligand_graph, affinity in dataloader:
-        pred_affinity = model(protein_graph, ligand_graph)
-        loss = F.mse_loss(pred_affinity, affinity)
-        
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        pred = model(protein_graph, ligand_graph)
+        loss = F.mse_loss(pred, affinity)
+        optimizer.zero_grad(); loss.backward(); optimizer.step()
 
-# 3. Virtual screening
-candidates = load_library('drugbank.sdf')  # 10,000 compounds
-
-predictions = []
-for ligand in tqdm(candidates):
-    ligand_graph = mol_to_graph(ligand)
-    affinity = model(protein_graph, ligand_graph)
-    predictions.append((ligand, affinity))
-
-# Sort by predicted affinity
+candidates = load_library('drugbank.sdf')
+predictions = [(lig, model(protein_graph, mol_to_graph(lig))) for lig in tqdm(candidates)]
 predictions.sort(key=lambda x: x[1], reverse=True)
-
-# Test top 100 experimentally
 top_hits = predictions[:100]
 ```
 
-#### Future Directions
+### 4.8 Future directions
 
-1. **Physics-Informed Neural Networks**:
-   - Incorporate electrostatics, solvation
-   - Constrain predictions with physical laws
-   - Hybrid quantum/classical approaches
+Physics-informed models (incorporating electrostatics and solvation), generative models for de novo
+design, models of allostery and conformational dynamics, and multi-target modeling for selectivity
+and side-effect prediction.
 
-2. **Generative Models**:
-   - Generate ligands for target protein
-   - Optimize for multiple objectives
-   - De novo drug design
+## 5. Crystal Structures for Materials Science
 
-3. **Allostery and Dynamics**:
-   - Model protein conformational changes
-   - Long-range allosteric effects
-   - Molecular dynamics integration
+GNNs are transforming materials science by predicting properties of crystalline materials from atomic
+structure, enabling high-throughput screening of large numbers of hypothetical materials.
 
-4. **Multi-Target Modeling**:
-   - Selectivity across protein families
-   - Polypharmacology
-   - Side effect prediction
+### 5.1 Understanding crystalline materials
 
+Unlike molecules, crystals are infinite (periodic in 3D), ordered (regular lattices), defined by
+symmetry (space groups), and characterized by bulk properties of the infinite system. Materials with
+specific properties enable technology: Li-ion conductors for batteries, high-efficiency photovoltaics,
+catalysts, semiconductors, and superconductors.
 
-### 5. Crystal Structures for Materials Science
-
-GNNs are revolutionizing materials science by predicting properties of crystalline materials from their atomic structures. This enables high-throughput screening of millions of hypothetical materials, dramatically accelerating materials discovery.
-
-#### Understanding Crystalline Materials
-
-**What Makes Crystals Different?**
-
-Unlike molecules, crystals are:
-- **Infinite**: Periodic repetition in 3D space
-- **Ordered**: Atoms arranged in regular lattices
-- **Defined by symmetry**: Space groups and point groups
-- **Bulk properties**: Properties of the infinite system, not just a cluster
-
-**Real-World Impact:**
-
-Materials with specific properties enable technology:
-- **Batteries**: Li-ion conductors (electric vehicles)
-- **Solar cells**: High-efficiency photovoltaics
-- **Catalysts**: Green chemical production
-- **Semiconductors**: Computing and electronics
-- **Superconductors**: Lossless power transmission
-
-**The Discovery Challenge:**
+The scale of the discovery problem is large:
 
 ```
-Possible stable materials: ~10^50 (combinatorial explosion!)
-Known materials: ~200,000 (Materials Project, ICSD)
-Fully characterized: ~50,000
-Currently used: ~10,000
-
-DFT calculation: 1-1000 CPU-hours per material
-ML prediction: 0.001 seconds per material
-
-Speed-up: 10^6× faster!
+Possible stable materials:  ~10^50 (combinatorial estimate)
+Known materials:            ~200,000 (Materials Project, ICSD)
+DFT calculation:            1-1000 CPU-hours per material
+ML prediction:              ~0.001 s per material
 ```
 
-#### Crystal Representation
+### 5.2 Crystal representation
 
-**Unit Cell Description:**
+A crystal is fully specified by lattice vectors ($\vec{a}, \vec{b}, \vec{c}$), lattice parameters
+(lengths $a, b, c$ and angles $\alpha, \beta, \gamma$), a basis of atomic positions within the unit
+cell (fractional coordinates $(u, v, w)$ with $0 \le u, v, w < 1$), and a space group (one of the 230
+in 3D).
 
-A crystal is fully specified by:
-
-1. **Lattice Vectors**: Define the unit cell
-   ```
-   a⃗ = [a_x, a_y, a_z]  # First lattice vector
-   b⃗ = [b_x, b_y, b_z]  # Second lattice vector  
-   c⃗ = [c_x, c_y, c_z]  # Third lattice vector
-   
-   Lattice matrix: L = [a⃗ | b⃗ | c⃗]
-   ```
-
-2. **Lattice Parameters**:
-   ```
-   a, b, c = lengths of vectors (Ångströms)
-   α, β, γ = angles between vectors (degrees)
-   ```
-
-3. **Basis**: Atomic positions within the unit cell
-   ```
-   Fractional coordinates: (u, v, w) where 0 ≤ u,v,w < 1
-   Cartesian coordinates: r⃗ = u·a⃗ + v·b⃗ + w·c⃗
-   ```
-
-4. **Space Group**: Symmetry operations
-   ```
-   230 possible space groups in 3D
-   Examples: P21/c (monoclinic), Fm3̄m (cubic), P63/mmc (hexagonal)
-   ```
-
-**Example: Diamond (Carbon)**
+**Example: diamond.**
 
 ```
-Lattice: Face-centered cubic (FCC)
-  a = b = c = 3.567 Å
-  α = β = γ = 90°
+Lattice: face-centered cubic (FCC)
+  a = b = c = 3.567 A,   alpha = beta = gamma = 90 deg
 
-Basis: Two carbon atoms at
-  C₁: (0, 0, 0)
-  C₂: (0.25, 0.25, 0.25)
+Basis: two carbon atoms
+  C1: (0, 0, 0)
+  C2: (0.25, 0.25, 0.25)
 
-Space group: Fd3̄m (227)
-
-Infinite crystal:
-  All positions (n₁, n₂, n₃) + basis
-  where n₁, n₂, n₃ ∈ ℤ
+Space group: Fd-3m (227)
 ```
 
-#### Periodic Boundary Conditions
+### 5.3 Periodic boundary conditions
 
-**The Periodicity Challenge:**
-
-For graph construction, we need neighbors, but:
-- Atoms near cell boundaries have neighbors in adjacent cells
-- Must account for periodic images
-- Same atom appears infinitely many times
-
-**Graph Construction Algorithm:**
+For graph construction we need neighbors, but atoms near cell boundaries have neighbors in adjacent
+cells, so periodic images must be accounted for.
 
 ```python
 def construct_crystal_graph(atoms, lattice, cutoff_radius):
-    """
-    Build graph respecting periodic boundaries
-    """
     graph = Graph()
-    
-    # Add nodes for atoms in unit cell
     for atom in atoms:
-        graph.add_node(
-            element=atom.element,
-            position=atom.frac_coords,  # Fractional coordinates
-            features=get_atom_features(atom)
-        )
-    
-    # Find neighbors using minimum image convention
+        graph.add_node(element=atom.element, position=atom.frac_coords,
+                       features=get_atom_features(atom))
     for i, atom_i in enumerate(atoms):
         for j, atom_j in enumerate(atoms):
-            # Check all periodic images of atom_j
             for n1 in [-1, 0, 1]:
                 for n2 in [-1, 0, 1]:
                     for n3 in [-1, 0, 1]:
-                        # Skip self-loops (unless different cells)
                         if i == j and (n1, n2, n3) == (0, 0, 0):
                             continue
-                        
-                        # Compute distance through periodic boundaries
-                        image_position = atom_j.frac_coords + [n1, n2, n3]
-                        cart_position = lattice.to_cartesian(image_position)
-                        distance = np.linalg.norm(
-                            cart_position - lattice.to_cartesian(atom_i.frac_coords)
-                        )
-                        
-                        if distance < cutoff_radius:
-                            graph.add_edge(
-                                i, j,
-                                distance=distance,
-                                cell_offset=(n1, n2, n3),  # Which periodic image
-                                direction=cart_position - atom_i.cart_coords
-                            )
-    
+                        image = atom_j.frac_coords + [n1, n2, n3]
+                        cart = lattice.to_cartesian(image)
+                        d = np.linalg.norm(cart - lattice.to_cartesian(atom_i.frac_coords))
+                        if d < cutoff_radius:
+                            graph.add_edge(i, j, distance=d, cell_offset=(n1, n2, n3))
     return graph
 ```
 
-**Minimum Image Convention:**
+**Minimum image convention.** For each pair, consider all periodic images and choose the closest. In
+a 1D cell of length 10 Å with atoms at $x = 1$ and $x = 9$, the direct distance is 8 Å, but through
+the boundary it is $|9 - 1 - 10| = 2$ Å — the minimum image, which is the one to use.
 
-```
-For each pair of atoms, consider all periodic images
-Choose the closest one (minimum distance)
+### 5.4 Property prediction tasks
 
-Example: 1D crystal with cell size 10 Å
-  Atom A at x=1
-  Atom B at x=9
-  
-  Direct distance: |9-1| = 8 Å
-  Through boundary: |9-1-10| = 2 Å  ← MINIMUM (use this!)
-  
-This handles wrapped distances correctly
-```
+**Electronic properties.** Band gap $E_g$ (0 for metals to $>10$ eV for insulators; $\approx 1.3$ eV
+is optimal for single-junction solar cells; standard DFT functionals underestimate $E_g$, often by
+30–50%); formation energy $E_f = E_{\text{compound}} - \sum_i n_i E_{\text{element}(i)}$ (negative for
+thermodynamically stable compounds); and energy above the convex hull $E_{\text{hull}}$ (0 on the
+hull; below $\sim 0.025$ eV/atom potentially synthesizable).
 
-**Challenges:**
+**Mechanical properties.** Bulk modulus $B$, shear modulus $G$, and the elastic tensor $C_{ij}$ (with
+the number of independent constants set by crystal symmetry — 3 for cubic, 5 for hexagonal, 21 for
+triclinic).
 
-1. **Variable coordination**: Atoms may have different numbers of neighbors
-2. **Long-range order**: Some properties depend on distant atoms
-3. **Supercell construction**: May need to replicate unit cell for larger cutoffs
+**Thermodynamic properties.** Phonon spectra, heat capacity, thermal expansion, thermal conductivity,
+and free energy (for phase diagrams and high-temperature stability).
 
-#### Property Prediction Tasks
+### 5.5 Specialized architectures
 
-**Electronic Properties**
-
-These determine conducting and optical behavior:
-
-**1. Band Gap (E_g)**
-```
-Definition: Energy difference between valence and conduction bands
-Units: eV
-Range: 0 (metal) to >10 eV (insulator)
-
-Applications:
-- E_g ≈ 1.3 eV: Solar cells (optimal for sunlight)
-- E_g > 5 eV: Transparent insulators (windows)
-- E_g = 0: Metals (wires, electrodes)
-
-Prediction challenge: 
-- DFT often underestimates (by 30-50%)
-- GNNs can learn correction factors
-```
-
-**2. Formation Energy (E_f)**
-```
-Definition: Energy to form compound from elements
-Formula: E_f = E_compound - Σ_i n_i × E_element(i)
-Units: eV/atom
-
-Applications:
-- E_f < 0: Thermodynamically stable
-- E_f > 0.1 eV/atom: Likely unstable
-- Guides synthesis feasibility
-
-Prediction: Critical for materials discovery
-```
-
-**3. Energy Above Hull (E_hull)**
-```
-Definition: Energy above stable composition convex hull
-Measures: Thermodynamic stability relative to competing phases
-
-E_hull = 0: On convex hull (thermodynamically stable)
-E_hull < 0.025 eV/atom: Potentially synthesizable
-E_hull > 0.1 eV/atom: Very unlikely to be stable
-
-Applications:
-- Virtual materials screening
-- Stability prediction before synthesis
-```
-
-**Mechanical Properties**
-
-Determine material strength and elasticity:
-
-**1. Bulk Modulus (B)**
-```
-Definition: Resistance to uniform compression
-Formula: B = -V (∂P/∂V)_T
-Units: GPa
-Range: 1 GPa (soft) to 400 GPa (diamond)
-
-Applications:
-- High B: Armor, cutting tools
-- Low B: Flexible substrates, cushioning
-```
-
-**2. Shear Modulus (G)**
-```
-Definition: Resistance to shear deformation
-Units: GPa
-
-Applications:
-- G/B ratio indicates ductility
-- High G: Stiff materials
-- Critical for structural applications
-```
-
-**3. Elastic Constants (C_ij)**
-```
-Tensor: 6×6 matrix (21 independent components for general case)
-Symmetry: Reduces components based on crystal system
-  - Cubic: 3 independent constants
-  - Hexagonal: 5 constants
-  - Triclinic: 21 constants
-
-Applications:
-- Full mechanical characterization
-- Anisotropic behavior prediction
-```
-
-**Thermodynamic Properties**
-
-**1. Phonon Properties**
-```
-Frequency spectrum: Vibrational modes
-Heat capacity: C_v(T) from phonons
-Thermal expansion: α(T)
-Thermal conductivity: κ
-
-Challenge: Requires dynamical matrix (expensive!)
-GNN potential: Fast phonon calculations
-```
-
-**2. Free Energy**
-```
-Temperature-dependent stability
-Phase transitions
-Chemical potential
-
-Applications:
-- Phase diagram prediction
-- High-temperature materials
-```
-
-#### Specialized Architectures
-
-**CGCNN (Crystal Graph Convolutional Neural Networks)**
-
-One of the first GNN architectures specifically designed for crystals.
-
-**Architecture:**
+**CGCNN (Crystal Graph Convolutional Neural Networks).** One of the first GNN architectures designed
+for crystals.
 
 ```python
 class CGCNNConv(nn.Module):
-    """CGCNN convolution layer"""
     def __init__(self, node_features, edge_features, hidden):
         self.node_fc = nn.Linear(2*node_features + edge_features, hidden)
         self.bn = nn.BatchNorm1d(hidden)
-    
+
     def forward(self, x, edge_index, edge_attr):
-        # For each edge (i → j)
         i, j = edge_index
-        
-        # Concatenate: [h_i || h_j || e_ij]
         messages = torch.cat([x[i], x[j], edge_attr], dim=-1)
-        
-        # Transform and normalize
-        messages = self.bn(self.node_fc(messages))
-        messages = F.softplus(messages)
-        
-        # Aggregate to each node
-        # Sum over all incoming edges
+        messages = F.softplus(self.bn(self.node_fc(messages)))
         x_new = scatter_add(messages, i, dim=0)
-        
-        return x + x_new  # Residual connection
+        return x + x_new   # residual connection
 ```
 
-**Key Features:**
+CGCNN uses Gaussian distance encodings for edges and pools over atoms for crystal-level properties,
+and it handles any stoichiometry because the graph size adapts to composition. Note that CGCNN folds
+the central node in through the residual connection rather than through explicit self-loops, so its
+formula differs from the self-loop-based normalization used elsewhere in this chapter. It reaches
+roughly 0.04 eV/atom MAE for formation energy and is about three orders of magnitude faster than DFT.
 
-1. **Distance-based edge weights**:
-   ```python
-   def edge_features(distance, cutoff=8.0):
-       # Gaussian distance encoding
-       centers = torch.linspace(0, cutoff, 100)
-       gamma = (centers[1] - centers[0])
-       return torch.exp(-gamma * (distance - centers)**2)
-   ```
+**MEGNet (Materials Graph Network).** A multi-level network with atom, bond, and global state. Update
+rules pass information between all three levels:
 
-2. **Pooling for crystal-level properties**:
-   ```python
-   # Average over all atoms
-   h_crystal = global_mean_pool(h_atoms, batch)
-   
-   # Or weighted by composition
-   h_crystal = Σ_i (n_i / N_total) × h_i
-   ```
+```
+e_ij' = phi_e([e_ij || v_i || v_j || g])
+v_i'  = phi_v([v_i || sum_j e_ij' || g])
+g'    = phi_g([g || sum_i v_i' || sum_ij e_ij'])
+```
 
-3. **Handling variable composition**:
-   ```python
-   # Works for any stoichiometry
-   # Na₂Cl₂: 2 Na nodes, 2 Cl nodes
-   # Na₁₀Cl₁₀: 10 Na nodes, 10 Cl nodes
-   # Same model, different graph sizes
-   ```
+The global state captures extensive, crystal-level information (volume, space group), which helps for
+properties that depend on global structure (e.g. thermal conductivity).
 
-**Training:**
+**SchNet for crystals.** Adapt the continuous filters to periodic systems by computing neighbor
+distances through periodic images, then proceeding as in the molecular case. Extensive properties are
+handled per atom (e.g. energy per atom).
+
+**Allegro / NequIP.** State-of-the-art E(3)-equivariant models built on irreducible representations
+(scalars $l=0$, vectors $l=1$, rank-2 tensors $l=2$), used for machine-learned force fields and
+stress-tensor prediction (the stress transforms as $\sigma \to Q \sigma Q^T$).
+
+### 5.6 Handling periodicity: technical details
 
 ```python
-# Dataset: Materials Project
-dataset = CrystalDataset('materials_project')
-
-model = CGCNN(
-    atom_features=92,  # One-hot: 92 elements
-    edge_features=100,  # Gaussian RBFs
-    hidden_dim=128,
-    num_layers=4
-)
-
-# Predict formation energy
-for crystal_graph in dataloader:
-    pred_energy = model(crystal_graph)
-    loss = F.mse_loss(pred_energy, crystal_graph.y)
-```
-
-**Performance:**
-- MAE ≈ 0.04 eV/atom for formation energy
-- Handles diverse chemistries (metals, semiconductors, insulators)
-- Fast: 1000× faster than DFT
-
-**MEGNet (MatErials Graph Network)**
-
-Multi-level graph network with atom, bond, and global state.
-
-**Three-Level Architecture:**
-
-```
-        ┌─────────────┐
-        │ Global State│  (lattice, volume, composition)
-        │   g ∈ ℝᵈ    │
-        └──────┬──────┘
-               │
-      ┌────────┴────────┐
-      │                 │
-┌─────▼─────┐    ┌──────▼──────┐
-│Atom States│    │ Bond States │
-│  v ∈ ℝᵈ   │◄──►│   e ∈ ℝᵈ    │
-└───────────┘    └─────────────┘
-```
-
-**Update Rules:**
-
-```python
-# Bond update: use atoms + global
-e_ij' = φ_e([e_ij || v_i || v_j || g])
-
-# Atom update: aggregate bonds + global  
-v_i' = φ_v([v_i || Σ_j e_ij' || g])
-
-# Global update: aggregate atoms + bonds
-g' = φ_g([g || Σ_i v_i' || Σ_ij e_ij'])
-```
-
-**Advantages:**
-
-1. **Multi-scale information**:
-   - Local: Atom and bond features
-   - Global: Crystal-level properties (volume, space group)
-   
-2. **Richer representations**:
-   - Bonds have their own learned features
-   - Global state captures extensive properties
-
-3. **Better for complex properties**:
-   - Properties that depend on global structure
-   - Example: Thermal conductivity (collective behavior)
-
-**Applications:**
-
-```python
-# Multi-task learning
-model = MEGNet(tasks=[
-    'formation_energy',
-    'band_gap',
-    'bulk_modulus',
-    'shear_modulus'
-])
-
-# Shared encoder, separate heads
-h_shared = model.encode(crystal)
-E_f = model.head_energy(h_shared)
-E_g = model.head_gap(h_shared)
-B = model.head_bulk(h_shared)
-G = model.head_shear(h_shared)
-```
-
-**SchNet for Crystals**
-
-Adapting continuous filters for periodic systems.
-
-**Modifications for Periodicity:**
-
-```python
-class SchNetCrystal(nn.Module):
-    def __init__(self):
-        self.rbf_expansion = GaussianRBF(cutoff=5.0)
-        self.interaction_blocks = nn.ModuleList([
-            InteractionBlock() for _ in range(6)
-        ])
-    
-    def forward(self, crystal):
-        # Handle periodic images
-        distances, cell_offsets = get_neighbor_distances(
-            crystal.frac_coords,
-            crystal.lattice,
-            cutoff=5.0
-        )
-        
-        # Distance features (same as molecular SchNet)
-        edge_features = self.rbf_expansion(distances)
-        
-        # Message passing with periodic edges
-        h = self.embed(crystal.atomic_numbers)
-        for block in self.interaction_blocks:
-            h = block(h, crystal.edge_index, edge_features)
-        
-        # Crystal-level pooling
-        return global_mean_pool(h, crystal.batch)
-```
-
-**Handling Variable Unit Cell Size:**
-
-```python
-# Challenge: Different crystals have different numbers of atoms
-# Solution: Normalization
-
-# Per-atom properties → extensive
-energy_per_atom = total_energy / num_atoms
-
-# Or use composition-weighted features
-composition = get_composition(crystal)  # {'Na': 2, 'Cl': 2}
-weights = [composition[atom] / sum(composition.values()) 
-           for atom in atoms]
-h_crystal = Σ_i weights[i] × h_i
-```
-
-**Allegro / NequIP**
-
-State-of-the-art equivariant models for materials.
-
-**E(3)-Equivariant Architecture:**
-
-```python
-class E3NN_Crystal(nn.Module):
-    """Based on e3nn library"""
-    def __init__(self):
-        # Irreducible representations (irreps)
-        # l=0: scalars (rotation invariant)
-        # l=1: vectors (rotation equivariant)
-        # l=2: rank-2 tensors
-        
-        self.irreps_in = "92x0e"  # 92 elements, scalar features
-        self.irreps_hidden = "128x0e + 64x1o + 32x2e"  # Mixed irreps
-        self.irreps_out = "1x0e"  # Energy (scalar)
-        
-        self.convolution = E3Convolution(
-            self.irreps_in, 
-            self.irreps_hidden
-        )
-    
-    def forward(self, crystal):
-        # Features transform correctly under rotations
-        # Scalars: unchanged
-        # Vectors: rotate with crystal
-        # Tensors: rotate as rank-2 tensors
-        ...
-```
-
-**Applications:**
-
-1. **Force Field Learning**:
-   ```python
-   # Train on energy and forces
-   energy_pred = model(crystal)
-   forces_pred = -autograd.grad(energy_pred, crystal.coords)
-   
-   loss = (w_E * (energy_pred - energy_true)**2 +
-           w_F * (forces_pred - forces_true)**2)
-   ```
-
-2. **Molecular Dynamics**:
-   ```
-   Learned potential: 1000-10000× faster than DFT
-   Accuracy: Near DFT quality
-   Application: Simulate nanoseconds to microseconds
-   ```
-
-3. **Stress Tensor Prediction**:
-   ```python
-   # Stress tensor: rank-2 equivariant quantity
-   stress = model.predict_stress(crystal)
-   # Transforms as: σ → Q σ Q^T under rotation Q
-   ```
-
-#### Handling Periodicity: Technical Details
-
-**Minimum Image Convention in Practice:**
-
-```python
-def minimum_image_distance(frac_coords_i, frac_coords_j, lattice):
-    """
-    Compute minimum distance through periodic boundaries
-    """
-    # Difference in fractional coordinates
-    d_frac = frac_coords_j - frac_coords_i
-    
-    # Wrap to [-0.5, 0.5] (minimum image)
-    d_frac = d_frac - np.round(d_frac)
-    
-    # Convert to Cartesian
+def minimum_image_distance(frac_i, frac_j, lattice):
+    d_frac = frac_j - frac_i
+    d_frac = d_frac - np.round(d_frac)   # wrap to [-0.5, 0.5]
     d_cart = lattice @ d_frac
-    
-    # Distance
     return np.linalg.norm(d_cart)
 ```
 
-**Edge Attributes for Periodic Systems:**
+Edge attributes for periodic systems typically store the distance, the unit direction, the cell
+offset $(n_1, n_2, n_3)$, and a boundary flag. Lattice parameters (lengths, angles, volume, and log
+volume) can be added as global features.
 
-```python
-edge_attr = {
-    'distance': d_ij,
-    'direction': (r_j - r_i) / d_ij,  # Unit vector
-    'cell_offset': (n1, n2, n3),      # Which periodic image
-    'is_boundary': (n1 != 0 or n2 != 0 or n3 != 0)
-}
-```
+### 5.7 Applications
 
-**Lattice as Global Feature:**
+A materials-discovery workflow generates candidate structures, screens them with a fast GNN (for
+example, filtering for a target band-gap range), refines the most promising with DFT, and finally
+sends a small number for experimental synthesis. GNNs are also used for phase-stability mapping across
+temperature and pressure, for doping and substitution studies, and for catalysis (surface slabs with
+adsorbates to predict adsorption energies).
 
-```python
-# Include lattice parameters as global features
-lattice_features = torch.tensor([
-    a, b, c,           # Lengths
-    alpha, beta, gamma, # Angles
-    volume,            # Cell volume
-    np.log(volume),    # Log volume (more uniform distribution)
-])
+### 5.8 Challenges and future directions
 
-# Broadcast to all atoms
-for atom in crystal:
-    atom.features = torch.cat([atom.features, lattice_features])
-```
-
-#### Applications
-
-**Materials Discovery Workflow:**
-
-```python
-# 1. Generate candidate structures
-from pymatgen.io.cif import CifWriter
-from pymatgen.core import Structure
-
-candidates = []
-for composition in element_combinations:
-    for prototype in common_structures:
-        structure = substitute(prototype, composition)
-        if is_reasonable(structure):  # Basic filters
-            candidates.append(structure)
-
-print(f"Generated {len(candidates)} candidates")  # ~10⁶
-
-# 2. Screen with GNN
-model = load_model('megnet_bandgap.pt')
-
-promising = []
-for structure in tqdm(candidates):
-    graph = structure_to_graph(structure)
-    E_g = model.predict(graph)
-    
-    if 1.0 < E_g < 1.5:  # Target range for solar cells
-        promising.append((structure, E_g))
-
-print(f"Found {len(promising)} promising candidates")  # ~10³
-
-# 3. Refine with DFT
-for structure, E_g_predicted in promising[:100]:  # Top 100
-    E_g_dft = run_dft(structure)  # Expensive but accurate
-    
-    if abs(E_g_dft - E_g_predicted) < 0.2:
-        # GNN was accurate!
-        save_for_synthesis(structure)
-
-# 4. Experimental synthesis (top 10)
-```
-
-**Process Optimization:**
-
-```python
-# Predict stability under different conditions
-def predict_stability_map(composition):
-    structures = generate_polymorphs(composition)
-    
-    temperatures = np.linspace(300, 2000, 100)  # K
-    pressures = np.linspace(1, 100, 50)  # GPa
-    
-    phase_diagram = np.zeros((len(temperatures), len(pressures)))
-    
-    for i, T in enumerate(temperatures):
-        for j, P in enumerate(pressures):
-            energies = [
-                model.predict_free_energy(s, T, P) 
-                for s in structures
-            ]
-            phase_diagram[i,j] = np.argmin(energies)
-    
-    return phase_diagram
-```
-
-**Doping and Substitution:**
-
-```python
-# Explore chemical substitutions
-base_structure = Structure.from_file('LiFePO4.cif')
-
-for dopant in ['Mn', 'Co', 'Ni']:
-    for site in iron_sites:
-        doped = base_structure.copy()
-        doped.replace(site, dopant)
-        
-        # Predict properties of doped material
-        E_g = model.predict(doped, property='band_gap')
-        conductivity = model.predict(doped, property='ionic_conductivity')
-        
-        print(f"Li{dopant}PO4: E_g={E_g:.2f} eV, σ={conductivity:.2e} S/cm")
-```
-
-**Catalysis Applications:**
-
-```python
-# Surface models for catalysis
-def model_surface(bulk_structure, miller_indices=(1,1,1)):
-    # Create surface slab
-    slab = bulk_structure.get_surface(miller_indices, thickness=4)
-    
-    # Add adsorbate
-    adsorbate = Molecule(['H', 'H'], [[0,0,0], [0,0,0.74]])
-    slab_with_ads = add_adsorbate(slab, adsorbate, site='ontop')
-    
-    # Predict adsorption energy
-    E_slab = model.predict_energy(slab)
-    E_slab_ads = model.predict_energy(slab_with_ads)
-    E_H2 = model.predict_energy(adsorbate)
-    
-    E_ads = E_slab_ads - E_slab - 0.5 * E_H2
-    return E_ads
-```
-
-#### Challenges and Future Directions
-
-**Current Limitations:**
-
-1. **Size limitations**: Most models use small unit cells
-   - Typical: 10-50 atoms
-   - Real systems: Can have 100-1000 atoms (supercells, defects)
-
-2. **Accuracy vs speed trade-off**:
-   - GNNs: Fast but ~10% error
-   - DFT: Slow but ~1% error
-   - Need: Fast AND accurate
-
-3. **Out-of-distribution generalization**:
-   - Models trained on known materials
-   - May fail on truly novel chemistries
-   - Active learning can help
-
-**Emerging Directions:**
-
-1. **Foundation Models**:
-   ```
-   Pre-train on ALL known structures (~200K)
-   Transfer to specific tasks
-   Few-shot learning for new properties
-   ```
-
-2. **Inverse Design**:
-   ```
-   Input: Desired properties (E_g=1.3 eV, stable, earth-abundant)
-   Output: Candidate structures
-   Challenge: Generative models for crystals
-   ```
-
-3. **Multi-fidelity Learning**:
-   ```
-   Low-fidelity: GNN predictions (fast, many)
-   High-fidelity: DFT calculations (slow, few)
-   Combine: Bayesian optimization, active learning
-   ```
-
-4. **Uncertainty Quantification**:
-   ```python
-   prediction, uncertainty = model.predict_with_uncertainty(structure)
-   
-   if uncertainty < threshold:
-       # High confidence, trust prediction
-       use_prediction()
-   else:
-       # Low confidence, run DFT
-       run_dft_calculation()
-   ```
+Current limitations include small unit-cell sizes, the accuracy/speed trade-off (GNNs are fast but
+typically around 10% error, DFT is slow but accurate), and out-of-distribution generalization to
+novel chemistries. Emerging directions include foundation models pre-trained on all known structures,
+inverse design (generating structures for target properties), multi-fidelity learning that combines
+cheap GNN predictions with occasional DFT, and uncertainty quantification to decide when to trust a
+prediction versus run DFT.
 
 ## 6. Practical: Building a GAT for the QM9 Dataset
 
