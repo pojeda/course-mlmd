@@ -7081,11 +7081,11 @@ Interpretation methods are useful, but they should be applied carefully.
 Model interpretation is best used as a tool for debugging, hypothesis generation, and scientific
 insight — not as definitive proof of chemical mechanism.
 
-
 ## 9. Best Practices
 
-Training deep learning models for molecular prediction involves much more than selecting an architecture. Model 
-performance, stability, reproducibility, and generalization depend heavily on good experimental practices.
+Training deep learning models for molecular prediction involves much more than selecting an
+architecture. Model performance, stability, reproducibility, and generalization depend heavily on
+good experimental practices.
 
 This section covers:
 
@@ -7095,10 +7095,10 @@ This section covers:
 * Common failure modes
 * Practical recommendations for stable and reproducible experiments
 
+### 9.1 Hyperparameter optimization with Optuna
 
-### 9.1 Hyperparameter Optimization with Optuna
-
-Choosing good hyperparameters can dramatically improve model performance. Important hyperparameters include:
+Choosing good hyperparameters can dramatically improve model performance. Important
+hyperparameters include:
 
 * Learning rate
 * Batch size
@@ -7107,15 +7107,15 @@ Choosing good hyperparameters can dramatically improve model performance. Import
 * Weight decay
 * Number of layers
 
-Manual tuning is slow and often inefficient. Libraries such as Optuna automate the search process using adaptive 
-sampling and pruning strategies.
+Manual tuning is slow and often inefficient. Libraries such as Optuna automate the search using
+adaptive sampling and pruning strategies.
 
-#### Why Use Optuna?
+#### Why use Optuna?
 
 Compared with grid search or random search, Optuna offers:
 
-* More efficient exploration of hyperparameter space
-* Early stopping of poor trials
+* More efficient exploration of the hyperparameter space
+* Early stopping (pruning) of unpromising trials
 * Visualization tools
 * Automatic experiment tracking
 * Parallel optimization support
@@ -7131,7 +7131,7 @@ Typical workflow:
 6. Select best configuration
 ```
 
-#### Optuna Example
+#### Optuna example
 
 ??? note "Example"
 
@@ -7154,6 +7154,10 @@ Typical workflow:
     def objective(trial, X_train, y_train, X_val, y_val):
         """
         Objective function for Optuna hyperparameter optimization.
+
+        Returns the best validation loss reached during training, rather
+        than the loss at the final epoch, which may be worse if training
+        becomes unstable.
         """
 
         device = torch.device(
@@ -7161,64 +7165,17 @@ Typical workflow:
         )
 
         # Hyperparameter search space
-
         config = {
-            "hidden_dim_1":
-                trial.suggest_int(
-                    "hidden_dim_1",
-                    256,
-                    1024,
-                    step=128
-                ),
-
-            "hidden_dim_2":
-                trial.suggest_int(
-                    "hidden_dim_2",
-                    128,
-                    512,
-                    step=64
-                ),
-
-            "hidden_dim_3":
-                trial.suggest_int(
-                    "hidden_dim_3",
-                    64,
-                    256,
-                    step=64
-                ),
-
-            "dropout_rate":
-                trial.suggest_float(
-                    "dropout_rate",
-                    0.1,
-                    0.5
-                ),
-
-            "learning_rate":
-                trial.suggest_float(
-                    "learning_rate",
-                    1e-5,
-                    1e-2,
-                    log=True
-                ),
-
-            "batch_size":
-                trial.suggest_categorical(
-                    "batch_size",
-                    [32, 64, 128]
-                ),
-
-            "weight_decay":
-                trial.suggest_float(
-                    "weight_decay",
-                    1e-6,
-                    1e-3,
-                    log=True
-                )
+            "hidden_dim_1": trial.suggest_int("hidden_dim_1", 256, 1024, step=128),
+            "hidden_dim_2": trial.suggest_int("hidden_dim_2", 128, 512, step=64),
+            "hidden_dim_3": trial.suggest_int("hidden_dim_3", 64, 256, step=64),
+            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.5),
+            "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-2, log=True),
+            "batch_size": trial.suggest_categorical("batch_size", [32, 64, 128]),
+            "weight_decay": trial.suggest_float("weight_decay", 1e-6, 1e-3, log=True),
         }
 
         # Create model
-
         model = MolecularFNN(
             input_dim=X_train.shape[1],
             hidden_dims=[
@@ -7231,14 +7188,16 @@ Typical workflow:
         ).to(device)
 
         # Data loaders
-
         train_dataset = BBBDataset(X_train, y_train)
         val_dataset = BBBDataset(X_val, y_val)
 
+        # drop_last=True avoids a final batch of size 1, which would make
+        # BatchNorm1d raise an error in training mode.
         train_loader = DataLoader(
             train_dataset,
             batch_size=config["batch_size"],
-            shuffle=True
+            shuffle=True,
+            drop_last=True
         )
 
         val_loader = DataLoader(
@@ -7246,8 +7205,6 @@ Typical workflow:
             batch_size=config["batch_size"],
             shuffle=False
         )
-
-        # Optimizer and loss
 
         optimizer = optim.Adam(
             model.parameters(),
@@ -7257,70 +7214,54 @@ Typical workflow:
 
         criterion = nn.MSELoss()
 
-        # Training loop
-
         num_epochs = 50
+        best_val_loss = float("inf")
 
         for epoch in range(num_epochs):
 
             # Training
-
             model.train()
 
             for batch_x, batch_y in train_loader:
-
                 batch_x = batch_x.to(device)
                 batch_y = batch_y.to(device)
 
                 optimizer.zero_grad()
-
                 predictions = model(batch_x)
-
-                loss = criterion(
-                    predictions.squeeze(),
-                    batch_y.squeeze()
-                )
-
+                loss = criterion(predictions.squeeze(), batch_y.squeeze())
                 loss.backward()
-
                 optimizer.step()
 
-            # Validation
-
+            # Validation (sample-weighted average)
             model.eval()
 
             val_loss = 0.0
+            val_samples = 0
 
             with torch.no_grad():
-
                 for batch_x, batch_y in val_loader:
-
                     batch_x = batch_x.to(device)
                     batch_y = batch_y.to(device)
 
                     predictions = model(batch_x)
+                    loss = criterion(predictions.squeeze(), batch_y.squeeze())
 
-                    loss = criterion(
-                        predictions.squeeze(),
-                        batch_y.squeeze()
-                    )
+                    val_loss += loss.item() * batch_x.size(0)
+                    val_samples += batch_x.size(0)
 
-                    val_loss += loss.item()
+            val_loss /= val_samples
+            best_val_loss = min(best_val_loss, val_loss)
 
-            val_loss /= len(val_loader)
-
-            # Report intermediate result
+            # Report intermediate result for pruning
             trial.report(val_loss, epoch)
 
-            # Early pruning
             if trial.should_prune():
                 raise optuna.TrialPruned()
 
-        return val_loss
+        return best_val_loss
     ```
 
-
-#### Running the Optimization
+#### Running the optimization
 
 ??? note "Example"
 
@@ -7334,71 +7275,79 @@ Typical workflow:
     )
 
     study.optimize(
-        lambda trial: objective(
-            trial,
-            X_train,
-            y_train,
-            X_val,
-            y_val
-        ),
+        lambda trial: objective(trial, X_train, y_train, X_val, y_val),
         n_trials=50,
         timeout=7200
     )
 
     print("\nBest hyperparameters:")
-
     for key, value in study.best_params.items():
         print(f"  {key}: {value}")
 
     print(f"\nBest validation loss: {study.best_value:.4f}")
     ```
 
+**A note on the reported score.** `study.best_value` is the minimum validation loss over many
+trials. Because it is the best of many noisy evaluations on the same validation set, it is an
+optimistically biased estimate of true performance — some of that low value reflects luck in the
+search rather than genuine quality. The tuned configuration must therefore be retrained and
+reported on a **held-out test set** that took no part in the hyperparameter search.
 
 #### Visualization
 
 ??? note "Example"
 
-```python
-# Optimization history
-fig1 = plot_optimization_history(study)
-fig1.write_image("optimization_history.png")
+    ```python
+    # Note: fig.write_image requires the `kaleido` package (pip install kaleido).
 
-# Parameter importance
-fig2 = plot_param_importances(study)
-fig2.write_image("parameter_importance.png")
-```
+    # Optimization history
+    fig1 = plot_optimization_history(study)
+    fig1.write_image("optimization_history.png")
+
+    # Parameter importance
+    fig2 = plot_param_importances(study)
+    fig2.write_image("parameter_importance.png")
+    ```
 
 These plots help identify:
 
-* Whether optimization converged
+* Whether the optimization converged
 * Which hyperparameters matter most
 * Whether the search space should be adjusted
 
+#### Training and evaluating the final model
 
-#### Training the Final Model
+Once the search is complete, rebuild the model with the best configuration, retrain it, and report
+its performance on the test set. Retraining on the combined training and validation data is common,
+since the validation set is no longer needed for model selection at this stage.
 
-```python
-best_config = study.best_params
+??? note "Example"
 
-final_model = MolecularFNN(
-    input_dim=X_train.shape[1],
-    hidden_dims=[
-        best_config["hidden_dim_1"],
-        best_config["hidden_dim_2"],
-        best_config["hidden_dim_3"]
-    ],
-    output_dim=1,
-    dropout_rate=best_config["dropout_rate"]
-)
-```
+    ```python
+    best_config = study.best_params
 
+    final_model = MolecularFNN(
+        input_dim=X_train.shape[1],
+        hidden_dims=[
+            best_config["hidden_dim_1"],
+            best_config["hidden_dim_2"],
+            best_config["hidden_dim_3"]
+        ],
+        output_dim=1,
+        dropout_rate=best_config["dropout_rate"]
+    )
 
+    # 1. Retrain final_model on X_train (or on X_train + X_val combined)
+    #    using best_config["learning_rate"], ["weight_decay"], ["batch_size"].
+    # 2. Evaluate ONCE on the held-out test set to obtain an unbiased
+    #    estimate of performance.
+    ```
 
-#### Practical Hyperparameter Guidelines
+#### Practical hyperparameter guidelines
 
 Typical starting ranges for molecular prediction tasks:
 
-| Hyperparameter   | Recommended Range |
+| Hyperparameter   | Recommended range |
 | ---------------- | ----------------- |
 | Learning rate    | 1e-4 to 3e-3      |
 | Batch size       | 32 to 256         |
@@ -7407,33 +7356,33 @@ Typical starting ranges for molecular prediction tasks:
 | Hidden size      | 128 to 1024       |
 | Number of layers | 2 to 6            |
 
-
-
-### 9.2 Pre-Training Diagnostics
+### 9.2 Pre-training diagnostics
 
 Before starting long training runs, verify that:
 
 * Data loading works correctly
 * Shapes are correct
-* Forward pass succeeds
+* The forward pass succeeds
 * Gradients are finite
 * Parameters update correctly
 
 A five-minute diagnostic check can save hours of debugging.
 
-
-#### Pre-Training Diagnostics
+#### Pre-training diagnostics function
 
 ??? note "Example"
 
     ```python
-    def pre_training_diagnostics(
-        model,
-        train_loader,
-        device=None
-    ):
+    import copy
+
+
+    def pre_training_diagnostics(model, train_loader, device=None):
         """
         Run diagnostics before training.
+
+        The single optimizer step used to test the backward pass is
+        applied to a snapshot and then reverted, so this function does
+        not alter the model's parameters.
         """
 
         if device is None:
@@ -7448,145 +7397,91 @@ A five-minute diagnostic check can save hours of debugging.
         model = model.to(device)
 
         # 1. Data loading check
-
-        print("\n1. Data Loading Check:")
+        print("\n1. Data loading check:")
 
         try:
             batch_x, batch_y = next(iter(train_loader))
-
-            print(f"  ✓ X shape: {batch_x.shape}")
-            print(f"  ✓ Y shape: {batch_y.shape}")
-
-            print(
-                f"  ✓ X range: "
-                f"[{batch_x.min():.4f}, {batch_x.max():.4f}]"
-            )
-
-            print(
-                f"  ✓ Y range: "
-                f"[{batch_y.min():.4f}, {batch_y.max():.4f}]"
-            )
-
-            print(
-                f"  ✓ NaN in X: "
-                f"{torch.isnan(batch_x).any().item()}"
-            )
-
-            print(
-                f"  ✓ NaN in Y: "
-                f"{torch.isnan(batch_y).any().item()}"
-            )
-
+            print(f"  X shape: {batch_x.shape}")
+            print(f"  Y shape: {batch_y.shape}")
+            print(f"  X range: [{batch_x.min():.4f}, {batch_x.max():.4f}]")
+            print(f"  Y range: [{batch_y.min():.4f}, {batch_y.max():.4f}]")
+            print(f"  NaN in X: {torch.isnan(batch_x).any().item()}")
+            print(f"  NaN in Y: {torch.isnan(batch_y).any().item()}")
         except Exception as e:
-            print(f"  ✗ Data loading failed: {e}")
+            print(f"  Data loading failed: {e}")
             return False
 
         # 2. Forward pass check
-
-        print("\n2. Forward Pass Check:")
+        print("\n2. Forward pass check:")
 
         try:
             model.eval()
-
             with torch.no_grad():
-
                 batch_x = batch_x.to(device)
-
                 output = model(batch_x)
 
-            print(f"  ✓ Output shape: {output.shape}")
-
-            print(
-                f"  ✓ Output range: "
-                f"[{output.min():.4f}, {output.max():.4f}]"
-            )
-
-            print(
-                f"  ✓ NaN in output: "
-                f"{torch.isnan(output).any().item()}"
-            )
-
+            print(f"  Output shape: {output.shape}")
+            print(f"  Output range: [{output.min():.4f}, {output.max():.4f}]")
+            print(f"  NaN in output: {torch.isnan(output).any().item()}")
         except Exception as e:
-            print(f"  ✗ Forward pass failed: {e}")
+            print(f"  Forward pass failed: {e}")
             return False
 
-        # 3. Backward pass check
+        # 3. Backward pass check (non-destructive)
+        print("\n3. Backward pass check:")
 
-        print("\n3. Backward Pass Check:")
+        # Snapshot parameters so the test step can be reverted
+        original_state = copy.deepcopy(model.state_dict())
 
         try:
-
             model.train()
 
             batch_x = batch_x.to(device)
             batch_y = batch_y.to(device)
 
             criterion = nn.MSELoss()
-
-            optimizer = optim.Adam(
-                model.parameters(),
-                lr=0.001
-            )
+            optimizer = optim.Adam(model.parameters(), lr=0.001)
 
             optimizer.zero_grad()
-
             output = model(batch_x)
-
-            loss = criterion(
-                output.squeeze(),
-                batch_y.squeeze()
-            )
-
+            loss = criterion(output.squeeze(), batch_y.squeeze())
             loss.backward()
 
-            print(f"  ✓ Loss: {loss.item():.6f}")
-
-            print(
-                f"  ✓ Finite loss: "
-                f"{torch.isfinite(loss).item()}"
-            )
+            print(f"  Loss: {loss.item():.6f}")
+            print(f"  Finite loss: {torch.isfinite(loss).item()}")
 
             max_grad = 0.0
             has_gradients = False
 
             for param in model.parameters():
-
                 if param.grad is not None:
-
                     has_gradients = True
+                    max_grad = max(max_grad, param.grad.abs().max().item())
 
-                    grad_max = param.grad.abs().max().item()
-
-                    max_grad = max(max_grad, grad_max)
-
-            print(f"  ✓ Gradients computed: {has_gradients}")
-            print(f"  ✓ Max gradient: {max_grad:.6f}")
+            print(f"  Gradients computed: {has_gradients}")
+            print(f"  Max gradient: {max_grad:.6f}")
 
             optimizer.step()
-
-            print("  ✓ Optimizer step successful")
+            print("  Optimizer step successful")
 
         except Exception as e:
-            print(f"  ✗ Backward pass failed: {e}")
+            print(f"  Backward pass failed: {e}")
+            model.load_state_dict(original_state)
             return False
 
+        # Restore the original parameters
+        model.load_state_dict(original_state)
+
         # 4. Parameter check
+        print("\n4. Parameter statistics:")
 
-        print("\n4. Parameter Statistics:")
-
-        total_params = sum(
-            p.numel()
-            for p in model.parameters()
-        )
-
+        total_params = sum(p.numel() for p in model.parameters())
         trainable_params = sum(
-            p.numel()
-            for p in model.parameters()
-            if p.requires_grad
+            p.numel() for p in model.parameters() if p.requires_grad
         )
 
-        print(f"  ✓ Total parameters: {total_params:,}")
-        print(f"  ✓ Trainable parameters: {trainable_params:,}")
+        print(f"  Total parameters: {total_params:,}")
+        print(f"  Trainable parameters: {trainable_params:,}")
 
         print("\n" + "=" * 70)
         print("ALL CHECKS PASSED")
@@ -7602,16 +7497,14 @@ if pre_training_diagnostics(model, train_loader):
     print("Ready to train.")
 ```
 
+### 9.3 Common training problems and solutions
 
-### 9.3 Common Training Problems and Solutions
-
-Training neural networks can fail for many reasons. Understanding common failure modes is 
+Training neural networks can fail for many reasons. Understanding common failure modes is
 essential for efficient debugging.
 
+#### Troubleshooting guide
 
-#### Troubleshooting Guide
-
-| Problem                   | Symptoms                                      | Common Causes                                               | Recommended Solutions                                     |
+| Problem                   | Symptoms                                      | Common causes                                               | Recommended solutions                                     |
 | ------------------------- | --------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------- |
 | **NaN loss**              | Loss becomes NaN                              | Learning rate too high, invalid inputs, exploding gradients | Lower learning rate, clip gradients, check for NaN values |
 | **Loss not decreasing**   | Training stagnates                            | Incorrect labels, poor normalization, model too small       | Normalize data, verify targets, increase capacity         |
@@ -7623,27 +7516,81 @@ essential for efficient debugging.
 | **Vanishing gradients**   | Tiny gradients                                | Deep networks, saturating activations                       | Use ReLU, residual connections, normalization             |
 | **Out-of-memory errors**  | CUDA OOM                                      | Large model or batch size                                   | Reduce batch size, gradient checkpointing                 |
 
+### 9.4 Single-step and single-batch debugging
 
-### 9.4 Single-Step Debugging
+When training fails, isolating a single batch is often the fastest way to identify the problem.
 
-When training fails, debugging a single batch is often the fastest way to identify the problem.
+The most informative test is to **overfit a single batch**: train repeatedly on one batch and
+confirm that the loss drives close to zero. A correctly wired model with enough capacity can
+memorize a handful of examples almost perfectly. If it cannot, the problem lies in the model, loss,
+or optimizer wiring rather than in the data or the amount of training — which rules out a large
+class of bugs before any long run.
 
-
-
-#### Training-Step Debugger
+#### Overfit a single batch
 
 ??? note "Example"
 
     ```python
-    def debug_training_step(
+    def overfit_single_batch(
         model,
         batch_x,
         batch_y,
         criterion,
-        optimizer
+        device=None,
+        steps=200,
+        lr=1e-3
     ):
         """
+        Train on one batch repeatedly. The loss should approach zero if
+        the model, loss, and optimizer are wired correctly.
+        """
+
+        if device is None:
+            device = next(model.parameters()).device
+
+        model = model.to(device)
+        batch_x = batch_x.to(device)
+        batch_y = batch_y.to(device)
+
+        optimizer = optim.Adam(model.parameters(), lr=lr)
+
+        model.train()
+
+        for step in range(steps):
+            optimizer.zero_grad()
+            output = model(batch_x)
+            loss = criterion(output.squeeze(), batch_y.squeeze())
+            loss.backward()
+            optimizer.step()
+
+            if (step + 1) % 20 == 0:
+                print(f"Step {step + 1:>4}: loss = {loss.item():.6f}")
+
+        final_loss = loss.item()
+
+        if final_loss > 1e-2:
+            print(
+                "\nWarning: the model could not overfit a single batch. "
+                "Check the model architecture, the loss function, the "
+                "learning rate, and the label alignment."
+            )
+
+        return final_loss
+    ```
+
+#### Training-step debugger
+
+For a detailed view of one step, the following inspects inputs, outputs, gradients, and the effect
+of a single update.
+
+??? note "Example"
+
+    ```python
+    def debug_training_step(model, batch_x, batch_y, criterion, optimizer):
+        """
         Debug one complete training step.
+
+        Note: this call performs a real parameter update on the model.
         """
 
         print("\n" + "=" * 70)
@@ -7651,93 +7598,48 @@ When training fails, debugging a single batch is often the fastest way to identi
         print("=" * 70)
 
         # Input diagnostics
-
-        print("\n1. Input Statistics")
-
+        print("\n1. Input statistics")
         print(f"  X shape: {batch_x.shape}")
         print(f"  Y shape: {batch_y.shape}")
-
-        print(
-            f"  X range: "
-            f"[{batch_x.min():.4f}, {batch_x.max():.4f}]"
-        )
-
-        print(
-            f"  Y range: "
-            f"[{batch_y.min():.4f}, {batch_y.max():.4f}]"
-        )
-
-        print(
-            f"  NaN in X: "
-            f"{torch.isnan(batch_x).any().item()}"
-        )
-
-        print(
-            f"  NaN in Y: "
-            f"{torch.isnan(batch_y).any().item()}"
-        )
+        print(f"  X range: [{batch_x.min():.4f}, {batch_x.max():.4f}]")
+        print(f"  Y range: [{batch_y.min():.4f}, {batch_y.max():.4f}]")
+        print(f"  NaN in X: {torch.isnan(batch_x).any().item()}")
+        print(f"  NaN in Y: {torch.isnan(batch_y).any().item()}")
 
         # Forward pass
-
-        print("\n2. Forward Pass")
-
+        print("\n2. Forward pass")
         model.train()
         optimizer.zero_grad()
         output = model(batch_x)
-
         print(f"  Output shape: {output.shape}")
+        print(f"  Output range: [{output.min():.4f}, {output.max():.4f}]")
 
-        print(
-            f"  Output range: "
-            f"[{output.min():.4f}, {output.max():.4f}]"
-        )
-
-        # Loss computation
-
+        # Loss
         print("\n3. Loss")
-
-        loss = criterion(
-            output.squeeze(),
-            batch_y.squeeze()
-        )
-
+        loss = criterion(output.squeeze(), batch_y.squeeze())
         print(f"  Loss: {loss.item():.6f}")
 
         # Backward pass
-
-        print("\n4. Gradient Statistics")
-
+        print("\n4. Gradient statistics")
         loss.backward()
 
         for name, param in model.named_parameters():
-
             if param.grad is not None:
-
                 grad_norm = param.grad.norm().item()
-
-                print(
-                    f"  {name:<30} "
-                    f"Gradient norm: {grad_norm:.6f}"
-                )
+                print(f"  {name:<30} gradient norm: {grad_norm:.6f}")
 
         # Optimizer step
-
-        print("\n5. Optimizer Step")
-
+        print("\n5. Optimizer step")
         optimizer.step()
+        print("  Parameters updated")
 
-        print("  ✓ Parameters updated")
-
-        # Loss after update
-
-        print("\n6. Post-Update Check")
-
-        new_output = model(batch_x)
-
-        new_loss = criterion(
-            new_output.squeeze(),
-            batch_y.squeeze()
-        )
+        # Loss after update, evaluated in eval mode so that dropout and
+        # BatchNorm randomness do not confound the comparison.
+        print("\n6. Post-update check")
+        model.eval()
+        with torch.no_grad():
+            new_output = model(batch_x)
+            new_loss = criterion(new_output.squeeze(), batch_y.squeeze())
 
         print(f"  Previous loss: {loss.item():.6f}")
         print(f"  New loss:      {new_loss.item():.6f}")
@@ -7750,16 +7652,14 @@ Usage:
 ```python
 batch_x, batch_y = next(iter(train_loader))
 
-debug_training_step(
-    model,
-    batch_x,
-    batch_y,
-    criterion,
-    optimizer
-)
+# Quick isolation test
+overfit_single_batch(model, batch_x, batch_y, nn.MSELoss())
+
+# Detailed one-step inspection
+debug_training_step(model, batch_x, batch_y, criterion, optimizer)
 ```
 
-### 9.5 Recommended Training Workflow
+### 9.5 Recommended training workflow
 
 A reliable molecular deep learning workflow typically follows these steps:
 
@@ -7767,17 +7667,17 @@ A reliable molecular deep learning workflow typically follows these steps:
 1. Verify data integrity
 2. Normalize inputs
 3. Run diagnostics
-4. Train a small baseline model
-5. Tune hyperparameters
-6. Add regularization
-7. Monitor validation metrics
-8. Save best checkpoints
-9. Evaluate on held-out test set
-10. Interpret predictions
+4. Overfit a single batch to confirm the model can learn
+5. Train a small baseline model
+6. Tune hyperparameters
+7. Add regularization
+8. Monitor validation metrics
+9. Save best checkpoints
+10. Evaluate once on the held-out test set
+11. Interpret predictions
 ```
 
-
-### 9.6 Reproducibility Recommendations
+### 9.6 Reproducibility recommendations
 
 Scientific reproducibility is essential in molecular machine learning.
 
@@ -7788,30 +7688,68 @@ Always:
 * Save preprocessing parameters
 * Log hyperparameters
 * Track package versions
-* Use deterministic train/validation/test splits
+* Use deterministic, saved train/validation/test splits
 
-Example:
+Setting the three main random number generators is necessary but not sufficient for
+reproducibility on a GPU. Deterministic behavior additionally requires configuring the cuDNN
+backend and seeding the DataLoader workers.
 
 ```python
+import os
 import random
 import numpy as np
 import torch
 
-seed = 42
 
-random.seed(seed)
-np.random.seed(seed)
+def set_seed(seed=42):
+    os.environ["PYTHONHASHSEED"] = str(seed)
 
-torch.manual_seed(seed)
-
-if torch.cuda.is_available():
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
+    # Make cuDNN deterministic (disables the autotuner)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+    # Stricter still: error out on any nondeterministic op.
+    # Some CUDA ops then require the environment variable
+    #   CUBLAS_WORKSPACE_CONFIG=:4096:8
+    # torch.use_deterministic_algorithms(True)
+
+
+def seed_worker(worker_id):
+    """Seed each DataLoader worker for reproducible shuffling."""
+    worker_seed = torch.initial_seed() % 2 ** 32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
+set_seed(42)
+
+generator = torch.Generator()
+generator.manual_seed(42)
+
+# Pass these to every DataLoader that shuffles or uses workers
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=64,
+    shuffle=True,
+    num_workers=4,
+    worker_init_fn=seed_worker,
+    generator=generator
+)
 ```
 
+Two honest caveats. Enabling deterministic algorithms and disabling the cuDNN autotuner can slow
+training, so it is common to use them for final, reportable runs rather than during exploration.
+And exact bit-for-bit reproducibility is generally not guaranteed across different GPU models, CUDA
+versions, or library versions, so record the full environment alongside the seed.
 
-### 9.7 Final Recommendations
+### 9.7 Final recommendations
 
-#### Start Simple
+#### Start simple
 
 Before using advanced architectures:
 
@@ -7820,21 +7758,18 @@ Before using advanced architectures:
 * Confirm labels are correct
 * Ensure evaluation metrics make sense
 
-A simple working model is more valuable than a complex broken model.
+A simple working model is more valuable than a complex broken one.
 
-#### Monitor Validation Performance
+#### Monitor validation performance
 
-Never rely only on training loss.
-
-Always track:
+Never rely only on training loss. Always track:
 
 * Validation loss
-* MAE / RMSE
+* MAE and RMSE
 * R² score
 * Learning curves
 
-
-#### Save Intermediate Results
+#### Save intermediate results
 
 Save:
 
@@ -7846,8 +7781,7 @@ Save:
 
 This makes experiments reproducible and easier to debug.
 
-
-#### Use Domain Knowledge
+#### Use domain knowledge
 
 Good molecular machine learning combines:
 
@@ -7855,9 +7789,8 @@ Good molecular machine learning combines:
 * Statistical reasoning
 * Deep learning expertise
 
-The best models are not only accurate, but also chemically meaningful and scientifically interpretable.
-
-
+The best models are not only accurate, but also chemically meaningful and scientifically
+interpretable.
 
 ## 10. Key Takeaways
 
@@ -7940,9 +7873,6 @@ The best models are not only accurate, but also chemically meaningful and scient
     - Active learning for efficient data collection
     - Uncertainty quantification
     - Explainable AI for drug discovery
-
-
-
 
 ## 11. Resources
 
