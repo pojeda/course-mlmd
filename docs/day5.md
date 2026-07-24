@@ -1248,12 +1248,12 @@ prediction versus run DFT.
 
 ## 6. Practical: Building a GAT for the QM9 Dataset
 
-In this practical example, we build a **Graph Attention Network (GAT)** to predict a quantum-chemical 
+In this practical example, we build a **Graph Attention Network (GAT)** to predict a quantum-chemical
 molecular property from the QM9 dataset using PyTorch Geometric.
 
-QM9 contains small organic molecules with atom-level features, bond connectivity, 3D coordinates, and several 
-regression targets computed from quantum chemistry calculations. Here we predict the **HOMO energy**, which 
-is target index (2).
+QM9 contains small organic molecules with atom-level features, bond connectivity, 3D coordinates, and
+several regression targets computed from quantum chemistry. Here we predict the **HOMO energy**, which
+is target index 2 in PyTorch Geometric's QM9.
 
 The learning problem is:
 
@@ -1294,6 +1294,12 @@ torch.manual_seed(seed)
 
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(seed)
+
+# For stricter GPU determinism (at some cost in speed), also set:
+#   torch.backends.cudnn.deterministic = True
+#   torch.backends.cudnn.benchmark = False
+# Note that exact reproducibility is still not guaranteed across
+# different GPUs, CUDA versions, or library versions.
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -1343,8 +1349,7 @@ print(f"  Validation: {len(val_dataset)}")
 print(f"  Test: {len(test_dataset)}")
 
 
-# 4. Target Normalization
-
+# 4. Target normalization (train statistics only)
 train_targets = torch.cat([
     data.y[:, target_idx] for data in train_dataset
 ])
@@ -1359,7 +1364,6 @@ print(f"  Std: {target_std:.4f}")
 
 
 # 5. DataLoaders
-
 batch_size = 64
 
 train_loader = DataLoader(
@@ -1384,8 +1388,7 @@ test_loader = DataLoader(
 )
 
 
-# 6. Define the GAT Model
-
+# 6. Define the GAT model
 class GATForQM9(nn.Module):
     """
     Graph Attention Network for QM9 molecular property prediction.
@@ -1475,8 +1478,12 @@ class GATForQM9(nn.Module):
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
+            # Residual is dimensionally consistent because concat=False
+            # keeps the GATConv output at hidden_dim.
             x = x + residual
 
+        # BatchNorm1d operates over nodes; a batch contains many nodes,
+        # so there is no single-sample issue here.
         graph_embedding = global_mean_pool(x, batch)
 
         prediction = self.regressor(graph_embedding)
@@ -1499,8 +1506,7 @@ num_parameters = sum(
 print(f"\nTrainable parameters: {num_parameters:,}")
 
 
-# 7. Training and Evaluation Functions
-
+# 7. Training and evaluation functions
 def get_normalized_target(data):
     target = data.y[:, target_idx].view(-1)
     target = target.to(device)
@@ -1582,8 +1588,7 @@ def evaluate(model, loader, criterion):
     }
 
 
-# 8. Train the Model
-
+# 8. Train the model
 criterion = nn.L1Loss()
 
 optimizer = torch.optim.AdamW(
@@ -1651,6 +1656,9 @@ for epoch in range(num_epochs):
         best_model_state = copy.deepcopy(model.state_dict())
         patience_counter = 0
 
+        # The normalization statistics are saved with the checkpoint so
+        # the model can be reloaded and used in a fresh session, where the
+        # in-memory target_mean / target_std would not otherwise exist.
         torch.save({
             "epoch": epoch,
             "model_state_dict": best_model_state,
@@ -1670,7 +1678,7 @@ for epoch in range(num_epochs):
         print(f"  Val Loss:   {val_loss:.4f}")
         print(f"  Val MAE:    {val_metrics['mae']:.4f}")
         print(f"  Val RMSE:   {val_metrics['rmse']:.4f}")
-        print(f"  Val R²:     {val_metrics['r2']:.4f}")
+        print(f"  Val R2:     {val_metrics['r2']:.4f}")
         print(f"  LR:         {current_lr:.2e}")
         print("-" * 70)
 
@@ -1681,8 +1689,11 @@ for epoch in range(num_epochs):
 print("Training finished.")
 
 
-# 9. Test Set Evaluation
-
+# 9. Test set evaluation
+# map_location places the checkpoint on the current device regardless of
+# where it was saved. (This controls device placement, not load safety;
+# the checkpoint stores only tensors, ints, and floats, so the current
+# PyTorch default weights_only=True is appropriate.)
 checkpoint = torch.load(
     "best_gat_qm9.pt",
     map_location=device
@@ -1703,19 +1714,18 @@ test_metrics = evaluate(
 print("\nTest results:")
 print(f"  MAE:  {test_metrics['mae']:.4f}")
 print(f"  RMSE: {test_metrics['rmse']:.4f}")
-print(f"  R²:   {test_metrics['r2']:.4f}")
+print(f"  R2:   {test_metrics['r2']:.4f}")
 
 
-# 10. Plot Training Curves
-
+# 10. Plot training curves
 plt.figure(figsize=(12, 8))
 
 plt.subplot(2, 2, 1)
-plt.plot(history["train_loss"], label="Train Loss")
-plt.plot(history["val_loss"], label="Validation Loss")
+plt.plot(history["train_loss"], label="Train loss")
+plt.plot(history["val_loss"], label="Validation loss")
 plt.xlabel("Epoch")
-plt.ylabel("Normalized MAE Loss")
-plt.title("Training and Validation Loss")
+plt.ylabel("Normalized MAE loss")
+plt.title("Training and validation loss")
 plt.legend()
 plt.grid(alpha=0.3)
 
@@ -1729,16 +1739,16 @@ plt.grid(alpha=0.3)
 plt.subplot(2, 2, 3)
 plt.plot(history["val_r2"])
 plt.xlabel("Epoch")
-plt.ylabel("R²")
-plt.title("Validation R²")
+plt.ylabel("R2")
+plt.title("Validation R2")
 plt.grid(alpha=0.3)
 
 plt.subplot(2, 2, 4)
 plt.plot(history["learning_rate"])
 plt.xlabel("Epoch")
-plt.ylabel("Learning Rate")
+plt.ylabel("Learning rate")
 plt.yscale("log")
-plt.title("Learning Rate Schedule")
+plt.title("Learning rate schedule")
 plt.grid(alpha=0.3)
 
 plt.tight_layout()
@@ -1746,8 +1756,7 @@ plt.savefig("gat_qm9_training_curves.png", dpi=150)
 plt.show()
 
 
-# 11. Plot Predictions
-
+# 11. Plot predictions
 predictions = test_metrics["predictions"]
 targets = test_metrics["targets"]
 
@@ -1766,20 +1775,25 @@ plt.plot(
 
 plt.xlabel(f"True {target_name}")
 plt.ylabel(f"Predicted {target_name}")
-plt.title(f"GAT Predictions on QM9: {target_name}")
+plt.title(f"GAT predictions on QM9: {target_name}")
 plt.grid(alpha=0.3)
 plt.tight_layout()
 plt.savefig("gat_qm9_predictions.png", dpi=150)
 plt.show()
 ```
 
+Notes on this example:
 
 * The model predicts **normalized targets**, and metrics are computed after denormalization.
 * Residual connections are dimensionally consistent because all GAT layers use `concat=False`.
-* The model checkpoint is saved using a deep copy of `state_dict`.
-* `torch.load(..., map_location=device)` is used for safer loading.
+* The best checkpoint is saved from a deep copy of the `state_dict`, together with the target
+  normalization statistics, so the model can be reloaded in a fresh session.
+* `torch.load(..., map_location=device)` loads the checkpoint onto the current device regardless of
+  where it was saved. This controls device placement, not load safety; load safety is governed
+  separately by the `weights_only` argument.
 * The loss is averaged by the number of graphs, not by the number of batches.
-* `num_workers=0` is used for better compatibility across notebooks, Windows, and macOS.
+* `num_workers=0` is used for portability across notebooks, Windows, and macOS. If you increase it,
+  seed the workers with a `worker_init_fn` to preserve reproducibility.
 
 
 checked. 14 may 2026
