@@ -442,15 +442,14 @@ $$
 then the derivative of $y$ with respect to $x$ is:
 
 $$
-\frac{dy}{dx}
-=
+\frac{dy}{dx}=
 \frac{dy}{dg}
 \frac{dg}{dx}
 $$
 
 The chain rule decomposes complex derivatives into products of simpler derivatives.
 
-#### Example: Gradient Descent in PyTorch
+#### Example: Chain rule
 
 ??? note "Example"
 
