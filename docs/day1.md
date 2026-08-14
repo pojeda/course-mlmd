@@ -1307,7 +1307,7 @@ where $\mathbf{x}$ is the input and $w$ represents model parameters that remain 
 
 ??? note "Example"
 
-    ```
+
     Consider the simple function
 
     $$
@@ -1446,7 +1446,6 @@ where $\mathbf{x}$ is the input and $w$ represents model parameters that remain 
 
     This shows equivariance: **rotating the input and then applying the function gives the same result as 
     applying the function first and then rotating the output**.
-    ```
 
 In molecular machine learning, this property is especially important for vector quantities such as forces. 
 If a molecule is rotated, the predicted force vectors should rotate in the same way:
