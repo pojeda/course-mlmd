@@ -1066,7 +1066,7 @@ it to zero.
 ### Cross-Entropy Loss Example
 
 Cross-entropy loss measures the difference between predicted class probabilities and the true class label.
-For a classification problem with logits (z_j), the loss for the correct class (y) is
+For a classification problem with logits $z_j$, the loss for the correct class $y$ is
 
 $$
 L = -\log\left(\frac{e^{z_y}}{\sum_j e^{z_j}}\right).
@@ -1074,7 +1074,6 @@ $$
 
 PyTorch's `nn.CrossEntropyLoss()` combines the softmax operation with the negative log-likelihood loss in a 
 numerically stable way.
-
 
 ??? note "Example"
 
