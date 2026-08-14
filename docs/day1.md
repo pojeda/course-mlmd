@@ -1325,8 +1325,8 @@ where $\mathbf{x}$ is the input and $w$ represents model parameters that remain 
     $$
     \mathbf{x}=
     \begin{bmatrix}
-    1\
-    2\
+    1\\
+    2\\
     0
     \end{bmatrix}.
     $$
@@ -1336,8 +1336,8 @@ where $\mathbf{x}$ is the input and $w$ represents model parameters that remain 
     $$
     R=
     \begin{bmatrix}
-    0 & -1 & 0\
-    1 & 0 & 0\
+    0 & -1 & 0\\
+    1 & 0 & 0\\
     0 & 0 & 1
     \end{bmatrix}.
     $$
@@ -1348,19 +1348,19 @@ where $\mathbf{x}$ is the input and $w$ represents model parameters that remain 
     R\mathbf{x}
     =
     \begin{bmatrix}
-    0 & -1 & 0\
-    1 & 0 & 0\
+    0 & -1 & 0\\
+    1 & 0 & 0\\
     0 & 0 & 1
     \end{bmatrix}
     \begin{bmatrix}
-    1\
-    2\
+    1\\
+    2\\
     0
     \end{bmatrix}
     =
     \begin{bmatrix}
-    -2\
-    1\
+    -2\\
+    1\\
     0
     \end{bmatrix}.
     $$
@@ -1372,14 +1372,14 @@ where $\mathbf{x}$ is the input and $w$ represents model parameters that remain 
     =
     2
     \begin{bmatrix}
-    -2\
-    1\
+    -2\\
+    1\\
     0
     \end{bmatrix}
     =
     \begin{bmatrix}
-    -4\
-    2\
+    -4\\
+    2\\
     0
     \end{bmatrix}.
     $$
@@ -1391,14 +1391,14 @@ where $\mathbf{x}$ is the input and $w$ represents model parameters that remain 
     =
     2
     \begin{bmatrix}
-    1\
-    2\
+    1\\
+    2\\
     0
     \end{bmatrix}
     =
     \begin{bmatrix}
-    2\
-    4\
+    2\\
+    4\\
     0
     \end{bmatrix}.
     $$
@@ -1409,19 +1409,19 @@ where $\mathbf{x}$ is the input and $w$ represents model parameters that remain 
     Rf(\mathbf{x})
     =
     \begin{bmatrix}
-    0 & -1 & 0\
-    1 & 0 & 0\
+    0 & -1 & 0\\
+    1 & 0 & 0\\
     0 & 0 & 1
     \end{bmatrix}
     \begin{bmatrix}
-    2\
-    4\
+    2\\
+    4\\
     0
     \end{bmatrix}
     =
     \begin{bmatrix}
-    -4\
-    2\
+    -4\\
+    2\\
     0
     \end{bmatrix}.
     $$
@@ -1438,8 +1438,8 @@ where $\mathbf{x}$ is the input and $w$ represents model parameters that remain 
 
     $$
     \begin{bmatrix}
-    -4\
-    2\
+    -4\\
+    2\\
     0
     \end{bmatrix}.
     $$
