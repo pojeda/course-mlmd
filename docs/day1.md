@@ -474,8 +474,7 @@ The chain rule decomposes complex derivatives into products of simpler derivativ
     Using the chain rule:
 
     $$
-    \frac{dy}{dx}
-    =
+    \frac{dy}{dx}=
     \frac{dy}{du}
     \frac{du}{dx}
     $$
@@ -810,13 +809,8 @@ based on Bayes' theorem, which relates prior knowledge to new evidence.
 Bayes' theorem is given by:
 
 $$
-P(\theta \mid D)
-=
-\frac{
-P(D \mid \theta) P(\theta)
-}{
-P(D)
-}
+P(\theta \mid D)=
+\frac{P(D \mid \theta) P(\theta)}{P(D)}
 $$
 
 where:
@@ -833,13 +827,8 @@ Bayesian inference updates our belief about parameters $\theta$ after observing 
 The process can be summarized as:
 
 $$
-\text{Posterior}
-=
-\frac{
-\text{Likelihood} \times \text{Prior}
-}{
-\text{Evidence}
-}
+\text{Posterior}=
+\frac{\text{Likelihood} \times \text{Prior}}{\text{Evidence}}
 $$
 
 #### Advantages of Bayesian Methods
@@ -918,8 +907,7 @@ The kernel defines similarity between input points.
 One common kernel is the Radial Basis Function (RBF) kernel:
 
 $$
-k(x, x')
-=
+k(x, x')=
 \sigma^2
 \exp
 \left(
@@ -1035,7 +1023,7 @@ Gaussian Processes are commonly used in:
     plt.xlabel("x")
     plt.ylabel("f(x)")
     plt.legend()
-
+    plt.savefig("gaussian_process.png", dpi=300, bbox_inches="tight")
     plt.show()
     ```
 
@@ -1076,6 +1064,17 @@ it to zero.
     ```
 
 ### Cross-Entropy Loss Example
+
+Cross-entropy loss measures the difference between predicted class probabilities and the true class label.
+For a classification problem with logits (z_j), the loss for the correct class (y) is
+
+$$
+L = -\log\left(\frac{e^{z_y}}{\sum_j e^{z_j}}\right).
+$$
+
+PyTorch's `nn.CrossEntropyLoss()` combines the softmax operation with the negative log-likelihood loss in a 
+numerically stable way.
+
 
 ??? note "Example"
 
