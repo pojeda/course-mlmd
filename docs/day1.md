@@ -1444,8 +1444,8 @@ where $\mathbf{x}$ is the input and $w$ represents model parameters that remain 
     \end{bmatrix}.
     $$
 
-    This shows equivariance: **rotating the input and then applying the function gives the same result as 
-    applying the function first and then rotating the output**.
+    This shows equivariance: rotating the input and then applying the function gives the same result as 
+    applying the function first and then rotating the output.
 
 In molecular machine learning, this property is especially important for vector quantities such as forces. 
 If a molecule is rotated, the predicted force vectors should rotate in the same way:
@@ -1513,7 +1513,7 @@ mechanism behind learning in deep neural networks.
 
 ## Summary
 
-This course introduced the core mathematical concepts underlying machine learning and deep learning:
+This module of the course introduced the core mathematical concepts underlying machine learning and deep learning:
 
 - Linear algebra for data representation
 - Optimization for model training
