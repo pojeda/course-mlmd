@@ -1253,8 +1253,179 @@ removing noise and redundant information.
     plt.show()
     ```
 
+## 7. Symmetries
 
-## 7. Integrated Neural Network Example
+Machine learning models can benefit from symmetries of the physical model. One way to encode symmetries is by using **Equivariances**. 
+An **equivariant function** transforms its output in the same way that the input is transformed. For a symmetry operation (g), 
+represented by (D(g)), an equivariant function satisfies
+
+$$
+f(D(g)\mathbf{x}, w)= D(g)f(\mathbf{x}, w),
+$$
+
+where (\mathbf{x}) is the input and (w) represents model parameters that remain unchanged under the transformation.
+
+??? note "Example"
+
+    ```text
+    Consider the simple function
+
+    $$
+    f(\mathbf{x}) = 2\mathbf{x}.
+    $$
+
+    This function is equivariant with respect to any 3D rotation because
+
+    $$
+    f(R\mathbf{x})=2R\mathbf{x}=R(2\mathbf{x})=Rf(\mathbf{x}).
+    $$
+
+    Let
+
+    $$
+    \mathbf{x}=
+    \begin{bmatrix}
+    1\
+    2\
+    0
+    \end{bmatrix}.
+    $$
+
+    Now rotate the vector by $90^\circ$ around the $z$-axis using
+
+    $$
+    R=
+    \begin{bmatrix}
+    0 & -1 & 0\
+    1 & 0 & 0\
+    0 & 0 & 1
+    \end{bmatrix}.
+    $$
+
+    First, rotate the input:
+
+    $$
+    R\mathbf{x}
+    =
+    \begin{bmatrix}
+    0 & -1 & 0\
+    1 & 0 & 0\
+    0 & 0 & 1
+    \end{bmatrix}
+    \begin{bmatrix}
+    1\
+    2\
+    0
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    -2\
+    1\
+    0
+    \end{bmatrix}.
+    $$
+
+    Then apply the function:
+
+    $$
+    f(R\mathbf{x})
+    =
+    2
+    \begin{bmatrix}
+    -2\
+    1\
+    0
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    -4\
+    2\
+    0
+    \end{bmatrix}.
+    $$
+
+    Now reverse the order of the operations. First apply the function:
+
+    $$
+    f(\mathbf{x})
+    =
+    2
+    \begin{bmatrix}
+    1\
+    2\
+    0
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    2\
+    4\
+    0
+    \end{bmatrix}.
+    $$
+
+    Then rotate the result:
+
+    $$
+    Rf(\mathbf{x})
+    =
+    \begin{bmatrix}
+    0 & -1 & 0\
+    1 & 0 & 0\
+    0 & 0 & 1
+    \end{bmatrix}
+    \begin{bmatrix}
+    2\
+    4\
+    0
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    -4\
+    2\
+    0
+    \end{bmatrix}.
+    $$
+
+    Therefore,
+
+    $$
+    f(R\mathbf{x})
+    =
+    Rf(\mathbf{x}),
+    $$
+
+    and both sides give
+
+    $$
+    \begin{bmatrix}
+    -4\
+    2\
+    0
+    \end{bmatrix}.
+    $$
+
+    This shows equivariance: **rotating the input and then applying the function gives the same result as 
+    applying the function first and then rotating the output**.
+    ```
+
+In molecular machine learning, this property is especially important for vector quantities such as forces. 
+If a molecule is rotated, the predicted force vectors should rotate in the same way:
+
+$$
+\mathbf{F}(R\mathbf{R})=R\mathbf{F}(\mathbf{R}).
+$$
+
+By contrast, scalar quantities such as the total energy should remain unchanged under rotation:
+
+$$
+E(R\mathbf{R})=E(\mathbf{R}).
+$$
+
+Thus, molecular energies are typically **rotation-invariant**, while molecular forces are **rotation-equivariant**.
+
+
+
+## 8. Integrated Neural Network Example
 
 The following example combines several concepts introduced during the course.
 A neural network transforms an input through a sequence of linear layers and
