@@ -1307,7 +1307,7 @@ where $\mathbf{x}$ is the input and $w$ represents model parameters that remain 
 
 ??? note "Example"
 
-    ```latex
+    ```
     Consider the simple function
 
     $$
