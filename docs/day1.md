@@ -1065,7 +1065,7 @@ it to zero.
 
 ### Cross-Entropy Loss Example
 
-Cross-entropy loss measures the difference between predicted class probabilities and the true class label.
+Cross-entropy loss measures how well the predicted class probabilities agree with the true class label.
 For a classification problem with logits $z_j$, the loss for the correct class $y$ is
 
 $$
