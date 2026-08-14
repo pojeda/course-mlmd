@@ -1219,26 +1219,77 @@ removing noise and redundant information.
 ??? note "Example"
 
     ```python
-    import torch
+    import numpy as np
     import matplotlib.pyplot as plt
-
     from sklearn.decomposition import PCA
 
-    # Random high-dimensional dataset
-    X = torch.randn(100, 10)
+    # Molecular composition dataset
+    #
+    # Features:
+    # [number of C atoms,
+    #  number of H atoms,
+    #  number of O atoms,
+    #  number of N atoms]
+    X = np.array([
+        [1, 4, 0, 0],   # CH4
+        [2, 6, 0, 0],   # C2H6
+        [3, 8, 0, 0],   # C3H8
+        [1, 4, 1, 0],   # CH3OH
+        [2, 6, 1, 0],   # C2H5OH
+        [1, 2, 1, 0],   # CH2O
+        [2, 4, 2, 0],   # CH3COOH
+        [1, 5, 0, 1],   # CH3NH2
+        [2, 7, 0, 1],   # C2H5NH2
+        [1, 3, 0, 1],   # HCN-like composition
+    ], dtype=float)
 
-    # PCA projection
+    molecule_names = [
+        "CH4",
+        "C2H6",
+        "C3H8",
+        "CH3OH",
+        "C2H5OH",
+        "CH2O",
+        "CH3COOH",
+        "CH3NH2",
+        "C2H5NH2",
+        "CHN"
+    ]
+
+    # Apply PCA
     pca = PCA(n_components=2)
+    X_reduced = pca.fit_transform(X)
 
-    X_reduced = pca.fit_transform(X.numpy())
+    # Explained variance
+    print("Explained variance ratio:")
+    print(pca.explained_variance_ratio_)
+    print( "Total explained variance:", pca.explained_variance_ratio_.sum())
 
-    # Visualization
-    plt.scatter(X_reduced[:, 0], X_reduced[:, 1])
+    # Plot
+    plt.figure(figsize=(8, 6))
+    plt.scatter( X_reduced[:, 0], X_reduced[:, 1], s=60)
 
-    plt.xlabel("Principal Component 1")
-    plt.ylabel("Principal Component 2")
-    plt.title("PCA Projection")
-    plt.savefig("pca.png", dpi=300, bbox_inches="tight")
+    for i, name in enumerate(molecule_names):
+        plt.annotate(
+            name,
+            (X_reduced[i, 0], X_reduced[i, 1]),
+            xytext=(5, 5),
+            textcoords="offset points"
+        )
+
+    plt.xlabel(
+        f"Principal Component 1 "
+        f"({pca.explained_variance_ratio_[0]*100:.1f}% variance)"
+    )
+
+    plt.ylabel(
+        f"Principal Component 2 "
+        f"({pca.explained_variance_ratio_[1]*100:.1f}% variance)"
+    )
+
+    plt.title("PCA of Molecular Compositions")
+    plt.tight_layout()
+    plt.savefig( "molecular_pca.png", dpi=300, bbox_inches="tight")
     plt.show()
     ```
 
@@ -1252,11 +1303,11 @@ $$
 f(D(g)\mathbf{x}, w)= D(g)f(\mathbf{x}, w),
 $$
 
-where (\mathbf{x}) is the input and (w) represents model parameters that remain unchanged under the transformation.
+where $\mathbf{x}$ is the input and $w$ represents model parameters that remain unchanged under the transformation.
 
 ??? note "Example"
 
-    ```text
+    ```latex
     Consider the simple function
 
     $$
