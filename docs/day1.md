@@ -189,7 +189,6 @@ traditional CPU.
         print("\nCUDA GPU not available.")
     ```
 
-
 ### Singular Value Decomposition (SVD)
 
 Singular Value Decomposition (SVD) is one of the most important matrix factorization techniques in linear algebra and machine 
@@ -208,11 +207,7 @@ where:
 - $V^T$ contains the right singular vectors
 
 The singular values are always non-negative and are usually ordered from largest to smallest:
-
-$$
-\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_r \geq 0
-$$
-
+$\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_r \geq 0$,
 where $r$ is the rank of the matrix.
 
 #### Geometric Interpretation
