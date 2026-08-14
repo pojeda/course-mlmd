@@ -118,9 +118,6 @@ for GPU acceleration, automatic differentiation, and deep learning models.
     print(C_numpy_alt)
     ```
 
-You can add the following subsection after the matrix multiplication section and before 
-moving to the next major topic.
-
 PyTorch can take advantage of Graphics Processing Units (GPUs), which are specialized processors designed to 
 perform large numbers of numerical operations in parallel. GPUs are particularly efficient for workloads 
 involving matrix and tensor computations, such as the matrix multiplications, vector operations, and 
