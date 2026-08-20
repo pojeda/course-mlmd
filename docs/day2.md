@@ -1062,21 +1062,17 @@ model.fit(X_train, y_train)
 Cross-validation is a widely used technique for evaluating machine learning models more reliably, 
 especially when the available dataset is limited. Instead of performing a single train-test split, 
 the data is divided into multiple subsets, allowing the model to be trained and validated several 
-times on different portions of the dataset.
-
-In a typical cross-validation workflow, one subset is temporarily used for validation while the 
-remaining subsets are used for training. This process is repeated multiple times so that every 
-data point is eventually used for both training and validation. Cross-validation provides a more 
-robust estimate of model performance and helps reduce the risk of overfitting or biased evaluations 
-caused by a single random split.
+times on different portions of the dataset. See below for more details on cross-validation.
 
 #### 4. Feature Selection
 
-Feature selection is the process of identifying and retaining the most informative variables 
-in a dataset while removing irrelevant or redundant features. Reducing the number of features 
-can improve model performance, decrease computational cost, and help reduce overfitting. In 
-scientific machine learning applications, feature selection is especially important when working 
-with high-dimensional molecular or materials datasets containing many correlated descriptors.
+Feature selection involves choosing the variables that contribute the most useful information to a 
+machine learning problem while discarding features that are unnecessary, redundant, or weakly informative. 
+Limiting the number of input variables can reduce computational demands, improve interpretability, and 
+lower the risk of overfitting. This is particularly relevant in scientific machine learning, where molecular 
+and materials datasets often contain large numbers of descriptors that may be strongly correlated 
+or provide overlapping information.
+
 
 ??? note "Example"
 
@@ -1084,13 +1080,12 @@ with high-dimensional molecular or materials datasets containing many correlated
     # example: Feature selection with SelectKBest
 
     import pandas as pd
-    import numpy as np
 
     from sklearn.datasets import make_regression
     from sklearn.model_selection import train_test_split
     from sklearn.feature_selection import SelectKBest, f_regression
 
-    # 1. Generate synthetic regression dataset
+    # 1. Generate a synthetic regression dataset
     X, y = make_regression(
         n_samples=100,
         n_features=20,
@@ -1099,12 +1094,18 @@ with high-dimensional molecular or materials datasets containing many correlated
         random_state=42
     )
 
-    # 2. Create DataFrame with feature names
-    feature_names = [f"feature_{i}" for i in range(20)]
+    # 2. Create a DataFrame with feature names
+    feature_names = [
+        f"feature_{i}"
+        for i in range(20)
+    ]
 
-    X = pd.DataFrame(X, columns=feature_names)
+    X = pd.DataFrame(
+        X,
+        columns=feature_names
+    )
 
-    # 3. Split dataset into training and testing sets
+    # 3. Split the dataset into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         y,
@@ -1112,78 +1113,103 @@ with high-dimensional molecular or materials datasets containing many correlated
         random_state=42
     )
 
-    # 4. Select the top 10 features
+    # 4. Select the top 8 features
+    # The synthetic dataset was generated with
+    # 8 informative features, so we ask SelectKBest
+    # to retain 8 features.
     selector = SelectKBest(
         score_func=f_regression,
-        k=10
+        k=8
     )
 
+    # Fit the selector only on the training data
     X_train_selected = selector.fit_transform(
         X_train,
         y_train
     )
 
-    X_test_selected = selector.transform(X_test)
+    # Apply the same feature selection to the test set
+    X_test_selected = selector.transform(
+        X_test
+    )
 
-    # 5. Get selected feature names
+    # 5. Display feature scores
+    feature_scores = pd.DataFrame({
+        "Feature": X.columns,
+        "F-score": selector.scores_,
+        "Selected": selector.get_support()
+    })
+
+    feature_scores = feature_scores.sort_values(
+        by="F-score",
+        ascending=False
+    )
+
+    print("Feature scores:\n")
+    print(feature_scores)
+
+    # 6. Display selected feature names
     selected_features = X.columns[
         selector.get_support()
     ]
 
-    print("Selected features:")
+    print("\nSelected features:")
     print(selected_features.tolist())
 
-    # 6. Display transformed dataset shapes
-    print("\nOriginal training shape:", X_train.shape)
-    print("Reduced training shape:", X_train_selected.shape)
+    # 7. Display dataset shapes
+    print("\nOriginal training shape:")
+    print(X_train.shape)
 
-    print("\nOriginal test shape:", X_test.shape)
-    print("Reduced test shape:", X_test_selected.shape)
+    print("\nReduced training shape:")
+    print(X_train_selected.shape)
+
+    print("\nOriginal test shape:")
+    print(X_test.shape)
+
+    print("\nReduced test shape:")
+    print(X_test_selected.shape)
     ```
 
 #### 5. Early Stopping (for Neural Networks)
 
-Early stopping is a regularization technique used to reduce overfitting during neural network training. 
-As training progresses, the model usually improves on the training data, but after a certain point its 
-performance on validation data may begin to deteriorate. Early stopping monitors validation performance 
-and automatically stops training when no improvement is observed for a specified number of iterations. 
-This helps the model retain good generalization while avoiding unnecessary training.
-
+Early stopping is a regularization strategy that helps prevent overfitting during neural network 
+training. Although the training loss often continues to decrease, validation performance may 
+eventually stop improving or begin to worsen. Early stopping tracks a validation metric and 
+terminates training when no meaningful improvement occurs for a predefined number of epochs. 
+This allows the model to preserve better generalization while also avoiding unnecessary computation.
 
 #### 6. Dropout (for Neural Networks)
 
-Dropout is a regularization technique used in neural networks to reduce overfitting and 
-improve generalization. During training, a fraction of neurons is randomly deactivated at each 
-iteration, preventing the network from relying too heavily on specific connections. This encourages 
-the model to learn more robust and distributed representations of the data. During evaluation and 
-prediction, all neurons are used normally.
-
+Dropout is a regularization method designed to improve the generalization of neural networks. 
+During training, a proportion of neuron activations is randomly set to zero at each iteration. 
+This prevents the network from depending too strongly on particular neurons or pathways and 
+encourages more distributed feature representations. During validation and prediction, dropout 
+is disabled and the full network is used.
 
 ### *Addressing Underfitting*
 
-1. **Use a more complex model**: Add more features, use deeper networks
-2. **Remove regularization**: Reduce alpha/lambda values
-3. **Engineer better features**: Domain knowledge can help
-4. **Train longer**: Increase number of epochs/iterations
-5. **Check for errors**: Ensure data is preprocessed correctly
-
+1. **Increase model capacity:** use a more flexible model, add hidden units, or increase network depth
+2. **Reduce regularization:** decrease the strength of penalties such as L1, L2, or dropout
+3. **Improve the input features:** introduce more informative variables or use domain knowledge to construct better representations
+4. **Train for more iterations:** increase the number of epochs if the model has not yet converged
+5. **Review the data pipeline:** verify that preprocessing, labels, scaling, and feature construction are implemented correctly
 
 ## 4. Cross-Validation
 
 ### *Why Cross-Validation?*
 
-Cross-validation is a model evaluation technique designed to provide a more reliable estimate of 
-model performance. Instead of relying on a single train-test split, the model is trained and evaluated 
-multiple times using different subsets of the data. This approach makes better use of limited datasets, 
-reduces dependence on a particular split, and helps identify problems such as overfitting and poor generalization.
+Cross-validation is a model evaluation strategy used to obtain a more dependable estimate of how 
+well a model will perform on unseen data. Rather than evaluating the model using only one train-test 
+split, the data are divided and reused across several training and evaluation rounds. This reduces 
+sensitivity to a particular split, makes efficient use of limited datasets, and provides a better 
+indication of the model’s ability to generalize.
 
 ### *K-Fold Cross-Validation*
 
-In K-fold cross-validation, the dataset is divided into (K) equally sized subsets, called folds. The 
-model is trained using (K-1) folds and evaluated on the remaining fold. This process is repeated (K) 
-times so that each fold serves as the test set once. The final performance is computed as the average 
-across all folds, providing a more stable estimate of model accuracy.
-
+In K-fold cross-validation, the dataset is partitioned into (K) approximately equal subsets called 
+folds. The model is trained on (K-1) folds and evaluated on the remaining fold. This procedure is 
+repeated (K) times, with each fold used once for validation. The final performance is typically 
+reported as the average score across all folds, giving a more stable estimate than a single split.
 
 ![CV](../images/cross-validation.png){: style="width: 600px;"}
 
@@ -1198,10 +1224,7 @@ across all folds, providing a more stable estimate of model accuracy.
     from sklearn.linear_model import LinearRegression
     from sklearn.model_selection import cross_val_score
 
-    # ---------------------------------------------------
     # 1. Generate example regression dataset
-    # ---------------------------------------------------
-
     X, y = make_regression(
         n_samples=100,
         n_features=3,
@@ -1209,16 +1232,10 @@ across all folds, providing a more stable estimate of model accuracy.
         random_state=42
     )
 
-    # ---------------------------------------------------
     # 2. Define machine learning model
-    # ---------------------------------------------------
-
     model = LinearRegression()
 
-    # ---------------------------------------------------
     # 3. Perform 5-fold cross-validation
-    # ---------------------------------------------------
-
     scores = cross_val_score(
         model,
         X,
@@ -1227,10 +1244,7 @@ across all folds, providing a more stable estimate of model accuracy.
         scoring="r2"
     )
 
-    # ---------------------------------------------------
     # 4. Display results
-    # ---------------------------------------------------
-
     print("R² score for each fold:")
     print(scores)
 
