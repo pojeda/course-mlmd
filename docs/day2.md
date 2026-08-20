@@ -1410,25 +1410,26 @@ plt.show()
 
 ### *Classification Metrics*
 
-Classification metrics are used to evaluate models that predict discrete categories or classes. Different metrics 
-emphasize different aspects of model performance, such as overall correctness, the ability to detect positive cases, 
-or robustness to class imbalance. Selecting appropriate metrics is especially important in scientific and medical 
-applications where false positives and false negatives may have very different consequences.
-
+Classification metrics are used to assess models that assign samples to discrete classes or 
+categories. Different metrics capture different aspects of predictive performance, including 
+overall accuracy, the ability to identify positive cases, and performance when classes are 
+imbalanced. Choosing suitable metrics is particularly important in scientific and medical 
+applications, where different types of classification errors may have very different consequences.
 
 #### Confusion Matrix
 
-A confusion matrix summarizes the predictions of a classification model by comparing predicted labels with 
-the true labels. It provides counts of correctly and incorrectly classified samples and serves as the basis 
-for many classification metrics. For binary classification:
+A confusion matrix compares the predicted class labels with the true labels and summarizes 
+the number of correct and incorrect predictions. It provides the basic counts used to calculate 
+many common classification metrics. For a binary classification problem:
 
 |                 | Predicted Positive  | Predicted Negative  |
 | --------------- | ------------------- | ------------------- |
 | Actual Positive | True Positive (TP)  | False Negative (FN) |
 | Actual Negative | False Positive (FP) | True Negative (TN)  |
 
-The confusion matrix helps identify the types of errors made by the model, such as missed positive cases or 
-false alarms.
+The confusion matrix makes it easier to see which kinds of mistakes the model is making, such 
+as failing to detect positive samples or incorrectly labeling negative samples as positive.
+
 
 ```python
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
@@ -1437,11 +1438,6 @@ cm = confusion_matrix(y_true, y_pred)
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Inactive', 'Active'])
 disp.plot()
 plt.show()
-
-#                 Predicted
-#              Negative  Positive
-# Actual  Neg     TN        FP
-#         Pos     FN        TP
 ```
 
 #### Accuracy, Precision, Recall, F1-Score
@@ -1478,7 +1474,7 @@ The F1-score is particularly useful when classes are imbalanced or when both
 false positives and false negatives carry significant cost.
 
 ```python
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score)
 
 accuracy = accuracy_score(y_true, y_pred)
 precision = precision_score(y_true, y_pred)
@@ -1487,8 +1483,8 @@ f1 = f1_score(y_true, y_pred)
 
 print(f"Accuracy:  {accuracy:.3f}  - (TP + TN) / Total")
 print(f"Precision: {precision:.3f} - TP / (TP + FP) - How many predicted positives are correct?")
-print(f"Recall:    {recall:.3f}    - TP / (TP + FN) - How many actual positives did we find?")
-print(f"F1-Score:  {f1:.3f}       - Harmonic mean of precision and recall")
+print(f"Recall:    {recall:.3f}    - TP / (TP + FN) - How many actual positives did we identify?")
+print(f"F1-Score:  {f1:.3f}       - 2 * (Precision * Recall) / (Precision + Recall)")
 ```
 
 #### ROC Curve and AUC
@@ -2026,32 +2022,32 @@ set_seed(42)
 
 ### *Essential Concepts*
 
-1. **Always split your data** before any preprocessing
-2. **Use cross-validation** for reliable performance estimates
-3. **Watch for overfitting**: Monitor both training and validation performance
-4. **Choose appropriate metrics** based on your problem
-5. **Tune hyperparameters** systematically
-6. **Validate your data**: Check for errors, outliers, and leakage
-7. **Set random seeds** for reproducibility
-8. **Document everything**: Parameters, preprocessing steps, results
+1. **Separate the data appropriately:** create training, validation, and test partitions before fitting any data-dependent preprocessing steps
+2. **Apply cross-validation:** use multiple data splits to obtain more robust estimates of model performance
+3. **Monitor overfitting:** compare training and validation performance throughout model development
+4. **Select suitable metrics:** choose evaluation measures that reflect the objectives and characteristics of the problem
+5. **Optimize hyperparameters systematically:** use structured tuning procedures rather than arbitrary trial and error
+6. **Inspect data quality:** identify missing values, outliers, incorrect labels, duplicates, and potential sources of data leakage
+7. **Control randomness:** set random seeds when appropriate to improve reproducibility
+8. **Record the workflow:** document preprocessing choices, model parameters, experimental settings, and evaluation results
 
 ### *Machine Learning Workflow Summary*
 
+```text
+1. Define Problem -> 2. Collect Data -> 3. Explore Data ->
+4. Split Data -> 5. Fit Preprocessing on Training Data ->
+6. Train Models -> 7. Cross-Validate ->
+8. Tune Hyperparameters -> 9. Evaluate on Test Set ->
+10. Deploy and Iterate
 ```
-1. Define Problem → 2. Collect Data → 3. Explore Data → 
-4. Preprocess → 5. Split Data → 6. Train Models → 
-7. Cross-Validate → 8. Tune Hyperparameters → 
-9. Evaluate on Test Set → 10. Deploy/Iterate
-```
 
-### *Red Flags*
+### *Warning Signs*
 
-- Training accuracy >> Test accuracy → Overfitting
-- Both accuracies low → Underfitting
-- Test accuracy > Training accuracy → Data leakage
-- Inconsistent CV scores → Data problems or small dataset
-- Perfect scores → Check for data leakage!
-
+* Training performance much better than validation/test performance → Possible overfitting
+* Poor performance on both training and validation data → Possible underfitting
+* Validation/test performance unexpectedly better than training performance → Investigate the data split, training procedure, and possible leakage
+* Large variation between cross-validation folds → Possible small dataset, heterogeneous data, or unstable model
+* Nearly perfect performance → Verify that the problem is genuinely easy and carefully check for data leakage or duplicate samples
 
 ## 10. Additional Resources
 
