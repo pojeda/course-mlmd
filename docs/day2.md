@@ -221,42 +221,51 @@ In molecular and materials science, reinforcement learning can support applicati
 
 ## 2. The Machine Learning Workflow
 
+
 ### Defining the Machine Learning Problem
 
-A successful machine learning project begins with a clear and well-structured problem definition. Before 
-selecting algorithms or training models, it is important to establish the scientific objective and 
-determine how success will be evaluated.
+A strong machine learning project starts with a precise and well-defined problem statement. Before choosing a model 
+or beginning training, the scientific goal should be clearly specified along with the criteria that will be used 
+to judge the quality of the results.
 
-The typical workflow includes:
+A typical workflow includes:
 
-1. **Identify the objective** — determine the property, behavior, or phenomenon you want to predict, 
-classify, or explore.
-2. **Select the appropriate learning task** — decide whether the problem is best formulated as regression, 
-classification, clustering, generative modeling, or another ML approach.
-3. **Establish evaluation criteria** — define the metrics that will be used to measure model performance and 
-determine whether the model meets the desired objectives.
+1. **Define the goal:** identify the property, outcome, or scientific question that the model should predict, categorize, or investigate.
+2. **Choose the learning formulation:** determine whether the task is most appropriately treated as regression, classification, clustering, generative modeling, or another machine learning approach.
+3. **Specify performance measures:** select the metrics that will be used to evaluate the model and decide whether its performance is sufficient for the intended application.
 
 Example:
 
-> “Develop a binary classification model capable of predicting whether a molecule can cross the blood–brain barrier with an accuracy greater than 85%.”
+> “Build a binary classification model that predicts whether a molecule can cross the blood–brain barrier and achieves an accuracy above 85%.”
+
 
 
 ### Data Collection and Preparation
 
-High-quality data is one of the most important components of any machine learning workflow. The reliability 
-and performance of a model strongly depend on the quality, diversity, and consistency of the training data.
+Reliable machine learning models depend heavily on the quality of the data used for training and evaluation. 
+Well-curated datasets should be accurate, representative, sufficiently diverse, and consistent across samples.
 
 #### *Data Sources*
 
-Scientific datasets can originate from several different sources, including:
+Scientific data can be collected from a variety of sources, such as:
 
-* **Experimental measurements** obtained from laboratory characterization and testing
-* **Computational simulations**, such as Density Functional Theory (DFT) calculations or Molecular Dynamics 
-(MD) simulations
-* **Public scientific databases**, including resources such as PubChem, ChEMBL, and Materials Project
+* **Experimental data**, generated through laboratory measurements, characterization, and testing
+* **Computational data**, produced by methods such as Density Functional Theory (DFT) calculations and Molecular Dynamics (MD) simulations
+* **Public scientific databases**, including widely used resources such as PubChem, ChEMBL, and the Materials Project
 
 
 #### *Data Quality Checks*
+
+**pandas** is a popular Python library for organizing, exploring, and transforming structured datasets. 
+Its central data structure, the DataFrame, provides a convenient way to work with tabular information. 
+In machine learning and scientific workflows, pandas is often used to import data, handle missing entries, 
+select or filter observations, calculate summary statistics, and prepare datasets for modeling.
+
+**RDKit** is an open-source cheminformatics toolkit for processing and analyzing molecular information. It 
+supports computational representations of molecules, calculation of descriptors and molecular fingerprints, 
+visualization of chemical structures, similarity comparisons, and generation of features for machine learning. 
+RDKit is widely used in cheminformatics, drug discovery, and other data-driven applications involving chemical and molecular systems.
+
 
 ??? note "Example"
 
@@ -402,16 +411,6 @@ Scientific datasets can originate from several different sources, including:
 
     print("\nProcessed dataset saved as molecular_features.csv")
     ```
-
-**pandas** is a widely used Python library for data analysis and manipulation. It provides powerful tools for working 
-with structured data such as tables and spreadsheets through objects called DataFrames. In machine learning and scientific 
-computing, pandas is commonly used to load datasets, clean missing values, filter rows, compute statistics, and organize 
-data before training models.
-
-**RDKit** is an open-source cheminformatics library designed for working with molecular and chemical data. It allows 
-researchers to represent molecules computationally, calculate molecular descriptors and fingerprints, visualize chemical 
-structures, and perform tasks such as similarity analysis and feature engineering for machine learning applications in 
-chemistry, drug discovery, and materials science.
 
 
 ### Training, Validation, and Test Sets
