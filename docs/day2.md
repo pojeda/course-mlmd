@@ -1262,27 +1262,25 @@ reported as the average score across all folds, giving a more stable estimate th
 
 ### *Stratified K-Fold*
 
-Stratified K-fold cross-validation is commonly used for classification problems where class imbalance exists. 
-In this approach, each fold preserves approximately the same class distribution as the original dataset. 
-This ensures that all classes are represented consistently during training and validation, leading to 
-more reliable performance estimates.
-
+Stratified K-fold cross-validation is especially useful for classification tasks with 
+unbalanced classes. Each fold is created so that its class proportions are similar to those 
+of the complete dataset. This helps ensure that minority and majority classes are represented 
+throughout training and validation, producing more consistent and meaningful performance estimates.
 
 ### *Leave-One-Out Cross-Validation (LOOCV)*
 
-Leave-One-Out Cross-Validation is an extreme case of K-fold cross-validation in which each fold contains 
-only a single sample. The model is trained on all remaining data points and tested on the one excluded sample. 
-This process is repeated for every sample in the dataset. LOOCV uses data very efficiently but can become 
-computationally expensive for large datasets.
-
+Leave-One-Out Cross-Validation is a special form of K-fold cross-validation in which a 
+single observation is held out at a time. The model is trained on all other samples and 
+then evaluated on the excluded one. This procedure is repeated until every observation has 
+served as the validation sample once. LOOCV makes extensive use of the available data but 
+can be computationally demanding when the dataset is large.
 
 ### *Time Series Cross-Validation*
 
-Time series cross-validation is specifically designed for temporal or sequential data. Unlike random splitting 
-methods, it preserves the chronological order of observations to avoid using future information during training. 
-The model is trained on past data and evaluated on later time periods, providing a more realistic assessment of 
-predictive performance in forecasting tasks.
-
+Time series cross-validation is designed for ordered data in which the sequence of observations 
+must be preserved. Instead of randomly shuffling samples, the model is trained using earlier 
+time points and evaluated on later ones. This prevents information from the future from leaking 
+into the training process and provides a more realistic estimate of forecasting performance.
 
 ## 5. Model Evaluation Metrics
 
