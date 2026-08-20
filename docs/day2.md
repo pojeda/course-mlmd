@@ -1,10 +1,9 @@
 # Machine Learning and Deep Learning Fundamentals
 
-## Welcome to the Course!
-
-Before exploring applications in molecular science and materials research, this introductory section is designed to build a strong 
-foundation in the core principles of machine learning. Whether you are revisiting familiar concepts or encountering them for the 
-first time, these fundamentals will prepare you for the more advanced topics covered throughout this course.
+Before examining machine learning applications in molecular and materials science, this section introduces the fundamental concepts 
+needed for the topics that follow. It provides a concise review of essential machine learning principles, serving both as a refresher 
+for experienced readers and as an accessible starting point for newcomers. These foundations will support the understanding of the more 
+advanced methods and applications presented throughout the course.
 
 ## Learning Objectives
 
@@ -15,60 +14,56 @@ first time, these fundamentals will prepare you for the more advanced topics cov
 * Describe the basic structure and function of neural networks
 * Understand key strategies for model optimization and hyperparameter tuning
 
-
 ## 1. What Is Machine Learning?
 
 ### Definition
 
 Machine learning is a branch of artificial intelligence focused on developing algorithms that learn patterns directly from data. Rather 
 than explicitly programming a computer with a fixed set of rules, we provide examples and allow the model to infer the underlying relationships 
-on its own.
+on its own (Machine Learning, T. Mitchell, 1997).
 
 ### Traditional Programming
 
 ```text
-Rules + Data → Output
+Rules + Data -> Output
 ```
 
 ### Machine Learning
 
 ```text
-Data + Desired Output → Learned Model
+Data + Desired Output -> Learned Model
 ```
 
 ### Why Use Machine Learning in Science?
 
-Machine learning has become an essential tool in molecular and materials science because it enables 
-researchers to extract valuable insights from large and complex datasets. By learning directly 
-from data, ML methods can complement traditional theoretical and experimental approaches in several 
-important ways:
+Machine learning has become an important approach in molecular and materials science because it allows researchers 
+to analyze large, complex datasets and uncover useful scientific information. By learning patterns directly from data, 
+ML can complement conventional theoretical, computational, and experimental methods in several ways:
 
-* **Predict material and molecular properties** without relying solely on computationally expensive 
-simulations or laboratory experiments
-* **Identify hidden relationships and trends** within complex scientific data
-* **Support the design of new molecules and materials** by proposing promising candidates and guiding 
-hypothesis generation
-* **Speed up scientific discovery** by dramatically reducing the time required for screening and analysis
-* **Handle high-dimensional problems** that are difficult or impossible to address using conventional techniques
+* **Estimate molecular and material properties** without depending exclusively on costly simulations or experimental measurements
+* **Reveal patterns, correlations, and trends** that may be difficult to detect in complex scientific datasets
+* **Assist in the discovery of new molecules and materials** by prioritizing promising candidates and supporting hypothesis development
+* **Accelerate research workflows** by reducing the time needed for screening, prediction, and data analysis
+* **Address high-dimensional scientific problems** that are challenging to solve efficiently with traditional methods
 
 ### Main Categories of Machine Learning
 
 #### *Supervised Learning*
 
-Supervised learning involves training a model using labeled data, where both the inputs and the 
-corresponding outputs are known. The goal is to learn the relationship between them in order to make 
-predictions on new, unseen data.
+Supervised learning trains a model on labeled examples, where each input is paired with a known target 
+value or class. The objective is to learn a mapping between inputs and outputs that can be used to make 
+predictions for previously unseen data.
 
 Common supervised learning tasks include:
 
-* **Regression** — predicting continuous numerical quantities, such as binding energies, melting temperatures, or reaction rates
-* **Classification** — assigning data to discrete categories, such as toxic vs. non-toxic compounds or active vs. inactive molecules
+* **Regression:** estimating continuous numerical values, such as binding energies, melting points, or reaction rates
+* **Classification:** assigning samples to predefined categories, such as toxic or non-toxic compounds, or active or inactive molecules
 
 
 ??? note "Example"
 
     ```python
-    """ Example: Predicting molecular solubility using linear regression """
+    # Example: Predicting molecular solubility using linear regression 
 
     import numpy as np
     from sklearn.model_selection import train_test_split
@@ -80,7 +75,6 @@ Common supervised learning tasks include:
      Columns:
      [molecular_weight, polar_surface_area, logP]
     """ 
-
     X = np.array([
         [180.1, 45.2, 1.2],
         [250.3, 60.1, 2.5],
@@ -96,7 +90,6 @@ Common supervised learning tasks include:
     """ 
      Split dataset into training and testing sets
     """ 
-
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
@@ -104,19 +97,15 @@ Common supervised learning tasks include:
     """ 
      Create and train the model
     """ 
-
     model = LinearRegression()
-
     model.fit(X_train, y_train)
 
     """ 
      Evaluate the model
     """ 
-
     y_pred = model.predict(X_test)
 
     mse = mean_squared_error(y_test, y_pred)
-
     print("Mean Squared Error:", mse)
 
     """ 
@@ -128,30 +117,34 @@ Common supervised learning tasks include:
     """ 
 
     new_molecule = np.array([[240.0, 55.0, 2.1]])
-
     prediction = model.predict(new_molecule)
-
     print("Predicted solubility:", prediction[0])
     ```
 
 #### *Unsupervised Learning*
 
-Unsupervised learning focuses on analyzing data without predefined labels or target values. Instead of 
-learning from known answers, the algorithm explores the data to uncover hidden structures, relationships, and patterns.
+Unsupervised learning works with data that do not have predefined labels or target values. Rather than learning f
+rom known outcomes, the algorithm examines the dataset to discover underlying patterns, structures, and relationships.
 
 Common unsupervised learning techniques include:
 
-* **Clustering** — organizing molecules or materials into groups based on similarities in their properties or 
-structural features
-* **Dimensionality reduction** — simplifying high-dimensional datasets to enable visualization and interpretation 
-of complex chemical or materials spaces
-* **Anomaly detection** — identifying rare, unusual, or unexpected molecules that differ significantly from the 
-majority of the dataset
+* **Clustering:**  grouping molecules or materials according to similarities in their structural characteristics or measured properties
+* **Dimensionality reduction:**  reducing the number of variables in complex datasets to make chemical or materials spaces easier to visualize and interpret
+* **Anomaly detection:**  detecting rare or atypical samples that differ substantially from the dominant patterns present in the dataset
+
+As example of a clustering method is K-means. It is an unsupervised learning algorithm that partitions data into (K) clusters by minimizing the 
+distance between samples and their cluster centroids. It seeks to minimize:
+
+$$
+J=\sum_{k=1}^{K}\sum_{\mathbf{x}_i\in C_k}|\mathbf{x}_i-\boldsymbol{\mu}_k|^2,
+$$
+
+where (\boldsymbol{\mu}_k) is the centroid of cluster (C_k).
 
 ??? note "Example"
 
     ```python
-    """ Example: Clustering molecules by similarity using K-Means """
+    # Example: Clustering molecules by similarity using K-Means
 
     import numpy as np
     from sklearn.cluster import KMeans
@@ -162,7 +155,12 @@ majority of the dataset
      Each row represents a molecule
      Each column represents a simplified molecular feature
     """ 
-
+    # Molecular features:
+    # 0 = aromatic ring
+    # 1 = nitrogen atom
+    # 2 = hydroxyl group
+    # 3 = carbonyl group
+    # 4 = halogen atom
     molecular_fingerprints = np.array([
         [1, 0, 1, 0, 1],
         [1, 0, 1, 0, 0],
@@ -177,7 +175,6 @@ majority of the dataset
     """ 
      Create the K-Means clustering model
     """ 
-
     kmeans = KMeans(n_clusters=4, random_state=42)
 
     """ Assign each molecule to a cluster """
@@ -186,14 +183,12 @@ majority of the dataset
     """ 
      Display clustering results
     """ 
-
     for i, cluster_id in enumerate(clusters):
         print(f"Molecule {i + 1} belongs to Cluster {cluster_id}")
 
     """ 
      Visualize clusters using the first two features
     """ 
-
     plt.figure(figsize=(6, 5))
 
     scatter = plt.scatter(
@@ -212,96 +207,16 @@ majority of the dataset
 
 #### *Reinforcement Learning*
 
-Reinforcement learning is a machine learning approach in which an agent learns to make decisions 
-through interaction with an environment. By receiving rewards or penalties based on its actions, 
-the model gradually discovers strategies that maximize long-term performance.
 
-In molecular and materials science, reinforcement learning can be applied to tasks such as:
+Reinforcement learning is a machine learning paradigm in which an agent improves its decision-making 
+by interacting with an environment. Actions produce rewards or penalties, and the agent learns a policy 
+that aims to maximize the expected cumulative reward over time.
 
-* **Molecular optimization** — designing or modifying molecules to achieve target properties such as 
-improved stability, activity, or solubility
-* **Synthesis planning** — identifying efficient reaction routes and optimal synthetic pathways 
-for chemical compounds
-* **Experimental design** — selecting the most informative experiments to accelerate discovery while 
-minimizing cost and computational effort
+In molecular and materials science, reinforcement learning can support applications such as:
 
-??? note "Example"
-
-    ```python
-    # Basic Reinforcement Learning Example for Molecular Optimization
-
-    import random
-
-    # Example molecules represented by simple properties
-    # Each molecule has: size, stability, and solubility
-
-    molecule_space = [
-        {"name": "Molecule A", "size": 2, "stability": 5, "solubility": 8},
-        {"name": "Molecule B", "size": 5, "stability": 7, "solubility": 4},
-        {"name": "Molecule C", "size": 3, "stability": 9, "solubility": 6},
-        {"name": "Molecule D", "size": 7, "stability": 4, "solubility": 3},
-        {"name": "Molecule E", "size": 4, "stability": 8, "solubility": 7},
-    ]
-
-    # Reward function: Favor molecules with high stability and solubility
-
-    def evaluate_properties(molecule):
-        reward = (molecule["stability"] + molecule["solubility"])
-        return reward
-
-    # Simple RL agent that selects actions randomly.
-    # In a real agent, learn() would update a policy or value function.
-
-    class RandomAgent:
-
-        def select_action(self, state):
-            # Randomly choose a new molecule from molecular space
-            return random.choice(molecule_space)
-
-        def learn(self, state, action, reward):
-            # Stub: a real agent would update its policy here using
-            # the (state, action, reward) transition.
-            print(
-                f"Learning from transition:\n"
-                f"  {state['name']} -> {action['name']}\n"
-                f"  Reward = {reward}\n"
-            )
-
-    # Initialize agent and run the reinforcement learning loop.
-
-    agent = RandomAgent()
-    num_episodes = 5
- 
-    # Reinforcement learning loop
-    for episode in range(num_episodes):
-
-        print(f"\nEpisode {episode + 1}")
-
-        # Start from a random molecule
-        state = random.choice(molecule_space)
-
-        done = False
-        step = 0
-
-        while not done:
-
-            # agent proposes a new molecule
-            new_molecule = agent.select_action(state)
-
-            # evaluate molecular properties of new molecule
-            reward = evaluate_properties(new_molecule)
-
-            # agent learns from the state, action, or reward
-            agent.learn(state, new_molecule, reward)
-
-            # update current state
-            state = new_molecule
-            step += 1
-
-            # Stop after a few optimization steps
-            if step >= 3:
-                done = True
-    ```
+* **Molecular design and optimization:** generating or modifying molecules to improve desired properties such as stability, biological activity, or solubility
+* **Synthesis route planning:** searching for efficient reaction sequences and selecting promising pathways for producing target compounds
+* **Experimental optimization:** choosing informative experiments that can accelerate discovery while reducing laboratory cost, time, and computational resources
 
 
 ## 2. The Machine Learning Workflow
