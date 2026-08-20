@@ -705,32 +705,30 @@ previously unseen structural cores.
             test_scaffolds    )) 
     ```
 
-
 ## 3. Overfitting and Underfitting
 
 ### *The Bias-Variance Tradeoff*
 
+**Underfitting (High Bias):**
 
-**Underfitting (High Bias)**:
+* The model is not flexible enough to capture the complexity present in the data
+* Produces poor results on both the training set and previously unseen data
+* Misses important trends, dependencies, and relevant structure
+* Often arises when the model is too simple or the available features are not sufficiently informative
 
-* The model is too simple to adequately represent the complexity of the data
-* Performs poorly on both the training set and unseen test data
-* Fails to capture important relationships and underlying patterns
-* Often occurs when the model has insufficient capacity or too few features
+**Overfitting (High Variance):**
 
-**Overfitting (High Variance)**:
+* The model is overly flexible compared with the amount and diversity of available training data
+* Performs extremely well on the training set but generalizes poorly to new samples
+* Fits noise and dataset-specific fluctuations instead of learning robust patterns
+* Commonly leads to unreliable predictions on unseen data
 
-* The model is excessively complex relative to the amount of available data
-* Achieves very high accuracy on the training data but performs poorly on new data
-* Learns random fluctuations and noise instead of generalizable patterns
-* Typically results in poor predictive performance on unseen examples
+**Optimal Balance (Sweet Spot):**
 
-**Optimal Balance (Sweet Spot)**:
-
-* The model has an appropriate level of complexity for the problem
-* Performs well on both training and test datasets
-* Captures meaningful patterns while avoiding memorization of noise
-* Generalizes effectively to new and unseen data points
+* The model has enough complexity to represent the important structure in the data without becoming unnecessarily flexible
+* Achieves strong performance on both training and test data
+* Learns meaningful relationships while avoiding excessive sensitivity to noise
+* Generalizes well to new examples that were not used during training
 
 
 ![bias-variance](../images/bias-variance.png){: style="width: 600px;"}
@@ -816,7 +814,8 @@ previously unseen structural cores.
 
 ### *Detecting Overfitting*
 
-A common way to detect overfitting is by analyzing **learning curves**, which show model performance on the training and validation sets as the amount of training data increases.
+A common way to detect overfitting is by analyzing **learning curves**, which show model performance on 
+the training and validation sets as the amount of training data increases.
 
 Typically, two curves are monitored:
 
@@ -829,59 +828,53 @@ Typically, two curves are monitored:
 
 #### Overfitting
 
-Overfitting occurs when a model achieves very high performance on the training
-set but much lower performance on the validation set. The result is a large gap
-between the two curves. Rather than learning general patterns, the model
-memorizes the training data and fails to generalize to new examples.
+Overfitting happens when a model performs extremely well on the training data but noticeably worse on the 
+validation data. This creates a clear separation between the two curves and suggests that the model has 
+learned training-specific details or noise instead of patterns that generalize well.
 
 #### Underfitting
 
-Underfitting occurs when a model performs poorly on both the training and
-validation sets. The two curves remain close together but at a low level of
-performance, indicating that the model is too simple to capture the underlying
-relationships in the data.
+Underfitting occurs when the model performs poorly on both the training and validation sets. The curves may 
+remain close to one another, but both show weak performance, indicating that the model does not have enough capacity to capture the important structure in the data.
 
-#### Good generalization
+#### Good Generalization
 
-A well-fitted model achieves strong performance on both the training and
-validation sets, with only a small gap between the two curves. This small gap
-indicates that the model has learned general patterns rather than memorizing
-the training data, and is therefore able to generalize well to unseen examples.
-
+A model with good generalization performs well on both the training and validation sets, with only a small 
+difference between the two curves. This indicates that the model has learned useful patterns from the training 
+data without relying excessively on memorization.
 
 ```text
 Overfitting:
-Training accuracy   → Very high
-Validation accuracy → Much lower
+Training accuracy   -> Very high
+Validation accuracy -> Clearly lower
 
 Underfitting:
-Training accuracy   → Low
-Validation accuracy → Low
+Training accuracy   -> Low
+Validation accuracy -> Low
 
-Good fit:
-Training accuracy   → High
-Validation accuracy → Similar and stable
+Good generalization:
+Training accuracy   -> High
+Validation accuracy -> High and close to training
 ```
 
 ??? note "Example"
 
     ```python
     # example: Learning curves
-
     import numpy as np
     import matplotlib.pyplot as plt
 
-    from sklearn.datasets import make_regression
-    from sklearn.model_selection import learning_curve
+    from sklearn.model_selection import learning_curve, KFold
     from sklearn.preprocessing import PolynomialFeatures
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LinearRegression
 
-    # 1. Generate example regression data
+    # 1. Generate synthetic regression data
     np.random.seed(42)
 
     X = np.linspace(0, 10, 100).reshape(-1, 1)
 
+    # True relationship is quadratic
     y = (
         0.5 * X[:, 0]**2
         - 2 * X[:, 0]
@@ -889,31 +882,39 @@ Validation accuracy → Similar and stable
         + np.random.normal(0, 4, 100)
     )
 
-    # 2. Define model
-
-    # High-degree polynomial model
-    # This model is intentionally complex
+    # 2. Define an intentionally complex model
     model = make_pipeline(
         PolynomialFeatures(degree=10),
         LinearRegression()
     )
 
-    # 3. Compute learning curves
+    # 3. Define cross-validation
+    cv = KFold(
+        n_splits=5,
+        shuffle=True,
+        random_state=42
+    )
 
+    # 4. Compute learning curves
     train_sizes, train_scores, val_scores = learning_curve(
         model,
         X,
         y,
         train_sizes=np.linspace(0.1, 1.0, 10),
-        cv=5,
-        scoring="neg_mean_squared_error"
+        cv=cv,
+        scoring="neg_mean_squared_error",
+        shuffle=True,
+        random_state=42
     )
 
-    # Convert negative MSE to positive MSE
+    # 5. Convert negative MSE into positive MSE
     train_errors = -train_scores.mean(axis=1)
     val_errors = -val_scores.mean(axis=1)
 
-    # 4. Plot learning curves
+    train_std = train_scores.std(axis=1)
+    val_std = val_scores.std(axis=1)
+
+    # 6. Plot learning curves
     plt.figure(figsize=(10, 6))
 
     plt.plot(
@@ -930,19 +931,44 @@ Validation accuracy → Similar and stable
         label="Validation Error"
     )
 
+    plt.fill_between(
+        train_sizes,
+        train_errors - train_std,
+        train_errors + train_std,
+        alpha=0.2
+    )
+
+    plt.fill_between(
+        train_sizes,
+        val_errors - val_std,
+        val_errors + val_std,
+        alpha=0.2
+    )
+
     plt.xlabel("Training Set Size")
     plt.ylabel("Mean Squared Error")
     plt.title("Learning Curves")
 
     plt.legend()
     plt.grid(True)
-    plt.savefig("learning-curves.png", dpi=300, bbox_inches="tight")
+
+    plt.savefig(
+        "learning-curves.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
     plt.show()
 
-    # 5. Print values
-    print("Training set sizes:", train_sizes)
-    print("Training errors:", train_errors)
-    print("Validation errors:", val_errors)
+    # 7. Print numerical results
+    print("Training set sizes:")
+    print(train_sizes)
+
+    print("\nTraining errors:")
+    print(train_errors)
+
+    print("\nValidation errors:")
+    print(val_errors)
     ```
 
 ### *Preventing Overfitting*
