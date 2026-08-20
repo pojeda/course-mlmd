@@ -1286,16 +1286,18 @@ into the training process and provides a more realistic estimate of forecasting 
 
 ### *Regression Metrics*
 
-Regression metrics are used to evaluate how accurately a model predicts continuous numerical values. Different metrics 
-emphasize different aspects of prediction quality, such as average error magnitude, sensitivity to large errors, or the 
-proportion of variance explained by the model. Choosing appropriate evaluation metrics is essential for understanding 
-model performance and comparing different approaches.
+Regression metrics are used to measure how closely a model’s predictions match continuous 
+target values. Different metrics highlight different aspects of predictive performance, including 
+typical error size, the influence of large deviations, and how much of the target variability is 
+captured by the model. Selecting suitable metrics is therefore important for evaluating and 
+comparing regression models.
 
 #### Mean Absolute Error (MAE)
 
-Mean Absolute Error (MAE) measures the average absolute difference between predicted values and the true target values. 
-Because it uses absolute differences, MAE is easy to interpret and provides a direct estimate of the average prediction 
-error in the same units as the target variable. It is less sensitive to large outliers than squared-error metrics.
+Mean Absolute Error (MAE) represents the average absolute difference between predicted and observed 
+values. Since the errors are expressed in the same units as the target variable, MAE is straightforward 
+to interpret. Compared with squared-error metrics, it is less strongly affected by a small number of 
+unusually large prediction errors.
 
 $$
 \mathrm{MAE} = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|
