@@ -412,27 +412,29 @@ RDKit is widely used in cheminformatics, drug discovery, and other data-driven a
     print("\nProcessed dataset saved as molecular_features.csv")
     ```
 
-
 ### Training, Validation, and Test Sets
 
-A fundamental principle in machine learning is that models must be evaluated on data they have never seen before.
+An essential principle in machine learning is that model performance should be assessed using data 
+that were not used during training.
 
-> **Critical principle:** Never test a model using the same data used for training.
+> **Critical principle:** Do not evaluate a model on the same data used to fit it.
 
-If the model is evaluated on training data, it may memorize examples instead of learning general patterns, leading to overfitting and poor performance on new data.
-To avoid this problem, datasets are usually divided into three parts:
+When training and evaluation are performed on the same samples, the model may reproduce memorized examples 
+rather than learn patterns that generalize to new data. This can lead to overfitting and overly optimistic performance estimates.
+
+To reduce this risk, datasets are commonly separated into three subsets:
 
 #### *Training Set*
 
-The **training set** is used to teach the model and learn patterns from the data.
+The **training set** is used to fit the model parameters and learn patterns from the available data.
 
 #### *Validation Set*
 
-The **validation set** is used during development to tune hyperparameters, compare models, and monitor overfitting.
+The **validation set** is used during model development to adjust hyperparameters, compare alternative models, and detect overfitting.
 
 #### *Test Set*
 
-The **test set** is used only for the final evaluation of the model on unseen data.
+The **test set** is reserved for the final assessment of model performance on previously unseen data.
 
 #### *Typical Dataset Split*
 
@@ -442,14 +444,14 @@ The **test set** is used only for the final evaluation of the model on unseen da
 | Validation Set | 15%              |
 | Test Set       | 15%              |
 
-
 #### *Conceptual Workflow*
 
 ```text
-Training Set   -> Learn patterns
-Validation Set -> Tune the model
-Test Set       -> Final evaluation
+Training Set   -> Fit the model
+Validation Set -> Tune and compare models
+Test Set       -> Evaluate final performance
 ```
+
 
 ??? note "Example"
 
@@ -522,76 +524,91 @@ Test Set       -> Final evaluation
 
 ### Scaffold-Based Splitting
 
-In molecular machine learning, **scaffold-based splitting** divides datasets
-according to the core structural framework of molecules rather than randomly
-assigning individual samples to splits.
+In molecular machine learning, **scaffold-based splitting** separates molecules according 
+to their underlying structural frameworks rather than assigning individual compounds randomly 
+to training, validation, and test sets.
 
-A molecular scaffold is the central skeleton of a molecule — typically its ring
-systems and the bonds connecting them (stripped of peripheral substituents).
-Molecules that share a scaffold are structurally similar and tend to have
-similar properties. This is precisely what makes random splitting problematic:
-if two molecules share a scaffold, a random split may place both in the training
-and test sets, allowing the model to effectively memorize structural patterns
-rather than learning to generalize. The result is overly optimistic performance
-estimates that do not reflect how the model would perform on genuinely novel
-chemical structures.
+A molecular scaffold represents the main structural backbone of a molecule, commonly defined by 
+its ring systems and the linkers that connect them after peripheral substituents are removed. 
+Molecules sharing the same scaffold often exhibit substantial structural similarity and may also 
+display related chemical or biological properties.
 
-Scaffold-based splitting addresses this by grouping all molecules that share a
-scaffold into the same subset. The test set therefore contains scaffolds the
-model has never seen during training, providing a more realistic evaluation of
-generalization.
+This creates a potential problem with random splitting. Molecules based on the same scaffold can 
+appear in both the training and test sets, meaning that the model may already have encountered very 
+similar structural patterns during training. As a result, test performance can appear better than the 
+model's true ability to generalize to unfamiliar regions of chemical space.
+
+Scaffold-based splitting reduces this source of information leakage by assigning molecules with the 
+same scaffold to the same subset. Consequently, the test set contains scaffold families that were not 
+present during training, providing a more demanding and realistic assessment of structural generalization.
 
 ### Conceptual Example
 
 ```text
 Random Split:
-  Train → Ibuprofen   (isobutylbenzene scaffold)
-  Test  → Ketoprofen  (isobutylbenzene scaffold)
+  Train → Ibuprofen   (aromatic scaffold)
+  Test  → Ketoprofen  (related aromatic scaffold)
 
-  Both molecules share the same core scaffold:
-  the model has implicitly seen the test scaffold during training.
+  The training and test compounds contain closely related
+  structural frameworks, making the prediction task easier.
 ```
 
 ```text
 Scaffold Split:
-  Train → Ibuprofen   (isobutylbenzene scaffold)
-  Test  → Penicillin  (thiazolidine-fused beta-lactam scaffold)
+  Train → Ibuprofen   (aromatic scaffold)
+  Test  → Penicillin  (beta-lactam-containing scaffold)
 
-  The test scaffold is structurally distinct from anything
-  seen during training, giving a more honest evaluation.
+  The test molecule belongs to a structurally different
+  scaffold family that was not represented during training.
 ```
 
-This strategy is widely used in molecular property prediction, drug discovery,
-and materials science to evaluate how well a model generalizes to new regions
-of chemical space.
+Scaffold-based splitting is commonly used in molecular property prediction and drug discovery when 
+the objective is to evaluate whether a model can make reliable predictions for compounds with 
+previously unseen structural cores.
+
 
 
 ??? note "Example"
 
     ```python
-    # example: scaffold-based train/test split 
-
     import numpy as np
+
     from rdkit import Chem
     from rdkit.Chem.Scaffolds import MurckoScaffold
     from sklearn.model_selection import GroupShuffleSplit
 
-    # 1. Example molecules (SMILES strings)
+    # 1. Example molecules
     molecules = [
-        "CCO",                  # Ethanol
-        "CCCO",                 # Propanol
-        "c1ccccc1",             # Benzene
-        "c1ccccc1O",            # Phenol
-        "CC(=O)O",              # Acetic acid
-        "CC(=O)OC1=CC=CC=C1C(=O)O",  # Aspirin
-        "CCN(CC)CC",            # Triethylamine
-        "c1ccncc1"              # Pyridine
+        # Benzene scaffold
+        "Cc1ccccc1",        # Toluene
+        "Oc1ccccc1",        # Phenol
+        "Nc1ccccc1",        # Aniline
+
+        # Pyridine scaffold
+        "c1ccncc1",         # Pyridine
+        "CCc1ccncc1",       # Ethylpyridine
+        "Oc1ccncc1",        # Hydroxypyridine
+
+        # Cyclohexane scaffold
+        "C1CCCCC1",         # Cyclohexane
+        "CC1CCCCC1",        # Methylcyclohexane
+        "OC1CCCCC1",        # Cyclohexanol
+
+        # Thiophene scaffold
+        "c1ccsc1",          # Thiophene
+        "Cc1ccsc1",         # Methylthiophene
+        "Oc1ccsc1"          # Hydroxythiophene
     ]
 
-    # Example target property (e.g., solubility or biological activity)
-    y = np.array([1.2, 1.5, 0.3, 0.4, 2.1, 0.8, 1.7, 0.5])
+    # Example target property
+    y = np.array([
+        1.2, 1.4, 1.1,
+        0.8, 0.9, 0.7,
+        1.7, 1.6, 1.8,
+        0.5, 0.6, 0.4
+    ])
 
-    # 2. Generate simple numerical features from each molecule
+    # 2. Generate simple molecular features
     X = []
 
     for smiles in molecules:
@@ -608,57 +625,84 @@ of chemical space.
 
     X = np.array(X)
 
-    # 3. Define scaffold extraction function
-
+    # 3. Extract Murcko scaffolds
     def get_scaffold(smiles):
 
         mol = Chem.MolFromSmiles(smiles)
 
-        scaffold = MurckoScaffold.MurckoScaffoldSmiles(mol=mol)
+        return MurckoScaffold.MurckoScaffoldSmiles(
+            mol=mol
+        )
 
-        return scaffold
 
-    # 4. Compute molecular scaffolds
+    scaffolds = np.array([
+        get_scaffold(smiles)
+        for smiles in molecules
+    ])
 
-    scaffolds = [get_scaffold(smiles) for smiles in molecules]
 
     print("Molecular scaffolds:\n")
 
-    for mol, scaffold in zip(molecules, scaffolds):
-        print(f"{mol:35s} -> {scaffold}")
+    for smiles, scaffold in zip(
+        molecules,
+        scaffolds
+    ):
+        print(
+            f"{smiles:20s} -> {scaffold}"
+        )
 
-    
-    # 5. Perform scaffold-based split
-
+    # 4. Scaffold-based train/test split
     splitter = GroupShuffleSplit(
         n_splits=1,
-        test_size=0.2,
+        test_size=0.25,
         random_state=42
     )
 
-    train_idx, test_idx = next( splitter.split(X, y, groups=scaffolds) )
+    train_idx, test_idx = next(
+        splitter.split(
+            X,
+            y,
+            groups=scaffolds
+        )
+    )
 
-    # 6. Create training and test sets
+    # 5. Create training and test sets
+    X_train = X[train_idx]
+    X_test = X[test_idx]
 
-    X_train, X_test = X[train_idx], X[test_idx]
-    y_train, y_test = y[train_idx], y[test_idx]
+    y_train = y[train_idx]
+    y_test = y[test_idx]
 
-    train_molecules = [molecules[i] for i in train_idx]
-    test_molecules = [molecules[i] for i in test_idx]
- 
-    # 7. Display results
-    print("\nTraining molecules:")
-    for mol in train_molecules:
-        print(mol)
+    # 6. Display the split
+    print("\nTraining set:")
 
-    print("\nTest molecules:")
-    for mol in test_molecules:
-        print(mol)
+    for i in train_idx:
+        print(molecules[i], " scaffold:", scaffolds[i])
 
-    # 8. Dataset sizes
-    print("\nDataset sizes:")
-    print("Training set size:", len(X_train))
-    print("Test set size:", len(X_test))
+
+    print("\nTest set:")
+
+    for i in test_idx:
+        print(molecules[i], " scaffold:", scaffolds[i])
+
+    # 7. Verify scaffold separation
+    train_scaffolds = set(
+        scaffolds[train_idx]
+    )
+
+    test_scaffolds = set(
+        scaffolds[test_idx]
+    )
+
+    print("\nTraining scaffolds:")
+    print(train_scaffolds)
+
+    print("\nTest scaffolds:")
+    print(test_scaffolds)
+
+    print("\nShared scaffolds:",
+        train_scaffolds.intersection(
+            test_scaffolds    )) 
     ```
 
 
