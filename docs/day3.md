@@ -129,40 +129,61 @@ SMILES is a text-based notation that represents molecular structure as a string 
 #### Basic SMILES Syntax
 
 **Simple molecules**:
-```
+
+```text
 Methane:    C
 Ethanol:    CCO
-Benzene:    c1ccccc1  (lowercase = aromatic)
+Benzene:    c1ccccc1   (lowercase c indicates aromatic carbon)
 Water:      O
-```
+````
 
 **Branches**:
-```
-Isobutane:     CC(C)C
-               └─ branch in parentheses
+
+```text
+Isobutane:    CC(C)C
+                └─ atoms inside parentheses represent a branch
 ```
 
 **Double and triple bonds**:
-```
+
+```text
 Ethene:     C=C
 Ethyne:     C#C
 CO2:        O=C=O
 ```
 
 **Rings**:
-```
+
+```text
 Cyclohexane:    C1CCCCC1
-                └─ matching numbers close the ring
+                └─ matching ring numbers indicate a ring-closure bond
 
 Naphthalene:    c1ccc2ccccc2c1
-                └─ fused rings
+                └─ fused aromatic rings
 ```
 
 **Stereochemistry**:
+
+```text
+Chiral alanine:    N[C@@H](C)C(=O)O
+                     └─ @ and @@ specify tetrahedral chirality
 ```
-(R)-Alanine:    N[C@@H](C)C(=O)O
-                  └─ @ and @@ encode the two tetrahedral configurations
-```
+
+The symbols `@` and `@@` describe the orientation of atoms around a tetrahedral
+stereocenter relative to their order in the SMILES string. They should not be
+interpreted directly as `R` and `S`; the absolute configuration must be determined
+from the molecular connectivity and CIP priority rules.
+
+
+Note that in:
+
+```text
+c1ccccc1
+````
+
+lowercase `c` means **aromatic carbon**. Other aromatic atoms can also appear in 
+lowercase, such as `n` for aromatic nitrogen.
+
 
 #### Working with SMILES in Python
 
@@ -2991,3 +3012,4 @@ Two points are worth keeping in mind when interpreting these results:
 - RDKit Cookbook - https://www.rdkit.org/docs/Cookbook.html
 - Scikit-learn User Guide - https://scikit-learn.org/stable/user_guide.html
 - DeepChem Tutorials - https://deepchem.io/
+- Daylight Theory Manual (SMILES reference) https://www.daylight.com/dayhtml/doc/theory/index.pdf
