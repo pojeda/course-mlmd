@@ -174,7 +174,6 @@ stereocenter relative to their order in the SMILES string. They should not be
 interpreted directly as `R` and `S`; the absolute configuration must be determined
 from the molecular connectivity and CIP priority rules.
 
-
 Note that in:
 
 ```text
@@ -183,7 +182,6 @@ c1ccccc1
 
 lowercase `c` means **aromatic carbon**. Other aromatic atoms can also appear in 
 lowercase, such as `n` for aromatic nitrogen.
-
 
 #### Working with SMILES in Python
 
