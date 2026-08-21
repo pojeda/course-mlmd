@@ -244,7 +244,9 @@ canonical = Chem.MolToSmiles(Chem.MolFromSmiles("OCC"))
 # -> 'CCO'
 ```
 
-- **No 3D information**: SMILES encodes connectivity but not geometry. Stereoisomers that differ only in 3D arrangement require explicit stereochemistry notation (@ / @@), and even then the string carries no atomic coordinates.
+- **No 3D information**: SMILES encodes connectivity but not geometry. Stereoisomers that differ 
+only in 3D arrangement require explicit stereochemistry notation (@ / @@), and even then the 
+string carries no atomic coordinates.
 
 ```python
 # Same connectivity, opposite chirality (mirror images).
@@ -295,30 +297,39 @@ SELFIES is an alternative to SMILES that guarantees 100% valid molecules (Mach. 
 
 ### 2.3 Molecular Fingerprints
 
-Fingerprints are fixed-length binary or count vectors that encode molecular structure.
+Molecular fingerprints are numerical representations that encode structural information 
+about a molecule, typically as fixed-length binary or count vectors. They are widely used 
+in cheminformatics because they provide compact representations that can be efficiently 
+compared or used as input features for machine learning models.
 
-#### Morgan fingerprints (ECFP, Extended-Connectivity Fingerprints)
+#### Morgan Fingerprints and ECFP
 
-Morgan fingerprints, also known as Extended-Connectivity Fingerprints (ECFP), are one
-of the most widely used molecular representations in cheminformatics and molecular machine
-learning. They describe a molecule by examining the local chemical environment around each
-atom. Instead of representing the molecule as a whole structure, Morgan fingerprints break
-it into many small circular neighborhoods centered on individual atoms.
+Morgan fingerprints are circular molecular fingerprints based on the Morgan algorithm. 
+Extended-Connectivity Fingerprints (ECFPs) are a widely used implementation of this general 
+approach. They represent a molecule by describing the local chemical environments surrounding 
+its atoms at progressively larger distances.
 
-The main idea is that each atom is first assigned an identifier based on its local properties,
-such as atom type, bonding pattern, and connectivity. The algorithm then expands outward step
-by step, collecting information from neighboring atoms at increasing radii. These local environments
-are converted into numerical identifiers and stored in a fixed-length fingerprint vector. The
-final result is a numerical representation that can be used for similarity search, clustering,
-classification, regression, or other machine learning tasks.
+The procedure begins by assigning each atom an initial identifier derived from properties such 
+as atomic number, bonding, charge, and connectivity. During successive iterations, information 
+from neighboring atoms is incorporated into each identifier. Each iteration therefore describes 
+a larger circular environment around the central atom.
 
-**Algorithm**:
+The resulting identifiers represent molecular substructures. In practical implementations, these 
+identifiers are commonly hashed or folded into a fixed-length fingerprint vector. A binary 
+fingerprint records whether particular environments are present, whereas a count fingerprint 
+can record how many times they occur.
 
-1. Assign an initial identifier to each atom based on its chemical properties.
-2. Expand around each atom to include neighboring atoms within a chosen radius.
-3. Update the atom identifiers based on the surrounding chemical environment.
-4. Hash the resulting identifiers into a fixed-length fingerprint vector.
-5. Use the fingerprint as input for similarity analysis or machine learning models.
+Morgan fingerprints are commonly used for molecular similarity searches, clustering, virtual 
+screening, classification, regression, and other machine learning applications.
+
+**Algorithm:**
+
+1. Assign an initial identifier to each atom using selected atomic and bonding properties.
+2. Examine the neighborhood surrounding each atom within a specified radius.
+3. Iteratively update the identifiers by incorporating information from neighboring atoms and bonds.
+4. Convert the resulting molecular-environment identifiers into a fixed-length binary or count fingerprint, typically using hashing.
+5. Use the fingerprint as a molecular representation for similarity calculations or machine learning models.
+
 
 ??? note "Example"
 
@@ -359,23 +370,26 @@ classification, regression, or other machine learning tasks.
     print("Number of nonzero features:", np.count_nonzero(count_fp_array))
     ```
 
-A bit fingerprint stores whether a molecular feature is present or absent. A count fingerprint stores
-how many times each feature appears. For many introductory examples, bit fingerprints are easier to explain,
-while count fingerprints can provide more detailed information for machine learning.
+**Bit and Count Fingerprints**
 
-**Parameters**:
+A bit fingerprint records whether particular molecular environments are present, whereas 
+a count fingerprint retains information about how many times those environments occur. 
+Bit fingerprints are often convenient for similarity calculations and introductory examples, 
+while count fingerprints can preserve additional frequency information that may be useful for machine learning.
 
-- **Radius**: Larger radius captures more context
+**Important parameters:**
 
-  - Radius 1 (ECFP2): Immediate neighbors
-  - Radius 2 (ECFP4): Common choice, balances local and broader context
-  - Radius 3 (ECFP6): Larger substructures
+* **Radius:** controls the size of the local atomic environments included in the fingerprint
 
-- **fpSize**: Fingerprint length
+  * **Radius 1 (ECFP2):** captures environments extending approximately one bond from each atom
+  * **Radius 2 (ECFP4):** captures larger local environments and is a commonly used choice
+  * **Radius 3 (ECFP6):** represents still broader molecular neighborhoods
 
-  - 1024: Fast, but more collisions
-  - 2048: Common default
-  - 4096: More unique features, slower computationally
+* **`fpSize`:** determines the length of the hashed fingerprint vector
+
+  * **1024 bits:** compact and computationally efficient, but more susceptible to hash collisions
+  * **2048 bits:** commonly used and provides a good balance between compactness and collision frequency
+  * **4096 bits:** provides more available positions and can reduce collisions, at the cost of increased memory and computational requirements
 
 #### MACCS Keys
 
