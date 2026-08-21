@@ -3021,7 +3021,8 @@ Two points are worth keeping in mind when interpreting these results:
 
 ### Tutorials
 
-- RDKit Cookbook - https://www.rdkit.org/docs/Cookbook.html
-- Scikit-learn User Guide - https://scikit-learn.org/stable/user_guide.html
-- DeepChem Tutorials - https://deepchem.io/
-- Daylight Theory Manual (SMILES reference) https://www.daylight.com/dayhtml/doc/theory/index.pdf
+- RDKit Cookbook  https://www.rdkit.org/docs/Cookbook.html
+- Scikit-learn User Guide  https://scikit-learn.org/stable/user_guide.html
+- DeepChem Tutorials  https://deepchem.io/
+- Daylight Theory Manual (SMILES reference) https://www.daylight.com/dayhtml/doc/theory/index.pdf 
+- Gaussian Processes playground https://infallible-thompson-49de36.netlify.app/
