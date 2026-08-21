@@ -2,129 +2,119 @@
 
 ## Learning Objectives
 
-- Understand the fundamental ML concepts relevant to molecular sciences
-- Learn multiple molecular representation methods and their trade-offs
-- Implement basic ML models for molecular property prediction
-- Work with chemical databases and molecular descriptors
-- Understand the unique challenges of applying ML to chemistry
-
+* Develop an understanding of the key machine learning concepts used in molecular science
+* Become familiar with different approaches for representing molecules and their advantages and limitations
+* Build basic machine learning models for predicting molecular properties
+* Learn how to work with chemical databases, molecular descriptors, and computational representations
+* Recognize the main challenges associated with applying machine learning methods to chemical problems
 
 ## 1. Introduction to ML in Molecular Systems
 
 ### 1.1 Why Machine Learning for Molecules?
 
-The chemical space is vast—estimates suggest there are $10^{60}$ possible drug-like molecules, far 
-more than atoms in the universe (Med. Res. Rev., 16, 3-50, 1996). Traditional approaches to drug 
-discovery and materials design involve:
+Chemical space is extraordinarily large, with estimates suggesting that approximately $10^{60}$ drug-like 
+molecules could potentially exist (Med. Res. Rev., 16, 3-50, 1996). Exploring such an enormous number of possible 
+compounds using conventional methods is impractical. Traditional drug discovery and materials research often 
+rely on approaches such as:
 
-- Synthesizing and testing compounds one by one (expensive, slow)
-- Running quantum mechanical calculations for each molecule (computationally expensive)
-- Trial-and-error experimentation (low success rate)
+* Synthesizing and experimentally evaluating compounds individually, which can be costly and time-consuming
+* Performing quantum mechanical calculations for candidate molecules, which may require substantial computational resources
+* Using iterative trial-and-error experiments, which can involve many unsuccessful candidates
 
-Machine learning has revolutionized our ability to:
+Machine learning provides new approaches for exploring molecular systems more efficiently.
 
-**Predict Properties Without Experiments**
+**Predict Molecular Properties Computationally**
 
-- Calculate solubility, toxicity, binding affinity computationally
-- Screen millions of compounds in silico before synthesis
-- Reduce time from years to weeks
+* Estimate properties such as solubility, toxicity, and binding affinity before experimental testing
+* Screen large collections of candidate molecules computationally prior to synthesis
+* Reduce the number of expensive experiments or simulations required during early-stage discovery
 
-**Discover Structure-Property Relationships**
+**Identify Structure-Property Relationships**
 
-- Identify which molecular features drive desired properties
-- Understand mechanisms of action
-- Transfer knowledge across molecular families
+* Determine which molecular characteristics are associated with particular properties
+* Help reveal relationships between molecular structure and biological or chemical behavior
+* Apply knowledge learned from one group of molecules to related chemical families
 
-**Navigate Chemical Space Efficiently**
+**Explore Chemical Space More Efficiently**
 
-- Explore $10^{60}$ possible molecules intelligently
-- Focus experimental resources on most promising candidates
-- Find novel scaffolds outside known chemistry
+* Search extremely large molecular spaces using data-driven strategies
+* Prioritize promising candidates for further computational or experimental investigation
+* Identify new molecular scaffolds and chemical structures beyond previously studied compounds
 
-**Accelerate Discovery Pipelines**
+**Accelerate Discovery Workflows**
 
-- Traditional drug discovery: 10-15 years, $2.6B per drug
-- ML-assisted discovery: Potentially 2-3x faster, significantly cheaper
-- Example: Insilico Medicine designed a novel drug candidate in 46 days
+* Conventional drug discovery can require 10–15 years and substantial financial investment to bring a new drug to market
+* Machine learning can help reduce the time and resources required for tasks such as virtual screening, molecular optimization, and candidate prioritization
+* Data-driven molecular design approaches have demonstrated the potential to generate and evaluate new candidate structures on considerably shorter timescales
 
 ### 1.2 Success Stories
 
 **COVID-19 Drug Repurposing**
 
-During the COVID-19 pandemic, machine learning models screened more than 6,000
-FDA-approved drugs for activity against SARS-CoV-2. This approach identified
-Baricitinib, a drug originally approved for rheumatoid arthritis, as a promising
-candidate. It was subsequently authorized by the FDA for COVID-19 treatment in
-2020, making it one of the earliest examples of ML-assisted drug repurposing
-reaching clinical use.
+During the COVID-19 pandemic, machine learning and knowledge-based computational methods were used 
+to rapidly evaluate existing drugs as potential treatments for SARS-CoV-2 infection. One notable 
+example was Baricitinib, originally developed for rheumatoid arthritis, which was identified as a 
+promising candidate for repurposing. It was later authorized for the treatment of COVID-19, 
+illustrating how data-driven approaches can help prioritize existing compounds for new therapeutic 
+applications.
 
 **Antibiotic Discovery**
 
-In 2020, a machine learning model trained on known antibacterial compounds
-identified Halicin, a structurally novel antibiotic effective against several
-drug-resistant bacteria. Because Halicin was discovered by learning patterns
-from data rather than through traditional medicinal chemistry, its structure
-is distinct from existing antibiotics; demonstrating that ML can explore
-regions of chemical space that conventional approaches tend to overlook.
+In 2020, researchers used a machine learning model trained on compounds with known antibacterial 
+activity to identify Halicin as a promising antibiotic candidate. Halicin has a chemical structure 
+that differs substantially from those of many conventional antibiotics and showed activity against 
+several drug-resistant bacterial species. This study demonstrated how machine learning can search 
+chemical space for candidates that may be difficult to identify using traditional screening strategies.
 
 **Materials Science**
 
-Machine learning has significantly accelerated materials discovery across
-several domains. In battery research, ML models have identified promising
-solid electrolyte candidates that would have taken far longer to find through
-simulation alone. Thermal conductivity predictions that once required
-computationally expensive simulations can now be made orders of magnitude
-faster, and ML has also been applied to the search for new photovoltaic
-materials with improved energy conversion properties.
+Machine learning has also become an important tool for accelerating materials discovery. In battery 
+research, data-driven models can help prioritize promising electrolyte and electrode materials from 
+large candidate spaces. ML methods can also provide rapid approximations of properties such as thermal 
+conductivity that might otherwise require expensive simulations. Similar approaches are being applied 
+to the discovery and optimization of photovoltaic, catalytic, and other functional materials.
 
 ### 1.3 Key Challenges in Molecular ML
 
 #### High Dimensionality
 
-Molecules exist in complex, high-dimensional spaces: each atom contributes
-3D coordinates, electronic structure information, conformational degrees of
-freedom, and quantum mechanical properties. Training models directly on such
-representations is computationally intractable, so a key challenge is learning
-compact representations that retain the essential features of molecular
-structure.
+Molecular systems can be described by large numbers of variables, including atomic identities, 
+three-dimensional coordinates, conformational degrees of freedom, electronic information, and other 
+physicochemical properties. Using all of this information directly can lead to complex and computationally 
+demanding models. An important challenge is therefore to construct compact molecular representations 
+that preserve the structural and chemical information required for accurate predictions.
 
 #### Data Scarcity
 
-Unlike computer vision, where models can be trained on millions of labeled
-images, molecular datasets are typically small: a large drug discovery dataset
-may contain between 1,000 and 100,000 compounds, and experimental measurements
-are both expensive and time-consuming to obtain. Transfer learning, data
-augmentation, and semi-supervised learning are the main strategies used to
-compensate for limited labeled data.
-
+Compared with fields such as computer vision, many molecular machine learning problems have relatively 
+limited amounts of labeled data. Experimental measurements can be expensive, slow, or difficult to obtain, 
+and available datasets may contain only thousands or tens of thousands of compounds. Approaches such as 
+transfer learning, self-supervised learning, data augmentation, and semi-supervised learning can help 
+make better use of limited labeled datasets.
 
 #### Physical Constraints
 
-Molecular machine learning models must respect fundamental physical constraints,
-including conservation of energy, atomic valence rules, and the symmetries of
-3D space — rotation, translation, and permutation of atoms. Models that violate
-these constraints produce physically meaningless predictions. Physics-informed
-neural networks and equivariant architectures address this by building the
-relevant symmetries directly into the model.
+Machine learning models for molecular systems should be consistent with important chemical and physical 
+principles. Depending on the application, these may include energy conservation, atomic valence constraints, 
+and symmetries associated with rotations, translations, and permutations of equivalent atoms. Incorporating 
+these principles into model architectures can improve physical consistency and data efficiency. Equivariant 
+neural networks and other physics-aware approaches are commonly used for this purpose.
 
 #### Interpretability Requirements
 
-A prediction that a molecule has a certain property is only useful if the model
-can indicate which structural features drive that prediction, enabling
-researchers to generate hypotheses and build confidence in the results.
-Unlike many commercial applications, black-box predictions are insufficient in
-science. Attention mechanisms, feature importance analysis, and explainable AI
-methods are commonly used to make model decisions more transparent.
-
+In scientific applications, understanding why a model produces a particular prediction can be almost as 
+important as the prediction itself. Identifying the molecular features or structural regions associated 
+with a predicted property can support hypothesis generation, model validation, and experimental design. 
+Methods such as feature importance analysis, attribution techniques, attention visualization, and other 
+explainable machine learning approaches can help researchers examine model behavior.
 
 #### Distribution Shift
 
-Models trained on one region of chemical space often fail when applied to
-another; a problem known as distribution shift. Novel scaffolds, unfamiliar
-functional groups, or property values outside the training range can all cause
-performance to degrade severely. Domain adaptation, uncertainty quantification,
-and active learning are the principal approaches for detecting and mitigating
-this failure mode.
+Molecular models may perform well on compounds similar to those used during training but become less reliable 
+when applied to unfamiliar regions of chemical space. New scaffolds, uncommon functional groups, different 
+molecular sizes, or target values outside the training distribution can all lead to reduced predictive performance. 
+Strategies such as uncertainty quantification, active learning, domain adaptation, and carefully designed 
+dataset splits can help identify and reduce the effects of distribution shift.
 
 
 ## 2. Molecular Representations
