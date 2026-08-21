@@ -179,7 +179,7 @@ Note that in:
 
 ```text
 c1ccccc1
-````
+```
 
 lowercase `c` means **aromatic carbon**. Other aromatic atoms can also appear in 
 lowercase, such as `n` for aromatic nitrogen.
