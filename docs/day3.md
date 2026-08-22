@@ -2167,11 +2167,11 @@ chain A in the **3MUF** PDB structure.
     $i, i+1$
             |
             +--------------------+
-                                |
-                                v
+                                 |
+                                 v
                             Residue graph
-                                ^
-                                |
+                                 ^
+                                 |
             +--------------------+
             |
             v
