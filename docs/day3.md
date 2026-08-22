@@ -594,22 +594,28 @@ Similarity values typically range from $0$ to $1$, where values closer to $1$ in
 fingerprint similarity. However, these scores should be interpreted relative to the fingerprint type, 
 its parameters, and the similarity metric rather than as an absolute measure of chemical similarity.
 
-
 ### 2.4 3D Molecular Representations
 
-While fingerprints and graph-based methods describe molecular connectivity, many molecular
-properties also depend strongly on three-dimensional geometry. 3D molecular representations
-include spatial information such as atomic coordinates, bond distances, angles, and molecular
-conformations. These representations are especially important for applications involving
-molecular dynamics, docking, quantum chemistry, protein-ligand interactions, and materials modeling.
+While fingerprints and connectivity-based molecular graphs primarily describe molecular topology, 
+many chemical and physical properties also depend on the three-dimensional arrangement of atoms. 
+**3D molecular representations** incorporate geometric information such as atomic coordinates, 
+interatomic distances, bond angles, and molecular conformations.
 
-Common 3D representations include:
+These representations are particularly important for applications in molecular dynamics, molecular 
+docking, quantum chemistry, protein-ligand modeling, interatomic potentials, and materials science.
 
-* Cartesian coordinates
-* Distance matrices
+Common types of 3D molecular representations include:
+
+* Cartesian atomic coordinates
+* Interatomic distance matrices
 * Coulomb matrices
-* Atomic environments
-* Molecular conformations
+* Local atomic environments
+* Molecular conformations or conformer ensembles
+
+Cartesian coordinates provide a direct description of atomic positions in three-dimensional space, 
+although the numerical coordinates change when the molecule is translated or rotated. Other representations, 
+such as interatomic distances, can provide geometric information that is naturally invariant to 
+global rotations and translations.
 
 #### Example: Generating 3D Coordinates with RDKit
 
@@ -619,77 +625,140 @@ Common 3D representations include:
     from rdkit import Chem
     from rdkit.Chem import AllChem
 
-    # Create molecule from SMILES
+    # 1. Create a molecule from SMILES
     mol = Chem.MolFromSmiles("CCO")  # Ethanol
 
-    # Add hydrogen atoms
+    # Add explicit hydrogen atoms
     mol = Chem.AddHs(mol)
 
-    # Generate 3D conformation (fixed seed for reproducibility)
-    AllChem.EmbedMolecule(mol, randomSeed=42)
+    # 2. Generate a 3D conformation
+    params = AllChem.ETKDGv3()
+    params.randomSeed = 42
 
-    # Optimize geometry
-    AllChem.UFFOptimizeMolecule(mol)
+    conf_id = AllChem.EmbedMolecule(
+        mol,
+        params
+    )
 
-    # Print atomic coordinates
-    conf = mol.GetConformer()
+    if conf_id == -1:
+        raise RuntimeError(
+            "3D conformer generation failed."
+        )
 
-    print("Atomic coordinates:\n")
+    # 3. Optimize the molecular geometry
+    status = AllChem.UFFOptimizeMolecule(
+        mol,
+        confId=conf_id
+    )
+
+    if status == 0:
+        print("UFF optimization converged.")
+    else:
+        print("UFF optimization did not fully converge.")
+
+    # 4. Extract atomic coordinates
+    conf = mol.GetConformer(conf_id)
+
+    print("\nAtomic coordinates:\n")
 
     for atom in mol.GetAtoms():
 
-        pos = conf.GetAtomPosition(atom.GetIdx())
+        atom_index = atom.GetIdx()
+        pos = conf.GetAtomPosition(atom_index)
 
         print(
-            f"Atom {atom.GetSymbol():2s} "
-            f"-> x={pos.x:.3f}, y={pos.y:.3f}, z={pos.z:.3f}"
+            f"Atom {atom_index:2d} "
+            f"{atom.GetSymbol():2s} -> "
+            f"x={pos.x:8.3f}, "
+            f"y={pos.y:8.3f}, "
+            f"z={pos.z:8.3f}"
         )
     ```
 
+The resulting coordinates describe one possible three-dimensional conformation of 
+ethanol. For flexible molecules, several conformations may be energetically accessible, 
+so a single generated structure does not necessarily represent the complete conformational 
+behavior of the molecule.
+
 ### 2.5 Protein Representations
 
-Proteins are complex biological macromolecules that can be represented in several different
-ways for machine learning applications. Depending on the problem, proteins may be described using
-amino acid sequences, structural information, residue contact maps, graphs, embeddings, or atomistic
-coordinates. Choosing an appropriate representation is essential for tasks such as protein
-structure prediction, molecular dynamics, function prediction, and protein-ligand interaction modeling.
+Proteins are complex biological macromolecules that can be represented at different levels 
+of detail depending on the machine learning task. A protein may be described by its amino 
+acid sequence, residue-level features, three-dimensional structure, molecular graph, learned 
+embedding, or complete set of atomic coordinates.
+
+The choice of representation strongly influences what information is available to the model. 
+Sequence-based representations are useful for tasks such as function prediction, whereas 
+three-dimensional and atomistic representations are particularly important for structural 
+modeling, molecular dynamics, protein-ligand interactions, and geometry-based machine learning.
 
 Common protein representations include:
 
 * Amino acid sequences
-* One-hot encodings
+* One-hot encoded residue sequences
 * Protein language model embeddings
-* Contact maps
-* Graph representations
-* Atomic coordinate representations
+* Residue contact or distance maps
+* Graph-based representations
+* Three-dimensional atomic coordinates
 
-#### Example: Loading a Protein Structure with ASE
+#### Example: Loading an Atomistic Protein Structure with ASE
 
 ??? note "Example"
 
     ```python
+    from urllib.request import urlretrieve
     from ase.io import read
 
-    # Load protein structure from PDB file
-    protein = read("protein.pdb")
+    # Get the 3MUF structure
+    pdb_id = "3MUF"
+
+    url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
+    filename = f"{pdb_id}.pdb"
+
+    # Download structure
+    urlretrieve(url, filename)
+
+    # Read with ASE
+    protein = read(
+        filename,
+        format="proteindatabank"
+    )
 
     print("Number of atoms:", len(protein))
 
-    print("\nFirst five atoms:\n")
+    for index, atom in enumerate(protein[:5]):
 
-    for atom in protein[:5]:
+        x, y, z = atom.position
 
         print(
-            f"{atom.symbol:2s} "
-            f"x={atom.position[0]:8.3f} "
-            f"y={atom.position[1]:8.3f} "
-            f"z={atom.position[2]:8.3f}"
+            f"Atom {index:2d} "
+            f"{atom.symbol:2s} -> "
+            f"x={x:8.3f} "
+            f"y={y:8.3f} "
+            f"z={z:8.3f}"
         )
     ```
 
-This example demonstrates how atomistic protein structures can be loaded and manipulated using
-[ASE (Atomic Simulation Environment)](https://wiki.fysik.dtu.dk/ase) for
-scientific computing and machine learning workflows.
+This example demonstrates how a protein structure stored in PDB format can be converted into 
+an atomistic representation using the [ASE (Atomic Simulation Environment)](https://wiki.fysik.dtu.dk/ase). 
+Each atom is described by its chemical element and Cartesian coordinates,
+
+$$
+\mathbf{r}_i =
+\begin{bmatrix}
+x_i \
+y_i \
+z_i
+\end{bmatrix},
+$$
+
+where $\mathbf{r}_i$ represents the position of atom $i$ in three-dimensional space.
+
+Such coordinate-based representations can serve as the starting point for calculating interatomic 
+distances, constructing molecular graphs, performing atomistic simulations, or preparing geometric 
+features for machine learning models.
+
+**Coulomb matrix representation**
 
 The Coulomb matrix representation is described in PRL 108, 058301 (2012):
 
@@ -821,14 +890,19 @@ The Coulomb matrix representation is described in PRL 108, 058301 (2012):
 
 ### 2.6 Molecular Descriptors
 
-Numerical features that capture molecular properties.
+Molecular descriptors are numerical quantities that summarize different chemical, structural, 
+topological, or geometric characteristics of a molecule. They provide fixed numerical features 
+that can be used in statistical analysis, similarity studies, and machine learning models.
 
-#### Types of descriptors
+Descriptor classifications are not always strict, and some descriptors can reasonably belong to 
+more than one category. A practical classification includes physicochemical, structural, topological, 
+and three-dimensional descriptors.
 
-**1. Physical descriptors**
+#### 1. Physicochemical Descriptors
 
-Physical descriptors quantify fundamental molecular properties related to size,
-polarity, hydrophobicity, and intermolecular interactions in chemical systems.
+Physicochemical descriptors describe properties related to molecular size, polarity, lipophilicity, 
+and intermolecular interactions. Some are calculated directly from molecular composition, whereas 
+others are empirical estimates derived from molecular structure.
 
 ??? note "Example"
 
@@ -836,39 +910,52 @@ polarity, hydrophobicity, and intermolecular interactions in chemical systems.
     from rdkit import Chem
     from rdkit.Chem import Descriptors, Crippen
 
-    # 1. Create molecule (Aspirin)
+    # 1. Create a molecule: aspirin
     mol = Chem.MolFromSmiles(
         "CC(=O)Oc1ccccc1C(=O)O"
     )
 
-    # 2. Molecular weight
+    # 2. Average molecular weight
     mw = Descriptors.MolWt(mol)
-    print(f"Molecular Weight: {mw:.2f} g/mol")
 
-    # 3. Lipophilicity (LogP)
-    # Octanol/water partition coefficient
+    print(
+        f"Molecular Weight: {mw:.2f} g/mol"
+    )
+
+    # 3. Estimated lipophilicity
+    # Wildman-Crippen estimate of LogP
     logp = Crippen.MolLogP(mol)
-    print(f"LogP: {logp:.2f}")
 
-    # Lipinski guideline:
-    # LogP > 5 may indicate excessive lipophilicity
+    print(
+        f"LogP: {logp:.2f}"
+    )
 
-    # 4. Topological Polar Surface Area (TPSA)
+    # 4. Topological polar surface area
     tpsa = Descriptors.TPSA(mol)
-    print(f"TPSA: {tpsa:.2f} Å²")
 
-    # Lower TPSA values are often associated with
-    # better membrane permeability
+    print(
+        f"TPSA: {tpsa:.2f} Å²"
+    )
 
-    # 5. Molar Refractivity
+    # 5. Molar refractivity
+    # Wildman-Crippen estimate
     mr = Crippen.MolMR(mol)
-    print(f"Molar Refractivity: {mr:.2f}")
+
+    print(
+        f"Molar Refractivity: {mr:.2f}"
+    )
     ```
 
-**2. Structural descriptors**
+`MolWt` provides the average molecular weight, while `MolLogP` estimates the octanol/water 
+partition coefficient and is commonly used as a measure of lipophilicity. `TPSA` estimates the 
+molecular polar surface area from topological information and is frequently used when studying 
+properties such as permeability. `MolMR` provides an estimate of molar refractivity.
 
-Structural descriptors characterize molecular topology, flexibility, ring systems,
-hydrogen bonding capacity, and atomic connectivity patterns influencing chemical behavior.
+#### 2. Structural Descriptors
+
+Structural descriptors summarize characteristics such as hydrogen-bonding capacity, molecular 
+flexibility, ring composition, and carbon hybridization. These descriptors are calculated 
+primarily from the molecular connectivity rather than from an explicit three-dimensional conformation.
 
 ??? note "Example"
 
@@ -876,37 +963,65 @@ hydrogen bonding capacity, and atomic connectivity patterns influencing chemical
     from rdkit import Chem
     from rdkit.Chem import Descriptors
 
-    # 1. Create molecule (Aspirin)
+    # 1. Create a molecule: aspirin
     mol = Chem.MolFromSmiles(
         "CC(=O)Oc1ccccc1C(=O)O"
     )
 
-    # 2. Hydrogen bond donors and acceptors
+    # 2. Hydrogen-bond donors and acceptors
     h_donors = Descriptors.NumHDonors(mol)
     h_acceptors = Descriptors.NumHAcceptors(mol)
-    print(f"H-Bond Donors: {h_donors}")
-    print(f"H-Bond Acceptors: {h_acceptors}")
 
-    # 3. Rotatable bonds (measures molecular flexibility)
-    rot_bonds = Descriptors.NumRotatableBonds(mol)
-    print(f"Rotatable Bonds: {rot_bonds}")
+    print(
+        f"H-Bond Donors: {h_donors}"
+    )
+
+    print(
+        f"H-Bond Acceptors: {h_acceptors}"
+    )
+
+    # 3. Rotatable bonds
+    rot_bonds = Descriptors.NumRotatableBonds(
+        mol
+    )
+
+    print(
+        f"Rotatable Bonds: {rot_bonds}"
+    )
 
     # 4. Ring information
     num_rings = Descriptors.RingCount(mol)
-    aromatic_rings = Descriptors.NumAromaticRings(mol)
-    print(f"Total Rings: {num_rings}")
-    print(f"Aromatic Rings: {aromatic_rings}")
+    aromatic_rings = Descriptors.NumAromaticRings(
+        mol
+    )
 
-    # 5. Fraction of sp3 carbons
-    # Indicates molecular saturation and 3D character
+    print(
+        f"Total Rings: {num_rings}"
+    )
+
+    print(
+        f"Aromatic Rings: {aromatic_rings}"
+    )
+
+    # 5. Fraction of sp3-hybridized carbon atoms
     frac_sp3 = Descriptors.FractionCSP3(mol)
-    print(f"Fraction Csp3: {frac_sp3:.2f}")
+
+    print(
+        f"Fraction Csp3: {frac_sp3:.2f}"
+    )
     ```
 
-**3. Topological descriptors**
+The number of hydrogen-bond donors and acceptors provides information about 
+potential intermolecular interactions. Rotatable-bond counts are commonly used 
+as a simple measure of molecular flexibility, while ring counts describe cyclic 
+structure. `FractionCSP3` represents the fraction of carbon atoms that are $sp^3$ hybridized.
 
-Topological descriptors quantify molecular connectivity, branching, complexity,
-and graph structure independently of three-dimensional molecular geometry or coordinates.
+
+#### 3. Topological Descriptors
+
+Topological descriptors characterize the connectivity and organization of the molecular 
+graph without requiring three-dimensional coordinates. They can describe branching, molecular 
+complexity, connectivity patterns, and graph structure.
 
 ??? note "Example"
 
@@ -914,31 +1029,54 @@ and graph structure independently of three-dimensional molecular geometry or coo
     from rdkit import Chem
     from rdkit.Chem import GraphDescriptors
 
-    # 1. Create molecule (Aspirin)
+    # 1. Create a molecule: aspirin
     mol = Chem.MolFromSmiles(
         "CC(=O)Oc1ccccc1C(=O)O"
     )
 
-    # 2. Balaban J index (branching and connectivity)
-    balaban = GraphDescriptors.BalabanJ(mol)
-    print(f"Balaban J Index: {balaban:.3f}")
+    # 2. Balaban J index
+    balaban = GraphDescriptors.BalabanJ(
+        mol
+    )
 
-    # 3. Bertz complexity index (structural complexity)
-    bertz = GraphDescriptors.BertzCT(mol)
-    print(f"Bertz Complexity Index: {bertz:.3f}")
+    print(
+        f"Balaban J Index: {balaban:.3f}"
+    )
+
+    # 3. Bertz complexity index
+    bertz = GraphDescriptors.BertzCT(
+        mol
+    )
+
+    print(
+        f"Bertz Complexity Index: {bertz:.3f}"
+    )
 
     # 4. Chi connectivity indices
     chi0 = GraphDescriptors.Chi0(mol)
     chi1 = GraphDescriptors.Chi1(mol)
-    print(f"Chi0 Index: {chi0:.3f}")
-    print(f"Chi1 Index: {chi1:.3f}")
+
+    print(
+        f"Chi0 Index: {chi0:.3f}"
+    )
+
+    print(
+        f"Chi1 Index: {chi1:.3f}"
+    )
     ```
 
-**4. 3D descriptors**
+The **Balaban J index** is a graph-based connectivity descriptor derived from molecular 
+distances and connectivity. The **Bertz complexity index** provides a measure of 
+molecular structural complexity. **Chi connectivity indices** describe aspects of 
+molecular connectivity using atom degrees and graph paths.
 
-3D descriptors characterize molecular shape, spatial distribution, geometry, and
-conformational properties using three-dimensional atomic coordinates and optimized
-molecular structures.
+#### 4. 3D Descriptors
+
+Three-dimensional descriptors characterize molecular shape and the spatial distribution of 
+atoms using an explicit molecular conformation. Unlike purely topological descriptors, their 
+values depend on the particular three-dimensional geometry used in the calculation.
+
+For flexible molecules, different conformations may therefore produce different 3D descriptor values.
 
 ??? note "Example"
 
@@ -946,36 +1084,109 @@ molecular structures.
     from rdkit import Chem
     from rdkit.Chem import AllChem, Descriptors3D
 
-    # 1. Create molecule (Aspirin)
+
+    # 1. Create a molecule: aspirin
     mol = Chem.MolFromSmiles(
         "CC(=O)Oc1ccccc1C(=O)O"
     )
 
-    # 2. Generate 3D molecular structure
+    # 2. Add explicit hydrogens
     mol_3d = Chem.AddHs(mol)
-    AllChem.EmbedMolecule(mol_3d, randomSeed=42)
-    AllChem.MMFFOptimizeMolecule(mol_3d)
 
-    # 3. Compute 3D descriptors
+    # 3. Generate a 3D conformation
+    params = AllChem.ETKDGv3()
+    params.randomSeed = 42
 
-    # Deviation from spherical shape
-    asphericity = Descriptors3D.Asphericity(mol_3d)
+    conf_id = AllChem.EmbedMolecule(
+        mol_3d,
+        params
+    )
 
-    # Measure of molecular elongation
-    eccentricity = Descriptors3D.Eccentricity(mol_3d)
+    if conf_id == -1:
+        raise RuntimeError(
+            "3D conformer generation failed."
+        )
 
-    # Shape and mass distribution descriptor
-    inertial_shape = Descriptors3D.InertialShapeFactor(mol_3d)
+    # 4. Optimize the geometry using MMFF94
+    if not AllChem.MMFFHasAllMoleculeParams(
+        mol_3d
+    ):
+        raise RuntimeError(
+            "MMFF parameters are not available "
+            "for all atoms."
+        )
 
-    # Spatial extent of the atomic distribution
-    radius_of_gyration = Descriptors3D.RadiusOfGyration(mol_3d)
+    status = AllChem.MMFFOptimizeMolecule(
+        mol_3d,
+        confId=conf_id
+    )
 
-    # 4. Display results
-    print(f"Asphericity: {asphericity:.3f}")
-    print(f"Eccentricity: {eccentricity:.3f}")
-    print(f"Inertial Shape Factor: {inertial_shape:.3f}")
-    print(f"Radius of Gyration: {radius_of_gyration:.3f} Å")
+    if status == 0:
+        print("MMFF optimization converged.")
+    elif status == 1:
+        print(
+            "MMFF optimization did not fully converge."
+        )
+    else:
+        print(
+            "MMFF force field could not be initialized."
+        )
+
+    # 5. Calculate 3D descriptors
+    asphericity = Descriptors3D.Asphericity(
+        mol_3d,
+        confId=conf_id
+    )
+
+    eccentricity = Descriptors3D.Eccentricity(
+        mol_3d,
+        confId=conf_id
+    )
+
+    inertial_shape = (
+        Descriptors3D.InertialShapeFactor(
+            mol_3d,
+            confId=conf_id
+        )
+    )
+
+    radius_of_gyration = (
+        Descriptors3D.RadiusOfGyration(
+            mol_3d,
+            confId=conf_id
+        )
+    )
+
+    # 6. Display results
+    print(
+        f"Asphericity: "
+        f"{asphericity:.3f}"
+    )
+
+    print(
+        f"Eccentricity: "
+        f"{eccentricity:.3f}"
+    )
+
+    print(
+        f"Inertial Shape Factor: "
+        f"{inertial_shape:.3f}"
+    )
+
+    print(
+        f"Radius of Gyration: "
+        f"{radius_of_gyration:.3f} Å"
+    )
     ```
+
+**Asphericity** describes how strongly a molecular shape deviates from spherical symmetry. 
+**Eccentricity** describes molecular elongation based on the principal moments of inertia. 
+The **inertial shape factor** is another descriptor derived from those principal moments, 
+while the **radius of gyration** measures the overall spatial extent of the molecular structure.
+
+Because these descriptors depend on atomic coordinates, conformer generation and geometry 
+optimization should be performed before they are calculated.
+
 
 #### Drug-Likeness Metrics
 
