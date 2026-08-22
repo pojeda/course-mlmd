@@ -578,7 +578,7 @@ depends on both the fingerprint representation and the metric used for compariso
     ```
 
 The **Tanimoto coefficient** is one of the most commonly used similarity measures 
-for binary molecular fingerprints. For two fingerprints (A) and (B), it can be written as
+for binary molecular fingerprints. For two fingerprints $A$ and $B$, it can be written as
 
 $$
 T(A,B)
@@ -587,10 +587,10 @@ T(A,B)
 {|A| + |B| - |A \cap B|},
 $$
 
-where (|A|) and (|B|) represent the numbers of active bits and (|A \cap B|) represents the 
+where $|A|$ and $|B|$ represent the numbers of active bits and $|A \cap B|$ represents the 
 number of bits shared by both fingerprints.
 
-Similarity values typically range from (0) to (1), where values closer to (1) indicate greater 
+Similarity values typically range from $0$ to $1$, where values closer to $1$ indicate greater 
 fingerprint similarity. However, these scores should be interpreted relative to the fingerprint type, 
 its parameters, and the similarity metric rather than as an absolute measure of chemical similarity.
 
