@@ -1616,7 +1616,7 @@ $$
 A_{ij}
 =
 \begin{cases}
-1, & \text{if atoms } i \text{ and } j \text{ are bonded},\
+1, & \text{if atoms } i \text{ and } j \text{ are bonded},\\
 0, & \text{otherwise}.
 \end{cases}
 $$
