@@ -2348,7 +2348,7 @@ encourages the individual trees to learn somewhat different patterns and reduces
 between them.
 
 The individual decision trees are usually grown independently and can be relatively deep. Their 
-predictions are then combined. For a regression problem containing (M) trees, the Random Forest prediction 
+predictions are then combined. For a regression problem containing $M$ trees, the Random Forest prediction 
 is the average
 
 $$
@@ -2900,78 +2900,320 @@ performs worse than this baseline.
 
 ### 3.4 QSAR (Quantitative Structure–Activity Relationship)
 
-QSAR models relate molecular structure to biological or chemical activity using
-numerical descriptors. Because they operate on molecular descriptors or fingerprints
-rather than on raw structures, QSAR is considered a classical machine learning
-approach in cheminformatics, typically combining molecular features with regression
-or classification algorithms.
+**Quantitative Structure–Activity Relationship (QSAR)** modeling aims to establish mathematical 
+relationships between molecular structure and a measured biological activity or physicochemical 
+property. Molecules are typically converted into numerical representations, such as molecular 
+descriptors or fingerprints, which are then used as input to regression or classification models.
+
+Traditional QSAR models commonly rely on engineered molecular features, although the predictive 
+algorithm itself may range from simple linear regression to methods such as support vector 
+machines, Random Forests, or neural networks.
 
 Typical QSAR applications include:
 
-* predicting drug activity,
-* toxicity prediction,
-* solubility estimation,
-* binding affinity prediction,
-* environmental risk assessment.
+* prediction of biological activity,
+* toxicity assessment,
+* aqueous solubility prediction,
+* binding affinity estimation,
+* environmental fate and risk assessment.
 
-A QSAR workflow generally proceeds in three steps:
+A typical QSAR workflow consists of three main stages:
 
-1. molecules are converted into descriptors or fingerprints,
-2. the descriptors are used as input features,
-3. a regression or classification model predicts the target property.
+1. Convert each molecule into numerical descriptors or fingerprints.
+2. Assemble these molecular features into a feature matrix.
+3. Train a regression or classification model to predict the target activity or property.
+
+For a dataset containing $N$ molecules and $F$ molecular descriptors, the input matrix 
+can be written as
+
+$$
+X
+=
+\begin{bmatrix}
+x_{11} & x_{12} & \cdots & x_{1F}\\
+x_{21} & x_{22} & \cdots & x_{2F}\\
+\vdots & \vdots & \ddots & \vdots\\
+x_{N1} & x_{N2} & \cdots & x_{NF}
+\end{bmatrix},
+$$
+
+where each row represents one molecule and each column corresponds to a molecular descriptor.
+
+For a regression problem, the model learns a mapping
+
+$$
+\hat{y}
+=
+f(\mathbf{x}),
+$$
+
+where $\mathbf{x}$ is the molecular feature vector and $\hat{y}$ is the predicted molecular property.
+
+#### Example: QSAR Model for Aqueous Solubility
+
+The following example uses the **Delaney ESOL dataset**, which contains molecular 
+structures represented as SMILES strings together with experimentally measured aqueous solubilities.
+
+RDKit is used to calculate a small set of molecular descriptors, and a Random Forest 
+regression model is trained to predict the measured logarithmic solubility.
 
 ??? note "Example"
 
     ```python
-    # QSAR regression example.
-    # Note: this dataset is tiny and purely illustrative — with only a
-    # handful of molecules, the reported metrics are not statistically
-    # meaningful and serve only to demonstrate the workflow.
-
     import numpy as np
     import pandas as pd
+    import matplotlib.pyplot as plt
 
-    from sklearn.model_selection import train_test_split
+    from rdkit import Chem
+    from rdkit.Chem import Descriptors, Crippen
+
     from sklearn.ensemble import RandomForestRegressor
-    from sklearn.metrics import mean_squared_error, r2_score
-
-    # 1. Example molecular descriptor dataset
-    data = pd.DataFrame({
-        "molecular_weight": [46.07, 60.05, 78.11, 180.16, 194.19, 151.16],
-        "logP": [-0.31, -0.17, 2.13, 1.19, -0.07, 1.35],
-        "h_bond_donors": [1, 1, 0, 1, 0, 1],
-        "h_bond_acceptors": [1, 2, 0, 4, 6, 2],
-        "activity": [1.2, 1.6, 0.4, 2.8, 3.1, 2.2]
-    })
-
-    X = data.drop(columns="activity")
-    y = data["activity"]
-
-    # 2. Split data
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.33,
-        random_state=42
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import (
+        mean_absolute_error,
+        mean_squared_error,
+        r2_score
     )
 
-    # 3. Train QSAR model
+    # 1. Load the Delaney ESOL dataset
+    url = (
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/"
+        "datasets/delaney-processed.csv"
+    )
+
+    df = pd.read_csv(url)
+
+    print(df.head())
+
+    print(
+        "\nNumber of molecules:",
+        len(df)
+    )
+
+    # 2. Calculate molecular descriptors
+    def calculate_descriptors(smiles):
+        """
+        Calculate a small set of molecular descriptors
+        from a SMILES string.
+        """
+
+        mol = Chem.MolFromSmiles(smiles)
+
+        if mol is None:
+            return None
+
+        return {
+            "MW":
+                Descriptors.MolWt(mol),
+
+            "LogP":
+                Crippen.MolLogP(mol),
+
+            "TPSA":
+                Descriptors.TPSA(mol),
+
+            "HBD":
+                Descriptors.NumHDonors(mol),
+
+            "HBA":
+                Descriptors.NumHAcceptors(mol),
+
+            "RotatableBonds":
+                Descriptors.NumRotatableBonds(mol),
+
+            "RingCount":
+                Descriptors.RingCount(mol),
+
+            "FractionCSP3":
+                Descriptors.FractionCSP3(mol)
+        }
+
+    descriptor_rows = [
+        calculate_descriptors(smiles)
+        for smiles in df["smiles"]
+    ]
+
+    X = pd.DataFrame(
+        descriptor_rows
+    )
+
+    # 3. Define the target property
+    y = df[
+        "measured log solubility in mols per litre"
+    ]
+
+    # Remove invalid rows if necessary
+    valid_rows = X.notna().all(axis=1)
+
+    X = X.loc[valid_rows].reset_index(
+        drop=True
+    )
+
+    y = y.loc[valid_rows].reset_index(
+        drop=True
+    )
+
+    print(
+        "\nDescriptor matrix shape:",
+        X.shape
+    )
+
+    # 4. Split into training and test sets
+    X_train, X_test, y_train, y_test = (
+        train_test_split(
+            X,
+            y,
+            test_size=0.20,
+            random_state=42
+        )
+    )
+
+    # 5. Define the QSAR regression model
     model = RandomForestRegressor(
-        n_estimators=100,
-        random_state=42
+        n_estimators=300,
+        random_state=42,
+        n_jobs=-1
     )
 
-    model.fit(X_train, y_train)
+    # 6. Train the model
+    model.fit(
+        X_train,
+        y_train
+    )
 
-    # 4. Predict and evaluate
-    y_pred = model.predict(X_test)
+    # 7. Predict solubility for the test molecules
+    y_pred = model.predict(
+        X_test
+    )
 
-    print("Predicted activity:", y_pred)
-    print("True activity:", y_test.values)
+    # 8. Evaluate predictive performance
+    mae = mean_absolute_error(
+        y_test,
+        y_pred
+    )
 
-    print("MSE:", mean_squared_error(y_test, y_pred))
-    print("R²:", r2_score(y_test, y_pred))
+    mse = mean_squared_error(
+        y_test,
+        y_pred
+    )
+
+    rmse = np.sqrt(mse)
+
+    r2 = r2_score(
+        y_test,
+        y_pred
+    )
+
+
+    print(f"\nTest MAE:  {mae:.3f}")
+
+    print(f"Test RMSE: {rmse:.3f}")
+
+    print(f"Test R²:   {r2:.3f}")
+
+    # 9. Compare predicted and experimental values
+    plt.figure(
+        figsize=(7, 6)
+    )
+
+    plt.scatter(
+        y_test,
+        y_pred,
+        alpha=0.7
+    )
+
+    # Ideal prediction line
+    minimum = min(
+        y_test.min(),
+        y_pred.min()
+    )
+
+    maximum = max(
+        y_test.max(),
+        y_pred.max()
+    )
+
+    plt.plot(
+        [minimum, maximum],
+        [minimum, maximum],
+        linestyle="--"
+    )
+
+
+    plt.xlabel("Experimental Log Solubility")
+
+    plt.ylabel("Predicted Log Solubility")
+
+    plt.title("QSAR Prediction of Aqueous Solubility")
+
+    plt.tight_layout()
+
+    plt.savefig(
+        "qsar-solubility.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    plt.show()
     ```
+
+
+In this example, each molecule is converted from its SMILES representation into a 
+descriptor vector containing molecular weight, lipophilicity, polar surface area, 
+hydrogen-bonding properties, molecular flexibility, ring count, and carbon saturation.
+
+For example,
+
+$$
+\mathbf{x}_i
+=
+[MW,LogP,TPSA,HBD,HBA,
+N_{\mathrm{rot}},
+N_{\mathrm{rings}},
+f_{sp^3}
+].
+$$
+
+The Random Forest learns a relationship between these molecular descriptors 
+and the experimentally measured logarithmic aqueous solubility.
+
+The target variable is
+
+$$
+y
+=
+\log_{10}
+\left(
+S_{\mathrm{mol/L}}
+\right),
+$$
+
+where $S_{\mathrm{mol/L}}$ represents aqueous solubility in moles per liter.
+Model performance is evaluated using several regression metrics:
+**Mean Absolute Error (MAE)**, **Root Mean Squared Error (RMSE)**, or the coefficient of determination $R^2$. 
+
+This example illustrates the central QSAR workflow:
+
+```text
+SMILES
+   |
+   v
+Molecular descriptors
+   |
+   v
+Feature matrix
+   |
+   v
+QSAR regression model
+   |
+   v
+Predicted molecular property
+```
+
+In practical QSAR studies, additional steps are usually required, including descriptor selection, 
+cross-validation, hyperparameter optimization, applicability-domain analysis, and careful selection 
+of training and test compounds. Scaffold-based splitting can also provide a more demanding 
+evaluation when the objective is to predict properties for structurally novel molecules.
 
 ## 4. Working with Chemical Databases
 
@@ -2996,7 +3238,6 @@ A QSAR workflow generally proceeds in three steps:
     compound = results[0]
 
     # 2. Display basic information
-
     print("Compound Information\n")
     print(f"IUPAC Name:        {compound.iupac_name}")
     print(f"SMILES:            {compound.smiles}")
