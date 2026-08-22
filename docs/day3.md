@@ -1908,7 +1908,7 @@ $$
 d_{ij}\leq r_{\mathrm{cut}}.
 $$
 
-A cutoff around $8\AA$ is often used for illustrative C$^\alpha$ contact graphs, although 
+A cutoff around 8 Å is often used for illustrative C$^\alpha$ contact graphs, although 
 the appropriate definition depends on the scientific problem.
 
 The following example constructs a residue-level graph directly from the C$^\alpha$ atoms of 
@@ -2164,7 +2164,7 @@ chain A in the **3MUF** PDB structure.
             |
             v
     Adjacent residues
-    $i, i+1$
+    (i, i+1)
             |
             +--------------------+
                                  |
@@ -2182,7 +2182,7 @@ chain A in the **3MUF** PDB structure.
             |
             v
     3D contact edges
-    $d_ij <= cutoff$   
+    (d_ij <= cutoff)   
     ```
 
     This type of residue-level graph is useful for graph neural networks because it provides 
