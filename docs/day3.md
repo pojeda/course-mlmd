@@ -1897,7 +1897,7 @@ d_{ij}
 \mathbf{r}_i
 -
 \mathbf{r}_j
-\right|_2.
+\right|.
 $$
 
 A simple contact criterion is
@@ -1908,7 +1908,7 @@ $$
 d_{ij}\leq r_{\mathrm{cut}}.
 $$
 
-A cutoff around (8) Å is often used for illustrative C$^\alpha$ contact graphs, although 
+A cutoff around $8\AA$ is often used for illustrative C$^\alpha$ contact graphs, although 
 the appropriate definition depends on the scientific problem.
 
 The following example constructs a residue-level graph directly from the C$^\alpha$ atoms of 
@@ -2163,21 +2163,26 @@ chain A in the **3MUF** PDB structure.
     Amino-acid sequence
             |
             v
-    Sequence connectivity
+    Adjacent residues
+    $i, i+1$
             |
-            +------------------+
-                            |
-                            v
-                        Residue graph
-                            ^
-                            |
-            +------------------+
+            +--------------------+
+                                |
+                                v
+                            Residue graph
+                                ^
+                                |
+            +--------------------+
             |
             v
     C-alpha coordinates
             |
             v
-    3D spatial contacts
+    Pairwise distances
+            |
+            v
+    3D contact edges
+    $d_ij <= cutoff$   
     ```
 
     This type of residue-level graph is useful for graph neural networks because it provides 
