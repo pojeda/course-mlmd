@@ -393,11 +393,12 @@ while count fingerprints can preserve additional frequency information that may 
 
 #### MACCS Keys
 
-MACCS keys are structural fingerprints based on 166 predefined chemical patterns
-commonly found in molecular structures. Each bit indicates the presence or absence of a
-specific substructure, functional group, or bonding pattern, making MACCS keys useful for
-molecular similarity analysis, clustering, and cheminformatics applications. Note that RDKit
-returns a 167-bit vector, since index 0 is unused and the 166 defined keys occupy indices 1–166.
+MACCS keys are predefined structural fingerprints that represent molecules using a fixed collection 
+of 166 chemical patterns. Each key indicates whether a particular substructure, functional group, 
+or bonding motif is present in the molecule. Because the features are predefined and chemically 
+interpretable, MACCS keys are commonly used for molecular similarity searches, clustering, and other 
+cheminformatics tasks. In RDKit, the fingerprint has 167 positions because bit 0 is unused, 
+while the 166 defined MACCS keys occupy positions 1 through 166.
 
 ??? note "Example"
 
@@ -443,9 +444,10 @@ returns a 167-bit vector, since index 0 is unused and the 166 defined keys occup
 
 #### RDKit Fingerprints
 
-RDKit fingerprints are topological molecular fingerprints that encode structural information
-by analyzing atom paths and bond connectivity within a molecule. They are commonly used for
-molecular similarity searches, clustering, and cheminformatics machine learning applications.
+RDKit fingerprints are topological molecular representations that capture structural information 
+by examining paths of connected atoms and bonds within a molecule. They are frequently used in 
+cheminformatics for tasks such as molecular similarity comparison, clustering, virtual screening, 
+and machine learning based on molecular structure.
 
 ??? note "Example"
 
@@ -480,87 +482,118 @@ molecular similarity searches, clustering, and cheminformatics machine learning 
 
 ### Atom Pair and Topological Torsion Fingerprints
 
-Atom pair fingerprints encode topological distances between pairs of atoms, while topological
-torsion fingerprints capture sequential four-atom connectivity patterns.
+**Atom pair fingerprints** describe molecules using pairs of atoms together with the 
+topological distance between them, measured as the number of bonds along the shortest path. 
+The atoms are characterized using properties such as atomic number, connectivity, and 
+bonding environment.
+
+**Topological torsion fingerprints** represent sequences of connected atoms along molecular 
+paths. By default, RDKit uses paths containing four atoms. Despite the name, these 
+fingerprints describe molecular connectivity rather than three-dimensional torsion angles.
+
+Both representations can be generated as count fingerprints or fixed-length bit vectors and 
+are useful for molecular similarity analysis and machine learning.
 
 ??? note "Example"
 
     ```python
     from rdkit import Chem
-    from rdkit.Chem import rdMolDescriptors
+    from rdkit.Chem import rdFingerprintGenerator
 
-    # Create molecule
-    mol = Chem.MolFromSmiles("CCO")  # Ethanol
+    # Create a molecule
+    mol = Chem.MolFromSmiles("CCCCO")  # 1-butanol
 
-    # Atom pair fingerprint
-    atom_pairs = rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(
-        mol,
-        nBits=2048
+    # Create fingerprint generators
+    atom_pair_generator = rdFingerprintGenerator.GetAtomPairGenerator(
+        fpSize=2048
     )
 
-    # Topological torsion fingerprint
-    torsions = rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(
-        mol,
-        nBits=2048
+    torsion_generator = rdFingerprintGenerator.GetTopologicalTorsionGenerator(
+        fpSize=2048
     )
 
+    # Generate bit fingerprints
+    atom_pairs = atom_pair_generator.GetFingerprint(mol)
+    torsions = torsion_generator.GetFingerprint(mol)
+
+    # Display fingerprint information
     print("Atom pair fingerprint length:", len(atom_pairs))
     print("Topological torsion fingerprint length:", len(torsions))
+
+    print("Atom pair bits set:", atom_pairs.GetNumOnBits())
+    print("Topological torsion bits set:", torsions.GetNumOnBits())
     ```
 
 #### Comparing Molecules with Fingerprints
 
-Fingerprint similarity metrics quantify structural similarity between molecules by comparing
-shared molecular features encoded in fingerprint vectors.
+Molecular fingerprints can be compared using similarity coefficients that measure the 
+overlap between the structural features encoded in two fingerprint vectors. Molecules 
+sharing many fingerprint features generally receive higher similarity scores, while 
+structurally different molecules tend to produce lower values. The resulting similarity 
+depends on both the fingerprint representation and the metric used for comparison.
 
 ??? note "Example"
 
     ```python
     from rdkit import Chem
-    from rdkit.Chem import AllChem
+    from rdkit.Chem import rdFingerprintGenerator
     from rdkit import DataStructs
 
     # 1. Create molecules
     mol1 = Chem.MolFromSmiles("CCO")        # Ethanol
-    mol2 = Chem.MolFromSmiles("CCCO")       # Propanol
+    mol2 = Chem.MolFromSmiles("CCCO")       # 1-Propanol
     mol3 = Chem.MolFromSmiles("c1ccccc1")   # Benzene
 
-    # 2. Generate Morgan fingerprints
-
-    fp1 = AllChem.GetMorganFingerprintAsBitVect(
-        mol1,
+    # 2. Create a Morgan fingerprint generator
+    morgan_generator = rdFingerprintGenerator.GetMorganGenerator(
         radius=2,
-        nBits=2048
+        fpSize=2048
     )
 
-    fp2 = AllChem.GetMorganFingerprintAsBitVect(
-        mol2,
-        radius=2,
-        nBits=2048
-    )
+    # 3. Generate Morgan bit fingerprints
+    fp1 = morgan_generator.GetFingerprint(mol1)
+    fp2 = morgan_generator.GetFingerprint(mol2)
+    fp3 = morgan_generator.GetFingerprint(mol3)
 
-    fp3 = AllChem.GetMorganFingerprintAsBitVect(
-        mol3,
-        radius=2,
-        nBits=2048
-    )
-
-    # 3. Compute similarity metrics
-
-    # Tanimoto similarity
+    # 4. Calculate Tanimoto similarities
     sim_12 = DataStructs.TanimotoSimilarity(fp1, fp2)
     sim_13 = DataStructs.TanimotoSimilarity(fp1, fp3)
 
-    print(f"Similarity (ethanol, propanol): {sim_12:.3f}")
-    print(f"Similarity (ethanol, benzene):  {sim_13:.3f}")
+    print(
+        f"Tanimoto similarity "
+        f"(ethanol, 1-propanol): {sim_12:.3f}"
+    )
 
-    # Additional similarity metrics
+    print(
+        f"Tanimoto similarity "
+        f"(ethanol, benzene):    {sim_13:.3f}"
+    )
+
+    # 5. Compare additional similarity metrics
     dice = DataStructs.DiceSimilarity(fp1, fp2)
     cosine = DataStructs.CosineSimilarity(fp1, fp2)
 
     print(f"\nDice similarity:   {dice:.3f}")
     print(f"Cosine similarity: {cosine:.3f}")
     ```
+
+The **Tanimoto coefficient** is one of the most commonly used similarity measures 
+for binary molecular fingerprints. For two fingerprints (A) and (B), it can be written as
+
+$$
+T(A,B)
+=
+\frac{|A \cap B|}
+{|A| + |B| - |A \cap B|},
+$$
+
+where (|A|) and (|B|) represent the numbers of active bits and (|A \cap B|) represents the 
+number of bits shared by both fingerprints.
+
+Similarity values typically range from (0) to (1), where values closer to (1) indicate greater 
+fingerprint similarity. However, these scores should be interpreted relative to the fingerprint type, 
+its parameters, and the similarity metric rather than as an absolute measure of chemical similarity.
+
 
 ### 2.4 3D Molecular Representations
 
