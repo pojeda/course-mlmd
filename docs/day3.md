@@ -1187,100 +1187,295 @@ while the **radius of gyration** measures the overall spatial extent of the mole
 Because these descriptors depend on atomic coordinates, conformer generation and geometry 
 optimization should be performed before they are calculated.
 
-
 #### Drug-Likeness Metrics
 
-Drug-likeness metrics evaluate whether a molecule possesses physicochemical and
-structural properties commonly associated with successful pharmaceutical compounds.
+Drug-likeness metrics provide simple quantitative measures of whether a molecule has physicochemical 
+and structural characteristics commonly observed among drug-like compounds. These metrics are 
+useful for prioritizing molecules during early-stage screening, but they do not directly predict 
+biological activity, safety, efficacy, or clinical success.
 
-**Lipinski's rule of five**
+#### Lipinski's Rule of Five
 
-Lipinski's rule of five estimates oral bioavailability using molecular weight,
-hydrogen bonding, and lipophilicity-based physicochemical thresholds.
+**Lipinski's Rule of Five** is a widely used heuristic for evaluating whether a small 
+molecule has physicochemical properties compatible with oral absorption and permeability.
 
-**QED (Quantitative Estimate of Drug-likeness)**
+The conventional criteria are:
 
-QED combines multiple molecular descriptors into a single score representing the
-overall drug-like character of a compound.
+* Molecular weight
 
-#### Creating Feature Vectors
+$$
+MW \leq 500\ \mathrm{Da}
+$$
+
+* Lipophilicity
+
+$$
+\mathrm{cLogP} \leq 5
+$$
+
+* Number of hydrogen-bond donors
+
+$$
+HBD \leq 5
+$$
+
+* Number of hydrogen-bond acceptors
+
+$$
+HBA \leq 10
+$$
+
+A molecule violating more than one of these criteria may have an increased likelihood 
+of poor absorption or permeability. However, the Rule of Five is a guideline rather than 
+a strict requirement, and many successful drugs fall outside these limits.
+
+#### QED (Quantitative Estimate of Drug-Likeness)
+
+The **Quantitative Estimate of Drug-Likeness (QED)** combines several molecular 
+properties into a continuous score describing how closely a compound resembles the 
+physicochemical characteristics commonly observed in drug-like molecules.
+
+The QED calculation includes information such as:
+
+* Molecular weight
+* Lipophilicity
+* Hydrogen-bond donors
+* Hydrogen-bond acceptors
+* Polar surface area
+* Rotatable bonds
+* Aromatic ring count
+* Structural alerts
+
+The resulting QED score ranges approximately from
+
+$$
+0 \leq \mathrm{QED} \leq 1,
+$$
+
+where larger values indicate a more favorable combination of drug-like molecular properties. 
+QED should be interpreted as a relative drug-likeness measure rather than as a probability 
+that a molecule will become a successful drug.
+
+#### Creating Molecular Feature Vectors
+
+Multiple molecular descriptors can be combined into a numerical feature vector f
+or use in machine learning. For a molecule $i$, a descriptor vector may be written as
+
+$$
+\mathbf{x}_i
+=
+[
+MW,
+\mathrm{LogP},
+TPSA,
+HBD,
+HBA,
+\ldots
+].
+$$
+
+Each molecule is therefore represented by a fixed set of numerical properties that 
+can be assembled into a feature matrix for statistical analysis or machine learning.
 
 ??? note "Example"
 
     ```python
-    from rdkit import Chem
-    from rdkit.Chem import Descriptors, Crippen, GraphDescriptors, QED
     import pandas as pd
+
+    from rdkit import Chem
+    from rdkit.Chem import (
+        Descriptors,
+        Crippen,
+        GraphDescriptors,
+        QED
+    )
 
     def calculate_molecular_descriptors(smiles):
         """
-        Calculate a collection of common molecular descriptors.
+        Calculate a collection of molecular descriptors
+        and simple drug-likeness metrics.
         """
 
         mol = Chem.MolFromSmiles(smiles)
 
         if mol is None:
-            return None
+            raise ValueError(
+                f"Invalid SMILES: {smiles}"
+            )
 
+        # Physicochemical properties
+        mw = Descriptors.MolWt(mol)
+        logp = Crippen.MolLogP(mol)
+
+        tpsa = Descriptors.TPSA(mol)
+        mol_mr = Crippen.MolMR(mol)
+
+        # Hydrogen bonding
+        h_donors = Descriptors.NumHDonors(mol)
+        h_acceptors = Descriptors.NumHAcceptors(mol)
+
+        # Lipinski Rule-of-Five violations
+        lipinski_violations = sum([
+            mw > 500,
+            logp > 5,
+            h_donors > 5,
+            h_acceptors > 10
+        ])
+
+        lipinski_pass = (
+            lipinski_violations <= 1
+        )
+
+        # Construct descriptor dictionary
         descriptors = {
-            # Physical
-            "MW": Descriptors.MolWt(mol),
-            "LogP": Crippen.MolLogP(mol),
-            "TPSA": Descriptors.TPSA(mol),
-            "MolMR": Crippen.MolMR(mol),
 
-            # Structural
-            "NumHDonors": Descriptors.NumHDonors(mol),
-            "NumHAcceptors": Descriptors.NumHAcceptors(mol),
-            "NumRotatableBonds": Descriptors.NumRotatableBonds(mol),
-            "NumHeteroatoms": Descriptors.NumHeteroatoms(mol),
-            "NumAromaticRings": Descriptors.NumAromaticRings(mol),
-            "NumSaturatedRings": Descriptors.NumSaturatedRings(mol),
-            "NumAliphaticRings": Descriptors.NumAliphaticRings(mol),
-            "RingCount": Descriptors.RingCount(mol),
+            # Physicochemical descriptors
+            "MW": mw,
+            "LogP": logp,
+            "TPSA": tpsa,
+            "MolMR": mol_mr,
 
-            # Complexity
-            "BertzCT": GraphDescriptors.BertzCT(mol),
-            "NumBridgeheadAtoms": Descriptors.NumBridgeheadAtoms(mol),
-            "NumSpiroAtoms": Descriptors.NumSpiroAtoms(mol),
+            # Structural descriptors
+            "NumHDonors": h_donors,
+            "NumHAcceptors": h_acceptors,
+            "NumRotatableBonds":
+                Descriptors.NumRotatableBonds(mol),
 
-            # Surface-area descriptors
-            "LabuteASA": Descriptors.LabuteASA(mol),
-            "PEOE_VSA1": Descriptors.PEOE_VSA1(mol),
+            "NumHeteroatoms":
+                Descriptors.NumHeteroatoms(mol),
+
+            "NumAromaticRings":
+                Descriptors.NumAromaticRings(mol),
+
+            "NumSaturatedRings":
+                Descriptors.NumSaturatedRings(mol),
+
+            "NumAliphaticRings":
+                Descriptors.NumAliphaticRings(mol),
+
+            "RingCount":
+                Descriptors.RingCount(mol),
+
+            # Molecular complexity
+            "BertzCT":
+                GraphDescriptors.BertzCT(mol),
+
+            "NumBridgeheadAtoms":
+                Descriptors.NumBridgeheadAtoms(mol),
+
+            "NumSpiroAtoms":
+                Descriptors.NumSpiroAtoms(mol),
+
+            # Surface-area-related descriptors
+            "LabuteASA":
+                Descriptors.LabuteASA(mol),
+
+            # Partial-charge-weighted VSA bin
+            "PEOE_VSA1":
+                Descriptors.PEOE_VSA1(mol),
 
             # Atom counts
-            "NumCarbon": sum(atom.GetAtomicNum() == 6 for atom in mol.GetAtoms()),
-            "NumNitrogen": sum(atom.GetAtomicNum() == 7 for atom in mol.GetAtoms()),
-            "NumOxygen": sum(atom.GetAtomicNum() == 8 for atom in mol.GetAtoms()),
-            "NumHalogens": sum(atom.GetAtomicNum() in [9, 17, 35, 53] for atom in mol.GetAtoms()),
+            "NumCarbon": sum(
+                atom.GetAtomicNum() == 6
+                for atom in mol.GetAtoms()
+            ),
 
-            # Saturation
-            "FractionCsp3": Descriptors.FractionCSP3(mol),
+            "NumNitrogen": sum(
+                atom.GetAtomicNum() == 7
+                for atom in mol.GetAtoms()
+            ),
 
-            # Drug-likeness
-            "QED": QED.qed(mol),
+            "NumOxygen": sum(
+                atom.GetAtomicNum() == 8
+                for atom in mol.GetAtoms()
+            ),
+
+            "NumHalogens": sum(
+                atom.GetAtomicNum()
+                in {9, 17, 35, 53}
+                for atom in mol.GetAtoms()
+            ),
+
+            # Carbon saturation
+            "FractionCsp3":
+                Descriptors.FractionCSP3(mol),
+
+            # Drug-likeness metrics
+            "LipinskiViolations":
+                lipinski_violations,
+
+            "LipinskiPass":
+                lipinski_pass,
+
+            "QED":
+                QED.qed(mol)
         }
 
         return descriptors
 
+    # Example molecules
+    molecules = {
+        "Ethanol":
+            "CCO",
 
-    # Example usage
-    smiles_list = [
-        "CCO",                              # Ethanol
-        "CC(=O)Oc1ccccc1C(=O)O",           # Aspirin
-        "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"     # Caffeine
-    ]
+        "Aspirin":
+            "CC(=O)Oc1ccccc1C(=O)O",
 
-    descriptor_list = [
-        calculate_molecular_descriptors(smiles)
-        for smiles in smiles_list
-    ]
+        "Caffeine":
+            "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"
+    }
 
-    df_descriptors = pd.DataFrame(descriptor_list)
-    df_descriptors.insert(0, "SMILES", smiles_list)
+    # Calculate descriptors
+    rows = []
+
+    for name, smiles in molecules.items():
+
+        row = {
+            "Molecule": name,
+            "SMILES": smiles
+        }
+
+        row.update(
+            calculate_molecular_descriptors(
+                smiles
+            )
+        )
+
+        rows.append(row)
+
+    # Create DataFrame
+    df_descriptors = pd.DataFrame(rows)
 
     print(df_descriptors)
+
+    # Display selected drug-likeness properties
+    print(
+        "\nDrug-likeness summary:\n"
+    )
+
+    print(
+        df_descriptors[
+            [
+                "Molecule",
+                "MW",
+                "LogP",
+                "NumHDonors",
+                "NumHAcceptors",
+                "LipinskiViolations",
+                "LipinskiPass",
+                "QED"
+            ]
+        ]
+    )
     ```
+
+In this example, the molecular descriptors form numerical features that can later be supplied to a machine 
+learning model. The `LipinskiViolations` variable counts how many of the four Rule-of-Five thresholds 
+are exceeded, while `QED` provides a continuous measure of overall drug-likeness.
+
+A molecule can satisfy Lipinski's Rule of Five and still be unsuitable as a drug. These metrics describe 
+selected physicochemical characteristics and should therefore be considered screening tools rather than 
+definitive measures of pharmaceutical suitability.
 
 ### 2.7 Graph Representations
 
