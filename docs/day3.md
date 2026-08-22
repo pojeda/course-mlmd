@@ -1479,12 +1479,26 @@ definitive measures of pharmaceutical suitability.
 
 ### 2.7 Graph Representations
 
-Molecular graphs represent atoms as nodes and chemical bonds as edges, preserving
-connectivity and atom-level information.
+Graph representations describe molecular systems as collections of **nodes** connected by **edges**. 
+For small molecules, nodes usually correspond to atoms and edges to chemical bonds. For proteins, 
+graphs can instead be constructed at the residue level, where each node represents an amino acid and 
+edges describe sequence connectivity, spatial proximity, or other interactions.
+
+Graphs are particularly useful for molecular machine learning because they preserve connectivity 
+while allowing chemical and structural information to be associated with individual nodes and edges.
+
+A graph can be written as
+
+$$
+G=(V,E),
+$$
+
+where (V) is the set of nodes and (E) is the set of edges.
 
 #### Graph Structure
 
-Molecules can be represented as graphs where atoms are nodes and bonds are edges.
+For a molecular graph, each atom becomes a node and each chemical bond becomes an edge. 
+Additional chemical information can be stored as node and edge attributes.
 
 ??? note "Example"
 
@@ -1492,168 +1506,365 @@ Molecules can be represented as graphs where atoms are nodes and bonds are edges
     from rdkit import Chem
     import networkx as nx
 
+
     def mol_to_graph(smiles):
-        """Convert a molecule into a NetworkX graph."""
+        """
+        Convert a molecule from SMILES
+        into a NetworkX graph.
+        """
 
         mol = Chem.MolFromSmiles(smiles)
 
         if mol is None:
-            raise ValueError("Invalid SMILES string")
+            raise ValueError(
+                f"Invalid SMILES: {smiles}"
+            )
 
         G = nx.Graph()
 
-        # Add nodes: atoms
+        # Add atoms as nodes
         for atom in mol.GetAtoms():
+
             G.add_node(
                 atom.GetIdx(),
+
                 atomic_num=atom.GetAtomicNum(),
                 symbol=atom.GetSymbol(),
+
+                # Number of explicit neighboring atoms
                 degree=atom.GetDegree(),
+
                 formal_charge=atom.GetFormalCharge(),
+
+                # Explicit + implicit hydrogen count
                 num_h=atom.GetTotalNumHs(),
-                hybridization=str(atom.GetHybridization()),
+
+                hybridization=str(
+                    atom.GetHybridization()
+                ),
+
                 is_aromatic=atom.GetIsAromatic()
             )
 
-        # Add edges: bonds
+        # Add chemical bonds as edges
         for bond in mol.GetBonds():
+
             G.add_edge(
                 bond.GetBeginAtomIdx(),
                 bond.GetEndAtomIdx(),
-                bond_type=str(bond.GetBondType()),
-                is_conjugated=bond.GetIsConjugated(),
-                is_aromatic=bond.GetIsAromatic()
+
+                bond_type=str(
+                    bond.GetBondType()
+                ),
+
+                is_conjugated=
+                    bond.GetIsConjugated(),
+
+                is_aromatic=
+                    bond.GetIsAromatic(),
+
+                is_in_ring=
+                    bond.IsInRing()
             )
 
         return G
 
-    # Example
+    # Example: ethanol
     G = mol_to_graph("CCO")
 
-    print(f"Nodes: {G.number_of_nodes()}")
-    print(f"Edges: {G.number_of_edges()}")
-    print(f"Node 0 features: {G.nodes[0]}")
+    print(
+        "Number of nodes:",
+        G.number_of_nodes()
+    )
+
+    print(
+        "Number of edges:",
+        G.number_of_edges()
+    )
+
+    print(
+        "\nNode 0 features:"
+    )
+
+    print(
+        G.nodes[0]
+    )
+
+    print(
+        "\nEdges:"
+    )
+
+    for u, v, features in G.edges(data=True):
+        print(
+            u,
+            "--",
+            v,
+            features
+        )
     ```
 
-#### Adjacency matrix representation
+    For ethanol, the graph contains three heavy-atom nodes corresponding to two carbon atoms and one 
+    oxygen atom. Because hydrogens are implicit in the SMILES representation, they are not separate 
+    graph nodes in this example.
+
+#### Adjacency Matrix Representation
+
+The connectivity of a graph can also be represented using an **adjacency matrix** (A). For an 
+unweighted molecular graph,
+
+$$
+A_{ij}
+=
+\begin{cases}
+1, & \text{if atoms } i \text{ and } j \text{ are bonded},\
+0, & \text{otherwise}.
+\end{cases}
+$$
+
+For an undirected molecular graph,
+
+$$
+A=A^\mathrm{T}.
+$$
+
+A binary adjacency matrix describes connectivity only. Chemical information such as bond order 
+should therefore be stored separately as edge features or explicitly incorporated into a weighted 
+adjacency matrix.
 
 ??? note "Example"
 
     ```python
-    from rdkit import Chem
     import numpy as np
 
-    def get_adjacency_matrix(smiles, max_atoms=50):
-        """Generate a padded molecular adjacency matrix."""
+    from rdkit import Chem
+    from rdkit.Chem import rdmolops
+
+
+    def get_adjacency_matrix(
+        smiles,
+        max_atoms=50
+    ):
+        """
+        Generate a padded binary molecular
+        adjacency matrix.
+        """
 
         mol = Chem.MolFromSmiles(smiles)
 
         if mol is None:
-            raise ValueError("Invalid SMILES string")
+            raise ValueError(
+                f"Invalid SMILES: {smiles}"
+            )
 
         num_atoms = mol.GetNumAtoms()
 
         if num_atoms > max_atoms:
             raise ValueError(
-                f"Molecule contains {num_atoms} atoms "
+                f"Molecule contains "
+                f"{num_atoms} atoms, "
                 f"but max_atoms={max_atoms}"
             )
 
-        # Initialize adjacency matrix
-        adj_matrix = np.zeros(
-            (max_atoms, max_atoms),
-            dtype=int
+        # Generate the molecular adjacency matrix
+        # useBO=False:
+        #   bonded     -> 1
+        #   nonbonded  -> 0
+        adjacency = rdmolops.GetAdjacencyMatrix(
+            mol,
+            useBO=False
         )
 
-        # Fill connectivity
-        for bond in mol.GetBonds():
+        # Pad to a fixed matrix size
+        padded_adjacency = np.zeros(
+            (max_atoms, max_atoms),
+            dtype=float
+        )
 
-            i = bond.GetBeginAtomIdx()
-            j = bond.GetEndAtomIdx()
+        padded_adjacency[
+            :num_atoms,
+            :num_atoms
+        ] = adjacency
 
-            adj_matrix[i, j] = 1
-            adj_matrix[j, i] = 1  # Symmetric matrix
+        return padded_adjacency, num_atoms
 
-        return adj_matrix, num_atoms
+    # Example: ethanol
+    adjacency, n_atoms = (
+        get_adjacency_matrix("CCO")
+    )
 
-    # Example
-    adj, n_atoms = get_adjacency_matrix("CCO")
+    print(
+        "Padded adjacency matrix shape:",
+        adjacency.shape
+    )
 
-    print(f"Adjacency matrix shape: {adj.shape}")
-    print(f"Actual atoms: {n_atoms}")
+    print(
+        "Actual number of atoms:",
+        n_atoms
+    )
 
-    print("\nAdjacency matrix:")
-    print(adj[:n_atoms, :n_atoms])
+    print(
+        "\nMolecular adjacency matrix:"
+    )
+
+    print(
+        adjacency[
+            :n_atoms,
+            :n_atoms
+        ]
+    )
     ```
+
+    For ethanol, the unpadded connectivity matrix is
+
+    $$
+    A=
+    \begin{bmatrix}
+    0 & 1 & 0\\
+    1 & 0 & 1\\
+    0 & 1 & 0
+    \end{bmatrix}.
+    $$
+
+    The first carbon is connected to the second carbon, which is connected to oxygen.
+
+    Self-connections are not chemical bonds and are therefore absent from this matrix. Some 
+    graph neural network architectures add self-loops later as part of the message-passing procedure.
 
 #### Node and Edge Features
 
-Node and edge features encode atom and bond properties as numerical vectors
-for graph-based molecular machine learning models.
+Graph topology alone does not contain all of the chemical information required for molecular 
+machine learning. Each node and edge can therefore be associated with a numerical feature vector.
+
+For atom $i$, the node feature vector may be written as
+
+$$
+\mathbf{x}_i
+=
+[
+x_{i1},
+x_{i2},
+\ldots,
+x_{iF}
+],
+$$
+
+while a bond between atoms $i$ and $j$ can have an edge feature vector
+
+$$
+\mathbf{e}_{ij}
+=
+[
+e_{ij1},
+e_{ij2},
+\ldots,
+e_{ijK}
+].
+$$
+
+Categorical properties such as hybridization and bond type are generally better 
+represented using one-hot encodings or learned embeddings rather than arbitrary 
+integer labels, because integer labels can incorrectly imply an ordinal relationship 
+between categories.
 
 ??? note "Example"
 
     ```python
-    from rdkit import Chem
     import numpy as np
+    from rdkit import Chem
 
     def get_node_features(atom):
-        """Extract numerical features for one atom."""
+        """
+        Create a simple numerical feature
+        vector for one atom.
+        """
 
-        hybridization_map = {
-            Chem.rdchem.HybridizationType.SP: 1,
-            Chem.rdchem.HybridizationType.SP2: 2,
-            Chem.rdchem.HybridizationType.SP3: 3,
-            Chem.rdchem.HybridizationType.SP3D: 4,
-            Chem.rdchem.HybridizationType.SP3D2: 5,
-        }
+        # One-hot hybridization
+        hybridization_types = [
+            Chem.rdchem.HybridizationType.SP,
+            Chem.rdchem.HybridizationType.SP2,
+            Chem.rdchem.HybridizationType.SP3
+        ]
 
-        return np.array([
-            atom.GetAtomicNum(),                     # Atomic number
-            atom.GetDegree(),                        # Number of bonded neighbors
-            atom.GetFormalCharge(),                  # Formal charge
-            atom.GetNumRadicalElectrons(),           # Radical electrons
-            hybridization_map.get(
-                atom.GetHybridization(), 0
-            ),                                       # Hybridization state
-            int(atom.GetIsAromatic()),               # Aromaticity
-            atom.GetTotalNumHs(),                    # Attached hydrogens
-        ], dtype=float)
+        hybridization = [
+            int(
+                atom.GetHybridization() == h
+            )
+            for h in hybridization_types
+        ]
 
+        hybridization_other = int(
+            atom.GetHybridization()
+            not in hybridization_types
+        )
+
+        # Construct atom feature vector
+        features = [
+            atom.GetAtomicNum(),
+            atom.GetDegree(),
+            atom.GetFormalCharge(),
+            atom.GetNumRadicalElectrons(),
+            atom.GetTotalNumHs(),
+            int(atom.GetIsAromatic()),
+
+            *hybridization,
+            hybridization_other
+        ]
+
+        return np.array(
+            features,
+            dtype=float
+        )
 
     def get_edge_features(bond):
-        """Extract numerical features for one bond."""
+        """
+        Create a simple numerical feature
+        vector for one chemical bond.
+        """
 
-        bond_type_map = {
-            Chem.rdchem.BondType.SINGLE: 1,
-            Chem.rdchem.BondType.DOUBLE: 2,
-            Chem.rdchem.BondType.TRIPLE: 3,
-            Chem.rdchem.BondType.AROMATIC: 4,
-        }
+        # One-hot bond type
+        bond_types = [
+            Chem.rdchem.BondType.SINGLE,
+            Chem.rdchem.BondType.DOUBLE,
+            Chem.rdchem.BondType.TRIPLE,
+            Chem.rdchem.BondType.AROMATIC
+        ]
 
-        return np.array([
-            bond_type_map.get(
-                bond.GetBondType(), 0
-            ),                                       # Bond type
-            int(bond.GetIsConjugated()),             # Conjugation
-            int(bond.GetIsAromatic()),               # Aromaticity
-        ], dtype=float)
+        bond_type_features = [
+            int(
+                bond.GetBondType() == bond_type
+            )
+            for bond_type in bond_types
+        ]
 
+        # Construct bond feature vector
+        features = [
+            *bond_type_features,
+            int(bond.GetIsConjugated()),
+            int(bond.IsInRing())
+        ]
 
-    # Example
+        return np.array(
+            features,
+            dtype=float
+        )
+
+    # Example: ethanol
     mol = Chem.MolFromSmiles("CCO")
 
     print("Node features:\n")
 
     for atom in mol.GetAtoms():
+
         print(
-            atom.GetSymbol(),
+            f"Atom {atom.GetIdx()} "
+            f"({atom.GetSymbol()}):",
             get_node_features(atom)
         )
 
     print("\nEdge features:\n")
 
     for bond in mol.GetBonds():
+
         print(
             f"{bond.GetBeginAtomIdx()} - "
             f"{bond.GetEndAtomIdx()}:",
@@ -1661,97 +1872,318 @@ for graph-based molecular machine learning models.
         )
     ```
 
-The following example builds a protein graph from residue C$^{\alpha}$ atoms. Note that it uses a
-4.5 Å cutoff, which here mainly connects sequential residues; residue-level contact maps
-more commonly use a cutoff of around 8 Å between C$^{\alpha}$ atoms.
+    This is a simple example that is useful for teaching but in production molecular GNNs often 
+    include additional node features such as chirality, valence, atomic mass, and charge, as 
+    well as edge features such as stereochemistry and bond order.
+
+#### Protein Graph Representations
+
+Proteins can also be represented as graphs. One common residue-level representation assigns each 
+amino acid residue to a node and uses the position of its C$^\alpha$ atom as the representative 
+three-dimensional coordinate.
+
+Two different types of relationships are especially useful:
+
+* **Sequence edges** connect residues that are adjacent in the protein sequence.
+* **Spatial-contact edges** connect residues whose C$$\alpha$ atoms lie within a chosen 
+three-dimensional cutoff.
+
+For two residues $i$ and $j$, their C$^\alpha$ distance is
+
+$$
+d_{ij}
+=
+\left|
+\mathbf{r}_i
+-
+\mathbf{r}_j
+\right|_2.
+$$
+
+A simple contact criterion is
+
+$$
+(i,j)\in E
+\quad\text{if}\quad
+d_{ij}\leq r_{\mathrm{cut}}.
+$$
+
+A cutoff around (8) Å is often used for illustrative C$^\alpha$ contact graphs, although 
+the appropriate definition depends on the scientific problem.
+
+The following example constructs a residue-level graph directly from the C$^\alpha$ atoms of 
+chain A in the **3MUF** PDB structure.
 
 ??? note "Example"
 
     ```python
-    # Protein graph example using residue C-alpha atoms
-
     import numpy as np
     import networkx as nx
     import matplotlib.pyplot as plt
 
-    # 1. Example protein residues
-    # Each residue has:
-    # - residue name
-    # - residue index
-    # - C-alpha 3D coordinates
+    from Bio.PDB import PDBParser
+    from Bio.PDB.Polypeptide import is_aa
 
-    residues = [
-        {"name": "ALA", "index": 1, "ca_coord": np.array([0.0, 0.0, 0.0])},
-        {"name": "GLY", "index": 2, "ca_coord": np.array([3.8, 0.2, 0.0])},
-        {"name": "SER", "index": 3, "ca_coord": np.array([7.5, 0.1, 0.3])},
-        {"name": "VAL", "index": 4, "ca_coord": np.array([5.0, 3.5, 0.2])},
-        {"name": "LYS", "index": 5, "ca_coord": np.array([1.5, 3.2, 0.1])},
-    ]
+    # 1. Load the PDB structure
+    pdb_file = "3MUF.pdb"
 
-    # 2. Create graph
+    parser = PDBParser(
+        QUIET=True
+    )
+
+    structure = parser.get_structure(
+        "3MUF",
+        pdb_file
+    )
+
+    # 2. Select model 0 and protein chain A
+    model = structure[0]
+    chain = model["A"]
+
+    # 3. Extract amino-acid residues containing C-alpha
+    residues = []
+
+    for residue in chain:
+
+        # Ignore water, ligands, and other
+        # non-amino-acid residues
+        if not is_aa(
+            residue,
+            standard=True
+        ):
+            continue
+
+        if "CA" not in residue:
+            continue
+
+        ca_atom = residue["CA"]
+
+        residues.append({
+            "residue_name":
+                residue.get_resname(),
+
+            "residue_number":
+                residue.id[1],
+
+            "insertion_code":
+                residue.id[2].strip(),
+
+            "ca_coord":
+                ca_atom.get_coord().astype(float)
+        })
+
+
+    print(
+        "Number of C-alpha residues:",
+        len(residues)
+    )
+
+    # 4. Create the residue graph
     G = nx.Graph()
 
-    # Add residues as nodes
-    for residue in residues:
+    # Add one node per residue
+    for i, residue in enumerate(residues):
+
         G.add_node(
-            residue["index"],
-            residue_name=residue["name"],
-            ca_coord=residue["ca_coord"]
+            i,
+
+            residue_name=
+                residue["residue_name"],
+
+            residue_number=
+                residue["residue_number"],
+
+            insertion_code=
+                residue["insertion_code"],
+
+            ca_coord=
+                residue["ca_coord"]
         )
 
-    # 3. Add edges based on distance cutoff
-    distance_cutoff = 4.5
+    # 5. Add sequence-neighbor edges
+    for i in range(
+        len(residues) - 1
+    ):
+
+        coord_i = residues[i][
+            "ca_coord"
+        ]
+
+        coord_j = residues[i + 1][
+            "ca_coord"
+        ]
+
+        distance = np.linalg.norm(
+            coord_i - coord_j
+        )
+
+        G.add_edge(
+            i,
+            i + 1,
+
+            distance=distance,
+            sequence_neighbor=True,
+            spatial_contact=False
+        )
+
+    # 6. Add spatial-contact edges
+    distance_cutoff = 8.0
 
     for i in range(len(residues)):
-        for j in range(i + 1, len(residues)):
 
-            coord_i = residues[i]["ca_coord"]
-            coord_j = residues[j]["ca_coord"]
+        for j in range(
+            i + 1,
+            len(residues)
+        ):
 
-            distance = np.linalg.norm(coord_i - coord_j)
+            coord_i = residues[i][
+                "ca_coord"
+            ]
+
+            coord_j = residues[j][
+                "ca_coord"
+            ]
+
+            distance = np.linalg.norm(
+                coord_i - coord_j
+            )
 
             if distance <= distance_cutoff:
-                G.add_edge(
-                    residues[i]["index"],
-                    residues[j]["index"],
-                    distance=distance
-                )
 
-    # 4. Print graph information
-    print("Number of nodes:", G.number_of_nodes())
-    print("Number of edges:", G.number_of_edges())
+                # Edge may already exist because
+                # residues are sequence neighbors.
+                if G.has_edge(i, j):
 
-    print("\nNodes:")
-    for node, features in G.nodes(data=True):
-        print(node, features)
+                    G.edges[i, j][
+                        "spatial_contact"
+                    ] = True
 
-    print("\nEdges:")
-    for u, v, features in G.edges(data=True):
-        print(f"{u} -- {v}, distance = {features['distance']:.2f} Å")
+                    G.edges[i, j][
+                        "distance"
+                    ] = distance
 
-    # 5. Visualize graph
-    pos = {
-        residue["index"]: residue["ca_coord"][:2]
-        for residue in residues
+                else:
+
+                    G.add_edge(
+                        i,
+                        j,
+
+                        distance=distance,
+                        sequence_neighbor=False,
+                        spatial_contact=True
+                    )
+
+    # 7. Display graph information
+    print(
+        "Number of nodes:",
+        G.number_of_nodes()
+    )
+
+    print(
+        "Number of edges:",
+        G.number_of_edges()
+    )
+
+
+    print(
+        "\nFirst five residues:\n"
+    )
+
+    for node in list(G.nodes)[:5]:
+
+        data = G.nodes[node]
+
+        print(
+            f"Node {node:3d}: "
+            f"{data['residue_name']} "
+            f"{data['residue_number']} "
+            f"CA = {data['ca_coord']}"
+        )
+
+
+    print(
+        "\nFirst ten edges:\n"
+    )
+
+    for u, v, data in list(
+        G.edges(data=True)
+    )[:10]:
+
+        print(
+            f"{u:3d} -- {v:3d} "
+            f"distance="
+            f"{data['distance']:.2f} Å "
+            f"sequence="
+            f"{data['sequence_neighbor']} "
+            f"contact="
+            f"{data['spatial_contact']}"
+        )
+
+    # 8. Visualize the graph using C-alpha x-y coordinates
+    positions = {
+        i: residue["ca_coord"][:2]
+        for i, residue
+        in enumerate(residues)
     }
 
-    labels = {
-        residue["index"]: residue["name"]
-        for residue in residues
-    }
+    plt.figure(
+        figsize=(10, 8)
+    )
 
     nx.draw(
         G,
-        pos,
-        labels=labels,
-        with_labels=True,
-        node_size=900
+        positions,
+        with_labels=False,
+        node_size=30,
+        width=0.5
     )
 
-    plt.title("Protein graph representation")
-    plt.savefig("graph-protein.png", dpi=300, bbox_inches="tight")
+    plt.title(
+        "Residue-Level Cα Graph of 3MUF"
+    )
+
+    plt.savefig(
+        "graph-protein-3muf.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
     plt.show()
     ```
+
+
+    In this representation, each graph node corresponds to one amino acid residue and stores 
+    the three-dimensional coordinate of its C$^\alpha$ atom. Sequence-neighbor edges preserve 
+    the primary protein sequence, while spatial-contact edges introduce information about 
+    the folded three-dimensional structure.
+
+    The graph therefore combines two different forms of protein information:
+
+    ```text
+    Amino-acid sequence
+            |
+            v
+    Sequence connectivity
+            |
+            +------------------+
+                            |
+                            v
+                        Residue graph
+                            ^
+                            |
+            +------------------+
+            |
+            v
+    C-alpha coordinates
+            |
+            v
+    3D spatial contacts
+    ```
+
+    This type of residue-level graph is useful for graph neural networks because it provides 
+    a compact representation of protein structure while preserving both local sequence 
+    relationships and long-range contacts created by protein folding.
+
 
 **Advantages of Graph Representations**:
 
