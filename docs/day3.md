@@ -2330,187 +2330,521 @@ set into the model.
 
 ### 3.2 Random Forests
 
-An ensemble of decision trees, each trained on a random subset of the data and features.
+A **Random Forest** is an ensemble learning method that combines the predictions of many 
+decision trees. Instead of relying on a single tree, which can be highly sensitive to variations 
+in the training data, a Random Forest introduces randomness during tree construction and combines 
+the resulting predictions. This generally produces a model with lower variance and better 
+generalization than an individual deep decision tree.
 
-#### How it works
+#### How Random Forests Work
 
-1. **Bootstrap sampling**: Create N random subsets of the training data (with replacement)
-2. **Random feature selection**: At each split, consider a random subset of features
-3. **Tree building**: Build deep trees without pruning
-4. **Prediction**: Average the predictions from all trees (regression) or take a majority vote (classification)
+Each tree in the forest is typically trained using a **bootstrap sample** of the training dataset. 
+Bootstrap sampling draws observations randomly with replacement, meaning that some training samples 
+may appear multiple times while others are not selected for a particular tree.
 
-Averaging many decorrelated trees is what reduces variance: individual deep
-trees overfit, but their errors partially cancel when combined.
+Additional randomness is introduced when splitting nodes. Rather than considering every available 
+feature at each split, the algorithm evaluates only a randomly selected subset of features. This 
+encourages the individual trees to learn somewhat different patterns and reduces the correlation 
+between them.
+
+The individual decision trees are usually grown independently and can be relatively deep. Their 
+predictions are then combined. For a regression problem containing (M) trees, the Random Forest prediction 
+is the average
+
+$$
+\hat{y}(\mathbf{x})
+=
+\frac{1}{M}
+\sum_{m=1}^{M}
+T_m(\mathbf{x}),
+$$
+
+where $T_m(\mathbf{x})$ is the prediction produced by tree $m$.
+
+For classification, the predictions of the individual trees are combined to determine the final 
+class prediction, commonly through aggregated class probabilities or voting.
+
+The main advantage of the ensemble comes from averaging many partially decorrelated trees. A 
+single deep decision tree may fit noise or small variations in the training data, whereas 
+averaging many different trees tends to reduce these unstable fluctuations.
+
+#### Example: Predicting Experimental Band Gaps of Inorganic Materials
+
+The following example uses the **Matbench experimental band-gap dataset**, which contains 
+inorganic compositions together with experimentally measured band gaps. Each chemical 
+composition is converted into numerical elemental-property descriptors using the Magpie 
+descriptor set provided by Matminer.
+
+Random Forests do not normally require feature standardization because decision-tree splits 
+depend on feature thresholds rather than distances between samples.
 
 ??? note "Example"
 
     ```python
-    from sklearn.datasets import make_regression
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.model_selection import train_test_split, cross_val_score
-    from sklearn.metrics import r2_score, mean_squared_error
     import numpy as np
     import matplotlib.pyplot as plt
 
-    # 1. Create example regression dataset
-    X, y = make_regression(
-        n_samples=500,
-        n_features=12,
-        n_informative=6,
-        noise=15,
-        random_state=42
+    from pymatgen.core import Composition
+
+    from matminer.datasets import load_dataset
+    from matminer.featurizers.composition import ElementProperty
+
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.model_selection import (
+        train_test_split,
+        cross_val_score
+    )
+    from sklearn.metrics import (
+        r2_score,
+        mean_squared_error,
+        mean_absolute_error
     )
 
-    # 2. Train-test split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42
+    # 1. Load the materials-science dataset
+    df = load_dataset(
+        "matbench_expt_gap"
     )
 
-    # 3. Define random forest regressor
+    print(df.head())
+
+    print(
+        "\nNumber of materials:",
+        len(df)
+    )
+
+    # 2. Ensure compositions are pymatgen objects
+    df["composition"] = df[
+        "composition"
+    ].apply(
+        lambda x:
+        x if isinstance(x, Composition)
+        else Composition(x)
+    )
+
+    # 3. Generate composition-based descriptors
+    featurizer = ElementProperty.from_preset(
+        "magpie",
+        impute_nan=True
+    )
+
+    df = featurizer.featurize_dataframe(
+        df,
+        col_id="composition",
+        ignore_errors=False
+    )
+
+    # Descriptor names
+    feature_names = (
+        featurizer.feature_labels()
+    )
+
+    # 4. Construct input features and target
+    X = df[feature_names]
+
+    # Experimental band gap in eV
+    y = df["gap expt"]
+
+    print(
+        "\nNumber of features:",
+        X.shape[1]
+    )
+
+    # 5. Split into training and test sets
+    X_train, X_test, y_train, y_test = (
+        train_test_split(
+            X,
+            y,
+            test_size=0.20,
+            random_state=42
+        )
+    )
+
+    # 6. Define the Random Forest model
     rf_reg = RandomForestRegressor(
-        n_estimators=100,
+        n_estimators=200,
         max_depth=None,
         min_samples_split=2,
         min_samples_leaf=1,
         max_features="sqrt",
         bootstrap=True,
-        oob_score=True,      # out-of-bag estimate (see note below)
+        oob_score=True,
         random_state=42,
         n_jobs=-1
     )
 
-    # 4. Train model
-    rf_reg.fit(X_train, y_train)
+    # 7. Train the model
+    rf_reg.fit(
+        X_train,
+        y_train
+    )
 
-    # 5. Predict and evaluate
-    y_pred = rf_reg.predict(X_test)
+    # 8. Predict the test data
+    y_pred = rf_reg.predict(
+        X_test
+    )
 
-    r2 = r2_score(y_test, y_pred)
-    mse = mean_squared_error(y_test, y_pred)
+    # 9. Evaluate model performance
+    r2 = r2_score(
+        y_test,
+        y_pred
+    )
 
-    print(f"Test R²: {r2:.3f}")
-    print(f"Test MSE: {mse:.3f}")
-    print(f"Out-of-bag R²: {rf_reg.oob_score_:.3f}")
+    mse = mean_squared_error(
+        y_test,
+        y_pred
+    )
 
-    # 6. Cross-validation
+    rmse = np.sqrt(mse)
+
+    mae = mean_absolute_error(
+        y_test,
+        y_pred
+    )
+
+    print(
+        f"\nTest R²:   {r2:.3f}"
+    )
+
+    print(
+        f"Test MAE:  {mae:.3f} eV"
+    )
+
+    print(
+        f"Test RMSE: {rmse:.3f} eV"
+    )
+
+    print(
+        f"OOB R²:    "
+        f"{rf_reg.oob_score_:.3f}"
+    )
+
+    # 10. Cross-validation on the training set
     cv_scores = cross_val_score(
         rf_reg,
-        X,
-        y,
+        X_train,
+        y_train,
         cv=5,
-        scoring="r2"
+        scoring="r2",
+        n_jobs=-1
     )
 
-    print(f"Cross-validation R²: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
-
-    # 7. Feature importance
-    importances = rf_reg.feature_importances_
-    indices = np.argsort(importances)[::-1]
-
-    print("\nFeature ranking:")
-    for i, idx in enumerate(indices[:10]):
-        print(f"{i + 1}. Feature {idx}: {importances[idx]:.4f}")
-
-    # 8. Visualize feature importance
-    plt.figure(figsize=(10, 6))
-
-    plt.bar(
-        range(len(importances)),
-        importances[indices]
+    print(
+        "\nCross-validation R²:"
     )
 
-    plt.xticks(
-        range(len(importances)),
-        indices
+    print(
+        f"{cv_scores.mean():.3f} "
+        f"± {cv_scores.std():.3f}"
     )
 
-    plt.xlabel("Feature Index")
-    plt.ylabel("Importance")
-    plt.title("Random Forest Feature Importance")
+    # 11. Impurity-based feature importance
+    importances = (
+        rf_reg.feature_importances_
+    )
+
+    indices = np.argsort(
+        importances
+    )[::-1]
+
+    print(
+        "\nTop 10 features:"
+    )
+
+    for rank, idx in enumerate(
+        indices[:10],
+        start=1
+    ):
+
+        print(
+            f"{rank:2d}. "
+            f"{feature_names[idx]}: "
+            f"{importances[idx]:.4f}"
+        )
+
+    # 12. Visualize the 10 most important features
+    top_indices = indices[:10]
+
+    top_names = [
+        feature_names[i]
+        for i in top_indices
+    ]
+
+    top_importances = importances[
+        top_indices
+    ]
+
+    plt.figure(
+        figsize=(10, 6)
+    )
+
+    plt.barh(
+        range(len(top_names)),
+        top_importances
+    )
+
+    plt.yticks(
+        range(len(top_names)),
+        top_names
+    )
+
+    plt.gca().invert_yaxis()
+
+    plt.xlabel(
+        "Impurity-Based Importance"
+    )
+
+    plt.title(
+        "Random Forest Feature Importance"
+    )
 
     plt.tight_layout()
-    plt.savefig("random-forest.png", dpi=300, bbox_inches="tight")
+
+    plt.savefig(
+        "random-forest-materials.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
     plt.show()
     ```
 
-**Out-of-bag estimation**: Because each tree is trained on a bootstrap sample,
-roughly one-third of the training data is left out ("out of bag") for each tree.
-These held-out samples provide a built-in validation estimate at no extra cost,
-enabled with `oob_score=True` and read from `rf_reg.oob_score_`.
+In this example, each material is initially represented by its chemical composition. 
+The Magpie featurizer transforms that composition into numerical descriptors containing 
+statistics of elemental properties such as atomic number, atomic mass, electronegativity, 
+and related quantities. The Random Forest then learns relationships between these 
+composition-derived descriptors and the experimental band gap.
 
-**A note on feature importance**: The `feature_importances_` attribute reports
-impurity-based (Gini) importance, which is fast but biased toward high-cardinality
-and continuous features. For a more reliable ranking, use permutation importance,
-which measures the drop in performance when a feature's values are shuffled:
+Because the target is continuous,
+
+$$
+y = E_{\mathrm{gap}},
+$$
+
+the problem is formulated as a regression task. The final model predicts the experimental 
+band gap of previously unseen inorganic compositions.
+
+#### Out-of-Bag Estimation
+
+Bootstrap sampling also provides a convenient internal estimate of model performance. 
+When a bootstrap sample containing $N$ draws is constructed from $N$ training 
+observations, some samples are not selected for that particular tree. On average, 
+approximately (36.8%) of the observations are excluded and are referred to as **out-of-bag (OOB) samples**.
+
+These observations can be passed through trees for which they were not included during 
+training, providing an internal estimate of predictive performance without creating an additional validation subset.
+
+In scikit-learn, OOB estimation can be enabled using
+
+```python
+oob_score=True
+```
+
+and the resulting score can be accessed through
+
+```python
+rf_reg.oob_score_
+```
+
+OOB evaluation is useful, but it does not replace a final independent test set when 
+an unbiased final performance estimate is required.
+
+#### Feature Importance
+
+Random Forests provide an impurity-based feature importance through
+
+```python
+rf_reg.feature_importances_
+```
+
+This quantity measures how much each feature contributes, on average, to reducing the 
+splitting criterion across the trees in the forest. For regression, this is commonly related 
+to reductions in squared-error impurity.
+
+Although fast and convenient, impurity-based feature importance can be misleading, 
+particularly when features differ substantially in cardinality or when several variables are strongly correlated.
+
+**Permutation importance** provides an alternative approach. After the model has been 
+trained, one feature is randomly shuffled while all other features remain unchanged. If model 
+performance decreases substantially, the model was relying strongly on that feature.
 
 ??? note "Example"
 
     ```python
-    from sklearn.inspection import permutation_importance
+    import numpy as np
 
+    from sklearn.inspection import (
+        permutation_importance
+    )
+
+    # Calculate permutation importance
+    # using the held-out test set
     result = permutation_importance(
         rf_reg,
         X_test,
         y_test,
-        n_repeats=10,
+        scoring="r2",
+        n_repeats=5,
         random_state=42,
         n_jobs=-1
     )
 
-    for idx in result.importances_mean.argsort()[::-1][:10]:
+    # Rank features
+    indices = np.argsort(
+        result.importances_mean
+    )[::-1]
+
+    print(
+        "Top permutation importances:\n"
+    )
+
+    for rank, idx in enumerate(
+        indices[:10],
+        start=1
+    ):
+
         print(
-            f"Feature {idx}: "
+            f"{rank:2d}. "
+            f"{feature_names[idx]}: "
             f"{result.importances_mean[idx]:.4f} "
-            f"± {result.importances_std[idx]:.4f}"
+            f"± "
+            f"{result.importances_std[idx]:.4f}"
         )
     ```
 
-**Advantages**:
+Permutation importance measures the importance of a feature for the 
+**specific trained model and evaluation dataset**. It should therefore not 
+be interpreted as proof that a descriptor has a direct causal influence on 
+the material property.
 
-- Handles non-linear relationships
-- Robust to outliers
-- Provides feature importance
-- Little hyperparameter tuning needed
-- Reduces variance relative to a single deep tree
+#### Advantages
 
-**Limitations**:
+Random Forests can capture nonlinear relationships and interactions between multiple 
+descriptors without requiring an explicit mathematical form for those relationships. 
+They generally require little preprocessing, and numerical features do not need to be 
+standardized before training. Combining many decision trees usually provides substantially 
+more stable predictions than using a single unrestricted decision tree.
 
-- Can be slow for very large datasets
-- Poor at extrapolation beyond the range of the training data
-- Hard to interpret individual predictions
+Random Forests can also work effectively with mixtures of informative and weakly 
+informative variables and provide several approaches for investigating feature importance. 
+Their parallel tree structure makes training and prediction suitable for multicore computation.
 
-**Hyperparameter Tuning**:
+#### Limitations
+
+Random Forests can become computationally and memory intensive when very large numbers of 
+trees, samples, or descriptors are used. Their predictions are also less directly interpretable 
+than those of a single decision tree because the final result combines many individual models.
+
+A particularly important limitation for scientific applications is **extrapolation**. 
+Decision-tree predictions are constructed from target values observed in regions of the 
+training data, so Random Forests generally perform poorly when asked to predict behavior 
+far outside the domain represented during training.
+
+Feature importance must also be interpreted carefully. Correlated materials descriptors may 
+contain overlapping information, making the importance assigned to any individual variable difficult to interpret.
+
+#### Hyperparameter Tuning
+
+The behavior of a Random Forest is controlled by several important hyperparameters. `n_estimators` 
+specifies the number of trees in the ensemble. `max_depth`, `min_samples_split`, and `min_samples_leaf` 
+control tree complexity, while `max_features` determines how many descriptors can be considered 
+when searching for a split. These parameters influence the balance between model flexibility, variance, 
+computational cost, and generalization.
+
+Rather than selecting these values manually, they can be explored systematically using cross-validation.
 
 ??? note "Example"
 
     ```python
-    from sklearn.model_selection import RandomizedSearchCV
+    from sklearn.ensemble import (
+        RandomForestRegressor
+    )
 
+    from sklearn.model_selection import (
+        RandomizedSearchCV
+    )
+
+    # Hyperparameter search space
     param_dist = {
-        'n_estimators': [100, 200, 500, 1000],
-        'max_depth': [10, 20, 30, None],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'max_features': ['sqrt', 'log2', 0.5]
+
+        "n_estimators": [100,200,500],
+
+        "max_depth": [10,20,30,None],
+
+        "min_samples_split": [2,5,10],
+
+        "min_samples_leaf": [1,2,4],
+
+        "max_features": ["sqrt","log2",0.5,1.0]
     }
 
+    # Define randomized search
     random_search = RandomizedSearchCV(
-        RandomForestRegressor(random_state=42),
+
+        estimator=RandomForestRegressor(
+            random_state=42,
+            n_jobs=1
+        ),
+
         param_distributions=param_dist,
-        n_iter=50,
+
+        n_iter=20,
+
         cv=5,
-        scoring='r2',
+
+        scoring="r2",
+
         random_state=42,
+
         n_jobs=-1
     )
 
-    random_search.fit(X_train, y_train)
-    print(f"Best parameters: {random_search.best_params_}")
-    print(f"Best score: {random_search.best_score_:.3f}")
+    # Tune using training data only
+    random_search.fit(
+        X_train,
+        y_train
+    )
+
+    print(
+        "Best parameters:"
+    )
+
+    print(
+        random_search.best_params_
+    )
+
+
+    print(
+        "\nBest cross-validation R²:"
+    )
+
+    print(
+        f"{random_search.best_score_:.3f}"
+    )
+
+    # Evaluate the optimized model
+    # on the untouched test set
+    best_model = (
+        random_search.best_estimator_
+    )
+
+    y_pred_best = best_model.predict(
+        X_test
+    )
+
+    test_r2 = r2_score(
+        y_test,
+        y_pred_best
+    )
+
+    print(
+        f"\nOptimized test R²: "
+        f"{test_r2:.3f}"
+    )
     ```
+
+The hyperparameter search is performed using only the training set. The test 
+set remains untouched until the final model has been selected, ensuring that it 
+provides an independent estimate of generalization performance.
 
 ### 3.3 Model Evaluation Metrics
 
