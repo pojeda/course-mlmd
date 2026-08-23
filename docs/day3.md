@@ -4023,21 +4023,13 @@ where $S_{\mathrm{mol/L}}$ is the aqueous solubility expressed in moles per lite
         "measured log solubility in mols per litre"
     )
 
-    print(
-        f"Dataset size: {len(data)}"
-    )
+    print(f"Dataset size: {len(data)}")
 
-    print(
-        data.head()
-    )
+    print(data.head())
 
-    print(
-        "\nColumn names:"
-    )
+    print("\nColumn names:")
 
-    print(
-        data.columns.tolist()
-    )
+    print(data.columns.tolist())
     ```
 
 The dataset contains both molecular structures and several previously calculated properties. 
@@ -4140,18 +4132,12 @@ where $N$ is the number of molecules and $F$ is the number of molecular descript
 
         if features is not None:
 
-            features_list.append(
-                features
-            )
+            features_list.append(features)
 
-            valid_indices.append(
-                idx
-            )
+            valid_indices.append(idx)
 
     # Construct feature matrix
-    X = pd.DataFrame(
-        features_list
-    )
+    X = pd.DataFrame(features_list)
 
     # Experimental solubility target
     y = data.loc[
@@ -4161,26 +4147,18 @@ where $N$ is the number of molecules and $F$ is the number of molecular descript
         drop=True
     )
 
-    print(
-        f"\nFeature matrix shape: {X.shape}"
-    )
+    print(f"\nFeature matrix shape: {X.shape}")
 
-    print(
-        f"Target shape: {y.shape}"
-    )
+    print(f"Target shape: {y.shape}")
 
     print(
         f"Valid molecules: "
         f"{len(valid_indices)} / {len(data)}"
     )
 
-    print(
-        "\nFeatures:"
-    )
+    print("\nFeatures:")
 
-    print(
-        X.columns.tolist()
-    )
+    print(X.columns.tolist())
     ```
 
 Tracking the valid molecule indices ensures that the descriptor matrix $X$ and 
@@ -4210,14 +4188,9 @@ Correlation measures linear association and should not be interpreted as a measu
 
     ```python
     # Check missing values
+    print("\nMissing values:")
 
-    print(
-        "\nMissing values:"
-    )
-
-    print(
-        X.isnull().sum()
-    )
+    print(X.isnull().sum())
 
     # Check for non-finite values
     print(
@@ -4230,34 +4203,20 @@ Correlation measures linear association and should not be interpreted as a measu
     )
 
     # Feature statistics
-    print(
-        "\nFeature statistics:"
-    )
+    print("\nFeature statistics:")
 
-    print(
-        X.describe()
-    )
+    print(X.describe())
 
     # Target statistics
-    print(
-        "\nTarget statistics:"
-    )
+    print("\nTarget statistics:")
 
-    print(
-        f"Mean: {y.mean():.3f}"
-    )
+    print(f"Mean: {y.mean():.3f}")
 
-    print(
-        f"Std:  {y.std():.3f}"
-    )
+    print(f"Std:  {y.std():.3f}")
 
-    print(
-        f"Min:  {y.min():.3f}"
-    )
+    print(f"Min:  {y.min():.3f}")
 
-    print(
-        f"Max:  {y.max():.3f}"
-    )
+    print(f"Max:  {y.max():.3f}")
 
     # Feature-target correlations
     correlations = X.corrwith(
