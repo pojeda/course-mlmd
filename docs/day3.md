@@ -3957,349 +3957,1060 @@ the ESOL (Delaney) set (J. Chem. Inf. Comput. Sci. 2004, 44, 1000–1005,
 
 ### Dataset
 
+In this example, we construct a complete machine learning workflow for predicting 
+**aqueous solubility** from molecular descriptors.
+The dataset is the processed **Delaney ESOL dataset**, which contains molecular structures 
+represented as SMILES strings together with experimentally measured logarithmic aqueous solubilities.
+
+The target property is
+
+$$
+y =
+\log_{10}
+\left(
+S_{\mathrm{mol/L}}
+\right),
+$$
+
+where $S_{\mathrm{mol/L}}$ is the aqueous solubility expressed in moles per liter.
+
 ??? note "Example"
 
     ```python
+    import numpy as np
     import pandas as pd
+    import matplotlib.pyplot as plt
+
     from rdkit import Chem
     from rdkit.Chem import Descriptors
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.model_selection import train_test_split, cross_val_score
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-    import numpy as np
 
-    # Load data. Here we use the processed ESOL file from DeepChem.
-    # If you use a different source, adjust the column names below to match
-    # (check data.columns.tolist() after loading).
-    url = "https://raw.githubusercontent.com/deepchem/deepchem/master/datasets/delaney-processed.csv"
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    from sklearn.linear_model import Ridge, Lasso
+    from sklearn.ensemble import (
+        RandomForestRegressor,
+        GradientBoostingRegressor
+    )
+    from sklearn.svm import SVR
+
+    from sklearn.model_selection import (
+        train_test_split,
+        cross_val_score,
+        KFold,
+        RandomizedSearchCV
+    )
+
+    from sklearn.metrics import (
+        mean_absolute_error,
+        mean_squared_error,
+        r2_score
+    )
+
+    # Load the ESOL dataset
+    url = (
+        "https://raw.githubusercontent.com/"
+        "deepchem/deepchem/master/datasets/"
+        "delaney-processed.csv"
+    )
+
     data = pd.read_csv(url)
 
+    # Column names in the processed ESOL dataset
     smiles_col = "smiles"
-    target_col = "measured log solubility in mols per litre"
 
-    print(f"Dataset size: {len(data)}")
-    print(data.head())
-    print(f"Column names: {data.columns.tolist()}")
+    target_col = (
+        "measured log solubility in mols per litre"
+    )
+
+    print(
+        f"Dataset size: {len(data)}"
+    )
+
+    print(
+        data.head()
+    )
+
+    print(
+        "\nColumn names:"
+    )
+
+    print(
+        data.columns.tolist()
+    )
     ```
 
-### Step 1: Feature engineering
+The dataset contains both molecular structures and several previously calculated properties. 
+In this example, however, molecular descriptors are recalculated directly from the SMILES 
+strings using RDKit.
+
+### Step 1: Feature Engineering
+
+Machine learning algorithms require numerical inputs. The molecular SMILES strings are therefore 
+converted into a collection of physicochemical and structural descriptors.
+For molecule $i$, the resulting feature vector can be represented as
+
+$$
+\mathbf{x}_i
+=
+[
+MW,
+LogP,
+HBD,
+HBA,
+N_{\mathrm{rot}},
+N_{\mathrm{arom}},
+TPSA,
+\ldots
+].
+$$
+
+These descriptor vectors are combined into a feature matrix
+
+$$
+X
+\in
+\mathbb{R}^{N\times F},
+$$
+
+where $N$ is the number of molecules and $F$ is the number of molecular descriptors.
 
 ??? note "Example"
 
     ```python
     def calculate_molecular_features(smiles):
-        """Calculate molecular descriptors from a SMILES string."""
+        """
+        Calculate molecular descriptors
+        from a SMILES string.
+        """
+
         mol = Chem.MolFromSmiles(smiles)
+
         if mol is None:
             return None
 
         features = {
-            'MolWt': Descriptors.MolWt(mol),
-            'LogP': Descriptors.MolLogP(mol),
-            'NumHDonors': Descriptors.NumHDonors(mol),
-            'NumHAcceptors': Descriptors.NumHAcceptors(mol),
-            'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
-            'NumAromaticRings': Descriptors.NumAromaticRings(mol),
-            'TPSA': Descriptors.TPSA(mol),
-            'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
-            'NumRings': Descriptors.RingCount(mol),
-            'NumSaturatedRings': Descriptors.NumSaturatedRings(mol),
+
+            "MolWt":
+                Descriptors.MolWt(mol),
+
+            "LogP":
+                Descriptors.MolLogP(mol),
+
+            "NumHDonors":
+                Descriptors.NumHDonors(mol),
+
+            "NumHAcceptors":
+                Descriptors.NumHAcceptors(mol),
+
+            "NumRotatableBonds":
+                Descriptors.NumRotatableBonds(mol),
+
+            "NumAromaticRings":
+                Descriptors.NumAromaticRings(mol),
+
+            "TPSA":
+                Descriptors.TPSA(mol),
+
+            "NumHeteroatoms":
+                Descriptors.NumHeteroatoms(mol),
+
+            "NumRings":
+                Descriptors.RingCount(mol),
+
+            "NumSaturatedRings":
+                Descriptors.NumSaturatedRings(mol),
         }
 
         return features
 
-    # Calculate features for all molecules, tracking valid rows so that
-    # X and y stay aligned even when a SMILES fails to parse.
+    # Calculate descriptors for all molecules
     features_list = []
     valid_indices = []
 
-    for idx, smiles in enumerate(data['SMILES']):
-        features = calculate_molecular_features(smiles)
+    for idx, smiles in enumerate(
+        data[smiles_col]
+    ):
+
+        features = (
+            calculate_molecular_features(
+                smiles
+            )
+        )
+
         if features is not None:
-            features_list.append(features)
-            valid_indices.append(idx)
 
-    X = pd.DataFrame(features_list)
-    # Use the correct column name for solubility
-    y = data.loc[valid_indices, 'measured log(solubility:mol/L)'].values
+            features_list.append(
+                features
+            )
 
-    print(f"\nFeatures shape: {X.shape}")
-    print(f"Targets shape: {y.shape}")
-    print(f"Valid molecules: {len(valid_indices)} / {len(data)}")
+            valid_indices.append(
+                idx
+            )
+
+    # Construct feature matrix
+    X = pd.DataFrame(
+        features_list
+    )
+
+    # Experimental solubility target
+    y = data.loc[
+        valid_indices,
+        target_col
+    ].reset_index(
+        drop=True
+    )
+
+    print(
+        f"\nFeature matrix shape: {X.shape}"
+    )
+
+    print(
+        f"Target shape: {y.shape}"
+    )
+
+    print(
+        f"Valid molecules: "
+        f"{len(valid_indices)} / {len(data)}"
+    )
+
+    print(
+        "\nFeatures:"
+    )
+
+    print(
+        X.columns.tolist()
+    )
     ```
+
+Tracking the valid molecule indices ensures that the descriptor matrix $X$ and 
+target vector $y$ remain aligned if any SMILES string fails to parse.
 
 ### Step 2: Data Validation and Exploration
 
+Before training a model, the generated descriptors and target values should be 
+inspected for missing values, unusual ranges, and potential errors.
+Simple exploratory analysis can also reveal relationships between individual 
+descriptors and the target property.
+The Pearson correlation coefficient between a descriptor $x$ and the target $y$ is
+
+$$
+r_{xy}
+=
+\frac{
+\operatorname{cov}(x,y)
+}{
+\sigma_x \sigma_y
+}.
+$$
+
+Correlation measures linear association and should not be interpreted as a measure of causality or as a complete description of predictive importance.
+
 ??? note "Example"
 
     ```python
-    # Check for missing values
-    print("\nMissing values:")
-    print(X.isnull().sum())
+    # Check missing values
 
-    # Check distributions
-    print("\nFeature statistics:")
-    print(X.describe())
+    print(
+        "\nMissing values:"
+    )
 
-    print("\nTarget statistics:")
-    print(f"Mean: {y.mean():.3f}")
-    print(f"Std: {y.std():.3f}")
-    print(f"Min: {y.min():.3f}")
-    print(f"Max: {y.max():.3f}")
+    print(
+        X.isnull().sum()
+    )
 
-    # Visualize feature-target correlations
-    import matplotlib.pyplot as plt
+    # Check for non-finite values
+    print(
+        "\nNon-finite feature values:",
+        np.sum(
+            ~np.isfinite(
+                X.to_numpy()
+            )
+        )
+    )
 
-    plt.figure(figsize=(10, 8))
-    correlations = X.corrwith(pd.Series(y, index=X.index))
-    correlations.sort_values().plot(kind='barh')
-    plt.xlabel('Correlation with solubility')
-    plt.title('Feature-target correlations')
+    # Feature statistics
+    print(
+        "\nFeature statistics:"
+    )
+
+    print(
+        X.describe()
+    )
+
+    # Target statistics
+    print(
+        "\nTarget statistics:"
+    )
+
+    print(
+        f"Mean: {y.mean():.3f}"
+    )
+
+    print(
+        f"Std:  {y.std():.3f}"
+    )
+
+    print(
+        f"Min:  {y.min():.3f}"
+    )
+
+    print(
+        f"Max:  {y.max():.3f}"
+    )
+
+    # Feature-target correlations
+    correlations = X.corrwith(
+        y
+    )
+
+    correlations = correlations.sort_values()
+
+    plt.figure(
+        figsize=(10, 8)
+    )
+
+    correlations.plot(
+        kind="barh"
+    )
+
+    plt.xlabel(
+        "Pearson Correlation with Solubility"
+    )
+
+    plt.title(
+        "Feature-Target Correlations"
+    )
+
     plt.tight_layout()
-    #plt.show()
-    plt.savefig('feature_correlations.png', dpi=300, bbox_inches='tight')
+
+    plt.savefig(
+        "feature_correlations.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
     plt.close()
     ```
+
+A strong individual correlation may indicate that a descriptor contains 
+useful information about solubility. However, nonlinear models can also 
+learn relationships from descriptors that show relatively weak linear correlations.
 
 ### Step 3: Train-Test Split
 
+The dataset is divided into a **training set** and an independent **test set**. 
+The training set is used for model fitting, cross-validation, model selection, and 
+hyperparameter optimization.
+
+The test set is kept separate until the final evaluation.
+
 ??? note "Example"
 
     ```python
-    # Split data
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+    X_train, X_test, y_train, y_test = (
+        train_test_split(
+            X,
+            y,
+            test_size=0.20,
+            random_state=42
+        )
     )
 
-    print(f"\nTraining set size: {len(X_train)}")
-    print(f"Test set size: {len(X_test)}")
+    print(
+        f"\nTraining set size: "
+        f"{len(X_train)}"
+    )
+
+    print(
+        f"Test set size: "
+        f"{len(X_test)}"
+    )
     ```
+
+This example uses a random train-test split for simplicity. In realistic QSAR applications, 
+a scaffold-based split can provide a more demanding evaluation because structurally related 
+molecules are prevented from appearing in both the training and test sets.
 
 ### Step 4: Preprocessing
 
+Different machine learning algorithms have different preprocessing requirements.
+
+Models such as Ridge regression, Lasso regression, and Support Vector Regression are 
+sensitive to the scale of the input features. For these models, the descriptors are 
+standardized according to
+
+$$
+x_j'
+=
+\frac{
+x_j-\mu_j
+}{
+\sigma_j
+}.
+$$
+
+Tree-based models such as Random Forests and Gradient Boosting do not generally 
+require feature standardization because their splits are based on feature thresholds.
+
+To prevent **data leakage**, preprocessing is incorporated into a scikit-learn `Pipeline`. 
+This ensures that the scaler is fitted only to the training portion of each cross-validation fold.
+
 ??? note "Example"
 
     ```python
-    # Standardize features.
-    # Scaling is needed here because the model comparison below includes
-    # Ridge, Lasso, and SVR, which are sensitive to feature scale.
-    # (Tree-based models such as random forests are not, but scaling them
-    # does no harm.)
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
+    # Define model pipelines
+
+    models = {
+
+        "Ridge":
+
+            Pipeline([
+                ("scaler",StandardScaler()),
+                ("model",Ridge(alpha=1.0))
+            ]),
+
+        "Lasso":
+
+            Pipeline([
+                ("scaler",StandardScaler()),
+                ("model",Lasso(alpha=0.1,max_iter=10000))
+            ]),
+
+        "Random Forest":
+
+            Pipeline([
+                (
+                    "model",
+                    RandomForestRegressor(
+                        n_estimators=200,
+                        random_state=42,
+                        n_jobs=1
+                    )
+                )
+            ]),
+
+        "Gradient Boosting":
+
+            Pipeline([
+                (
+                    "model",
+                    GradientBoostingRegressor(
+                        n_estimators=100,
+                        random_state=42
+                    )
+                )
+            ]),
+
+        "SVR":
+
+            Pipeline([
+                ("scaler",StandardScaler()),
+                (
+                    "model",
+                    SVR(
+                        kernel="rbf",
+                        C=1.0
+                    )
+                )
+            ])
+    }
     ```
+
+The important advantage of this design is that every model receives the 
+preprocessing appropriate for that algorithm while retaining a common 
+interface for training and prediction.
 
 ### Step 5: Model Training with Cross-Validation
 
+Rather than selecting a model from a single train-test result, several algorithms can be 
+compared using cross-validation on the training set.
+For $K$-fold cross-validation, the training data are divided into $K$ folds. Each model is 
+trained on $K-1$ folds and evaluated on the remaining fold. This process is repeated until 
+every fold has been used for validation.
+
+For regression, the coefficient of determination is
+
+$$
+R^2
+=
+1-
+\frac{
+\sum_i
+(y_i-\hat{y}_i)^2
+}{
+\sum_i
+(y_i-\bar{y})^2
+}.
+$$
+
+Higher values indicate better predictive performance, with
+
+$$
+R^2=1
+$$
+
+representing perfect predictions.
+
 ??? note "Example"
 
     ```python
-    # Try different models
-    from sklearn.linear_model import Ridge, Lasso
-    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-    from sklearn.svm import SVR
+    # Define cross-validation strategy
 
-    models = {
-        'Ridge': Ridge(alpha=1.0),
-        'Lasso': Lasso(alpha=0.1),
-        'Random Forest': RandomForestRegressor(n_estimators=100, random_state=42),
-        'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
-        'SVR': SVR(kernel='rbf', C=1.0),
-    }
+    cv = KFold(
+        n_splits=5,
+        shuffle=True,
+        random_state=42
+    )
 
-    # Cross-validation
-    print("\nCross-validation results:")
+    # Compare models
+    print(
+        "\nCross-validation results:"
+    )
+
     cv_results = {}
 
     for name, model in models.items():
+
         scores = cross_val_score(
-            model, X_train_scaled, y_train,
-            cv=5, scoring='r2', n_jobs=-1
+            model,
+            X_train,
+            y_train,
+            cv=cv,
+            scoring="r2",
+            n_jobs=-1
         )
+
         cv_results[name] = scores
-        print(f"{name:20s}: R² = {scores.mean():.3f} ± {scores.std():.3f}")
 
-    # Select best model
-    best_model_name = max(cv_results, key=lambda k: cv_results[k].mean())
-    best_model = models[best_model_name]
-    print(f"\nBest model: {best_model_name}")
-    ```
-
-### Step 6: Hyperparameter tuning
-
-??? note "Example"
-
-    ```python
-    from sklearn.model_selection import RandomizedSearchCV
-
-    # Tune the best model (shown here for Random Forest)
-    if best_model_name == 'Random Forest':
-        param_distributions = {
-            'n_estimators': [100, 200, 500],
-            'max_depth': [10, 20, 30, None],
-            'min_samples_split': [2, 5, 10],
-            'min_samples_leaf': [1, 2, 4],
-            'max_features': ['sqrt', 'log2', 0.5, 1.0],
-        }
-
-        random_search = RandomizedSearchCV(
-            RandomForestRegressor(random_state=42),
-            param_distributions,
-            n_iter=20,
-            cv=5,
-            scoring='r2',
-            n_jobs=-1,
-            random_state=42,
-            verbose=1
+        print(
+            f"{name:20s}: "
+            f"R² = "
+            f"{scores.mean():.3f} "
+            f"± "
+            f"{scores.std():.3f}"
         )
 
-        random_search.fit(X_train_scaled, y_train)
+    # Select the model with the highest mean CV R²
+    best_model_name = max(
+        cv_results,
+        key=lambda name:
+            cv_results[name].mean()
+    )
 
-        print(f"\nBest parameters: {random_search.best_params_}")
-        print(f"Best CV R²: {random_search.best_score_:.3f}")
-
-        best_model = random_search.best_estimator_
+    print(
+        f"\nBest model: "
+        f"{best_model_name}"
+    )
     ```
 
-### Step 7: Final evaluation
+Cross-validation is performed only on the training data. The test set 
+remains untouched during model comparison.
+
+### Step 6: Hyperparameter Tuning
+
+Once the best-performing model family has been selected, its hyperparameters 
+can be optimized using cross-validation.
+The appropriate hyperparameters depend on the selected algorithm. For example, 
+a Random Forest can be tuned by varying the number of trees, maximum tree depth, 
+minimum number of samples required for splitting, and number of features considered at each split.
+
+To make the workflow general, a separate search space is defined for each candidate model.
 
 ??? note "Example"
 
     ```python
-    # Train on the full training set
-    best_model.fit(X_train_scaled, y_train)
+    # Hyperparameter search spaces
 
-    # Predict
-    y_pred_train = best_model.predict(X_train_scaled)
-    y_pred_test = best_model.predict(X_test_scaled)
+    search_spaces = {
 
-    # Calculate metrics
-    train_r2 = r2_score(y_train, y_pred_train)
-    train_rmse = np.sqrt(mean_squared_error(y_train, y_pred_train))
-    train_mae = mean_absolute_error(y_train, y_pred_train)
+        "Ridge": {
+            "model__alpha":
+                [0.01,0.1,1.0,10.0,100.0]
+        },
 
-    test_r2 = r2_score(y_test, y_pred_test)
-    test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test))
-    test_mae = mean_absolute_error(y_test, y_pred_test)
 
+        "Lasso": {
+            "model__alpha":
+                [0.001,0.01,0.1,1.0]
+        },
+
+        "Random Forest": {
+
+            "model__n_estimators":
+                [100,200,500],
+
+            "model__max_depth":
+                [10,20,30,None],
+
+            "model__min_samples_split":
+                [2,5,10],
+
+            "model__min_samples_leaf":
+                [1,2,4],
+
+            "model__max_features":
+                ["sqrt","log2",0.5,1.0]
+        },
+
+        "Gradient Boosting": {
+
+            "model__n_estimators":
+                [100,200,500],
+
+            "model__learning_rate":
+                [0.01,0.05,0.1],
+
+            "model__max_depth":
+                [2,3,5],
+
+            "model__min_samples_leaf":
+                [1,2,4]
+        },
+
+
+        "SVR": {
+
+            "model__C":
+                [0.1,1.0,10.0,100.0],
+
+            "model__gamma":
+                ["scale","auto",0.01,0.1],
+
+            "model__epsilon":
+                [0.01,0.1,0.2]
+        }
+    }
+
+    # Tune the selected model
+    random_search = RandomizedSearchCV(
+
+        estimator=models[
+            best_model_name
+        ],
+
+        param_distributions=
+            search_spaces[
+                best_model_name
+            ],
+
+        n_iter=20,
+        cv=cv,
+        scoring="r2",
+        random_state=42,
+        n_jobs=-1,
+        verbose=1,
+        refit=True
+    )
+
+    random_search.fit(
+        X_train,
+        y_train
+    )
+
+    print("\nBest parameters:")
+
+    print(random_search.best_params_)
+
+    print(
+        f"\nBest CV R²: "
+        f"{random_search.best_score_:.3f}"
+    )
+
+    # Best fitted pipeline
+    best_model = (random_search.best_estimator_)
+    ```
+
+The parameter names contain the prefix `model__` because the estimator is 
+stored inside a scikit-learn `Pipeline`.
+The test set is still not used during this stage.
+
+### Step 7: Final Evaluation
+
+After model selection and hyperparameter tuning, the optimized pipeline is 
+evaluated on the independent test set.
+Three common regression metrics are used: the **Mean Absolute Error (MAE)**, the
+ **Root Mean Squared Error (RMSE)**, and the coefficient of determination (R^2).
+ 
+??? note "Example"
+
+    ```python
+    # Predictions
+
+    y_pred_train = best_model.predict(
+        X_train
+    )
+
+    y_pred_test = best_model.predict(
+        X_test
+    )
+
+    # Training metrics
+    train_r2 = r2_score(
+        y_train,
+        y_pred_train
+    )
+
+    train_rmse = np.sqrt(
+        mean_squared_error(
+            y_train,
+            y_pred_train
+        )
+    )
+
+    train_mae = mean_absolute_error(
+        y_train,
+        y_pred_train
+    )
+
+    # Test metrics
+    test_r2 = r2_score(
+        y_test,
+        y_pred_test
+    )
+
+    test_rmse = np.sqrt(
+        mean_squared_error(
+            y_test,
+            y_pred_test
+        )
+    )
+
+    test_mae = mean_absolute_error(
+        y_test,
+        y_pred_test
+    )
+
+    # Report results
     print("\nFinal results:")
-    print(f"Training - R²: {train_r2:.3f}, RMSE: {train_rmse:.3f}, MAE: {train_mae:.3f}")
-    print(f"Test     - R²: {test_r2:.3f}, RMSE: {test_rmse:.3f}, MAE: {test_mae:.3f}")
 
-    # Check for overfitting
-    if train_r2 - test_r2 > 0.1:
-        print("\nWarning: possible overfitting detected.")
-    else:
-        print("\nModel generalizes well.")
+    print(
+        "Training - "
+        f"R²: {train_r2:.3f}, "
+        f"RMSE: {train_rmse:.3f}, "
+        f"MAE: {train_mae:.3f}"
+    )
+
+    print(
+        "Test     - "
+        f"R²: {test_r2:.3f}, "
+        f"RMSE: {test_rmse:.3f}, "
+        f"MAE: {test_mae:.3f}"
+    )
+
+    r2_gap = (train_r2 - test_r2)
+
+    print(
+        f"\nTrain-test R² gap: "
+        f"{r2_gap:.3f}"
+    )
     ```
 
-### Step 8: Visualization and analysis
+A substantially better training score than test score can be evidence of overfitting, 
+but no single threshold establishes whether a model generalizes well. The train-test 
+difference should be interpreted together with cross-validation performance, dataset 
+size, split strategy, and the intended application domain.
+
+For this dataset, MAE and RMSE are expressed in units of logarithmic molar solubility.
+
+### Step 8: Visualization and Analysis
+
+Predicted-versus-observed plots provide a convenient visual representation of model 
+performance. Perfect predictions lie on the diagonal line
+
+$$
+\hat{y}=y.
+$$
+
+Residuals provide additional information about prediction errors and are defined as
+
+$$
+e_i=y_i-\hat{y}_i.
+$$
+
+Residual patterns may reveal systematic model errors, regions of poor predictive performance, 
+or unusually difficult molecules.
 
 ??? note "Example"
 
     ```python
-    # Prediction plots
-    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    # Predicted vs. observed values
+    fig, axes = plt.subplots(1,2,figsize=(14, 6))
 
-    # Training set
-    axes[0].scatter(y_train, y_pred_train, alpha=0.5)
-    axes[0].plot([y_train.min(), y_train.max()],
-                 [y_train.min(), y_train.max()], 'r--', lw=2)
-    axes[0].set_xlabel('True solubility')
-    axes[0].set_ylabel('Predicted solubility')
-    axes[0].set_title(f'Training set (R² = {train_r2:.3f})')
-    axes[0].axis('equal')
+    # Training data
+    axes[0].scatter(
+        y_train,
+        y_pred_train,
+        alpha=0.5
+    )
 
-    # Test set
-    axes[1].scatter(y_test, y_pred_test, alpha=0.5)
-    axes[1].plot([y_test.min(), y_test.max()],
-                 [y_test.min(), y_test.max()], 'r--', lw=2)
-    axes[1].set_xlabel('True solubility')
-    axes[1].set_ylabel('Predicted solubility')
-    axes[1].set_title(f'Test set (R² = {test_r2:.3f})')
-    axes[1].axis('equal')
+    train_min = min(
+        y_train.min(),
+        y_pred_train.min()
+    )
 
-    plt.tight_layout()
-    #plt.show()
-    plt.savefig('predicted_solubility.png', dpi=300, bbox_inches='tight')
-    plt.close()
+    train_max = max(
+        y_train.max(),
+        y_pred_train.max()
+    )
 
-    # Feature importance (for tree-based models)
-    if hasattr(best_model, 'feature_importances_'):
-        importances = pd.DataFrame({
-            'feature': X.columns,
-            'importance': best_model.feature_importances_
-        }).sort_values('importance', ascending=False)
+    axes[0].plot(
+        [train_min, train_max],
+        [train_min, train_max],
+        linestyle="--"
+    )
 
-        print("\nTop 5 most important features:")
-        print(importances.head())
+    axes[0].set_xlabel("Experimental Solubility")
 
-        plt.figure(figsize=(10, 6))
-        importances.plot(x='feature', y='importance', kind='barh', legend=False)
-        plt.xlabel('Importance')
-        plt.title('Feature importance')
-        plt.tight_layout()
-        #plt.show()
-        plt.savefig('best_feature_importance.png', dpi=300, bbox_inches='tight')
-        plt.close()
+    axes[0].set_ylabel("Predicted Solubility")
 
-    # Residual analysis
-    residuals = y_test - y_pred_test
+    axes[0].set_title(
+        f"Training Set "
+        f"(R² = {train_r2:.3f})"
+    )
 
-    plt.figure(figsize=(12, 4))
+    # Test data
+    axes[1].scatter(y_test,y_pred_test,alpha=0.5)
 
-    plt.subplot(131)
-    plt.scatter(y_pred_test, residuals, alpha=0.5)
-    plt.axhline(y=0, color='r', linestyle='--')
-    plt.xlabel('Predicted values')
-    plt.ylabel('Residuals')
-    plt.title('Residual plot')
+    test_min = min(
+        y_test.min(),
+        y_pred_test.min()
+    )
 
-    plt.subplot(132)
-    plt.hist(residuals, bins=30, edgecolor='black')
-    plt.xlabel('Residuals')
-    plt.ylabel('Frequency')
-    plt.title('Residual distribution')
+    test_max = max(
+        y_test.max(),
+        y_pred_test.max()
+    )
 
-    plt.subplot(133)
-    from scipy import stats
-    stats.probplot(residuals, dist="norm", plot=plt)
-    plt.title('Q-Q plot')
+    axes[1].plot(
+        [test_min, test_max],
+        [test_min, test_max],
+        linestyle="--"
+    )
+
+    axes[1].set_xlabel("Experimental Solubility")
+
+    axes[1].set_ylabel("Predicted Solubility")
+
+    axes[1].set_title(
+        f"Test Set "
+        f"(R² = {test_r2:.3f})"
+    )
 
     plt.tight_layout()
-    #plt.show()
-    plt.savefig('residuals.png', dpi=300, bbox_inches='tight')
+
+    plt.savefig("predicted_solubility.png",dpi=300,bbox_inches="tight")
+
     plt.close()
     ```
 
-### Step 9: Model persistence
+#### Permutation Feature Importance
+
+Because several different model families are considered in this workflow, 
+**permutation importance** provides a convenient model-independent method for 
+estimating which descriptors are important to the final model.
+
+Permutation importance measures the decrease in predictive performance after 
+randomly shuffling one feature while leaving the others unchanged.
 
 ??? note "Example"
+
+    ```python
+    from sklearn.inspection import (
+        permutation_importance
+    )
+
+    # Calculate permutation importance
+    # on the independent test set
+    result = permutation_importance(
+        best_model,
+        X_test,
+        y_test,
+        scoring="r2",
+        n_repeats=20,
+        random_state=42,
+        n_jobs=-1
+    )
+
+    importance_df = pd.DataFrame({
+
+        "feature":
+            X.columns,
+
+        "importance":
+            result.importances_mean,
+
+        "std":
+            result.importances_std
+
+    }).sort_values(
+        "importance",
+        ascending=False
+    )
+
+    print("\nPermutation feature importance:")
+    print(importance_df.head(10))
+
+    # Plot feature importance
+    top_features = (
+        importance_df.head(10)
+        .sort_values("importance")
+    )
+
+    plt.figure(figsize=(10, 6))
+
+    plt.barh(top_features["feature"],top_features["importance"])
+
+    plt.xlabel("Decrease in Test R²")
+
+    plt.title("Permutation Feature Importance")
+
+    plt.tight_layout()
+
+    plt.savefig("best_feature_importance.png",dpi=300,bbox_inches="tight")
+
+    plt.close()
+    ```
+
+
+Permutation importance describes how strongly the **trained model** relies on each 
+descriptor for this particular evaluation dataset. It should not be interpreted as 
+evidence that the descriptor has a causal relationship with solubility.
+
+#### Residual Analysis
+
+??? note "Example"
+
+    ```python
+    residuals = (
+        y_test.to_numpy()
+        - y_pred_test
+    )
+
+    # Residuals vs. predicted values
+    plt.figure(figsize=(8, 6))
+
+    plt.scatter(y_pred_test,residuals,alpha=0.5)
+
+    plt.axhline(y=0,linestyle="--")
+
+    plt.xlabel("Predicted Solubility")
+
+    plt.ylabel("Residual")
+
+    plt.title("Residual Plot")
+
+    plt.tight_layout()
+
+    plt.savefig("residual_plot.png",dpi=300,bbox_inches="tight")
+
+    plt.close()
+
+    # Residual distribution
+    plt.figure(figsize=(8, 6))
+
+    plt.hist(residuals,bins=30)
+
+    plt.xlabel("Residual")
+
+    plt.ylabel("Frequency")
+
+    plt.title("Residual Distribution")
+
+    plt.tight_layout()
+
+    plt.savefig("residual_distribution.png",dpi=300,bbox_inches="tight")
+
+    plt.close()
+    ```
+
+For nonlinear machine learning models, residuals are not required to follow a normal 
+distribution. The purpose of these plots is therefore primarily diagnostic: they help 
+identify systematic bias, heteroscedasticity, large errors, and unusual regions of 
+the prediction space.
+
+### Step 9: Model Persistence and Prediction of New Molecules
+
+Once the final model has been selected, it can be saved for later use.
+Because preprocessing and prediction are contained inside the same scikit-learn `Pipeline`, 
+the complete workflow can be saved as a single object. This is safer than saving the scaler 
+and estimator separately because the correct preprocessing is automatically applied 
+whenever predictions are made.
+
+??? note "Example"
+
 
     ```python
     import joblib
-
-    # Save model and scaler
-    joblib.dump(best_model, 'solubility_model.pkl')
-    joblib.dump(scaler, 'solubility_scaler.pkl')
+    # Save the complete pipeline
+    joblib.dump(best_model,"solubility_model.pkl")
 
     print("\nModel saved successfully.")
 
-    # Load and use the model
-    loaded_model = joblib.load('solubility_model.pkl')
-    loaded_scaler = joblib.load('solubility_scaler.pkl')
+    # Load the model
+    loaded_model = joblib.load(
+        "solubility_model.pkl"
+    )
 
-    # Make a prediction for a new molecule
-    new_smiles = "CCO"  # Ethanol
-    new_features = calculate_molecular_features(new_smiles)
-    new_X = pd.DataFrame([new_features])
-    new_X_scaled = loaded_scaler.transform(new_X)
-    prediction = loaded_model.predict(new_X_scaled)
+    # Predict solubility for a new molecule
+    new_smiles = "CCO"
 
-    print(f"\nPrediction for {new_smiles}: {prediction[0]:.3f}")
+    new_features = (
+        calculate_molecular_features(
+            new_smiles
+        )
+    )
+
+    if new_features is None:
+
+        raise ValueError(
+            "Invalid SMILES string"
+        )
+
+    # Preserve the same feature columns
+    # used during model training
+    new_X = pd.DataFrame([new_features],columns=X.columns)
+
+    prediction = (
+        loaded_model.predict(
+            new_X
+        )
+    )
+
+    print(
+        f"\nPredicted log solubility "
+        f"for {new_smiles}: "
+        f"{prediction[0]:.3f}"
+    )
     ```
+
+
+The prediction corresponds to
+
+$$
+\widehat{\log_{10}
+\left(S_{\mathrm{mol/L}}\right)
+}.
+$$
+
+If the predicted logarithmic solubility is denoted by $\hat{y}$, the 
+corresponding predicted molar solubility can be recovered using
+
+$$
+\hat{S}_{\mathrm{mol/L}}=10^{\hat{y}}.
+$$
+
+For example, this can be calculated with
+
+```python
+predicted_molar_solubility = (10 ** prediction[0])
+
+print("Predicted solubility:",predicted_molar_solubility,"mol/L")
+```
+
+This final step demonstrates how a trained QSAR model can be used to 
+generate predictions for previously unseen molecular structures.
+
 
 ## 8. Practical Example: QM9 dataset
 
