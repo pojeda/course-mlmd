@@ -2208,7 +2208,11 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
     a cutoff radius $r_{\mathrm{cut}}$:
 
     $$
-    \mathcal{N}_i=\left{ j ; | ; r_{ij} < r_{\mathrm{cut}} \right},
+    \mathcal{N}_i
+    =
+    \left\{
+    j \; \middle| \; r_{ij} < r_{\mathrm{cut}}
+    \right\}.
     $$
 
     where
@@ -2375,7 +2379,18 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
     Local environments are then constructed from neighboring C$^\alpha$ atoms:
 
     $$
-    \mathcal{N}*i^{C*\alpha}=\left{ j :\left|\mathbf{r}*j^{C*\alpha}-\mathbf{r}*i^{C*\alpha}\right|<r_{\mathrm{cut}}\right}.
+    \mathcal{N}_i^{C_\alpha}
+    =
+    \left\{
+    j :
+    \left\|
+    \mathbf{r}_j^{C_\alpha}
+    -
+    \mathbf{r}_i^{C_\alpha}
+    \right\|
+    <
+    r_{\mathrm{cut}}
+    \right\}.
     $$
 
     This coarse-grained representation captures aspects of local protein geometry but, 
