@@ -2375,18 +2375,7 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
     Local environments are then constructed from neighboring C$^\alpha$ atoms:
 
     $$
-    \mathcal{N}*i^{C*\alpha}
-    =
-    \left{
-    j :
-    \left|
-    \mathbf{r}*j^{C*\alpha}
-    -
-    \mathbf{r}*i^{C*\alpha}
-    \right|
-    <
-    r_{\mathrm{cut}}
-    \right}.
+    \mathcal{N}*i^{C*\alpha}=\left{ j :\left|\mathbf{r}*j^{C*\alpha}-\mathbf{r}*i^{C*\alpha}\right|<r_{\mathrm{cut}}\right}.
     $$
 
     This coarse-grained representation captures aspects of local protein geometry but, 
