@@ -2208,12 +2208,7 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
     a cutoff radius $r_{\mathrm{cut}}$:
 
     $$
-    \mathcal{N}_i
-    =
-    \left{
-    j ; | ;
-    r_{ij} < r_{\mathrm{cut}}
-    \right},
+    \mathcal{N}_i=\left{ j ; | ; r_{ij} < r_{\mathrm{cut}} \right},
     $$
 
     where
