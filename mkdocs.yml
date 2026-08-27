@@ -28,21 +28,23 @@ extra_css:
 
 nav:
   - Home: index.md
-  - Day 1: 
+  - Module 1 (I): 
     - Mathematics for Machine Learning: day1.md
-  - Day 2:
+  - Module 1 (II):
     - Machine Learning Concepts: day2.md
-  - Day 3: 
+  - Module 2 (I): 
     - ML for Molecular Systems: day3.md
-  - Day 4:
+  - Module 2 (II):
     - Neural Networks: day4.md  
-  - Day 5:
-    - Graph Neural Networks: dayx.md 
-  - Day 6:
+  - Module 2 (III):
     - Generative Models: dayx.md 
-  - Day 7:
-    - Advanced Models: dayx.md 
-  - Summary: summary.md
+#  - Day 5:
+#    - Graph Neural Networks: dayx.md 
+#  - Day 6:
+#    - Generative Models: dayx.md 
+#  - Day 7:
+#    - Advanced Models: dayx.md 
+#  - Summary: summary.md
 plugins:
   - search
   - external-markdown

@@ -2074,20 +2074,11 @@ chain A in the **3MUF** PDB structure.
                     )
 
     # 7. Display graph information
-    print(
-        "Number of nodes:",
-        G.number_of_nodes()
-    )
+    print("Number of nodes:",G.number_of_nodes())
 
-    print(
-        "Number of edges:",
-        G.number_of_edges()
-    )
+    print("Number of edges:",G.number_of_edges())
 
-
-    print(
-        "\nFirst five residues:\n"
-    )
+    print("\nFirst five residues:\n")
 
     for node in list(G.nodes)[:5]:
 
@@ -2100,10 +2091,7 @@ chain A in the **3MUF** PDB structure.
             f"CA = {data['ca_coord']}"
         )
 
-
-    print(
-        "\nFirst ten edges:\n"
-    )
+    print("\nFirst ten edges:\n")
 
     for u, v, data in list(
         G.edges(data=True)
@@ -2126,9 +2114,7 @@ chain A in the **3MUF** PDB structure.
         in enumerate(residues)
     }
 
-    plt.figure(
-        figsize=(10, 8)
-    )
+    plt.figure(figsize=(10, 8))
 
     nx.draw(
         G,
@@ -2138,9 +2124,7 @@ chain A in the **3MUF** PDB structure.
         width=0.5
     )
 
-    plt.title(
-        "Residue-Level Cα Graph of 3MUF"
-    )
+    plt.title("Residue-Level Cα Graph of 3MUF")
 
     plt.savefig(
         "graph-protein-3muf.png",
@@ -2203,6 +2187,539 @@ chain A in the **3MUF** PDB structure.
 - Computationally expensive for large molecules
 - Requires specialized neural network architectures
 
+#### Atomic Cluster Expansion
+
+The **Atomic Cluster Expansion (ACE)** (Phys. Rev. B 99, 014104, 2019) is a systematic representation of 
+the local three-dimensional environment surrounding an atom. It describes neighboring atoms using radial 
+and angular basis functions and combines these contributions into symmetry-adapted features.
+
+ACE is particularly useful for molecular and atomistic machine learning because it can systematically 
+incorporate interactions involving pairs, triplets, and higher-order groups of atoms. Increasing the body 
+order and basis resolution provides progressively more detailed information about the local atomic environment.
+
+For proteins, ACE can be applied to an all-atom representation or to a coarse-grained representation based on 
+selected atoms such as the C$^\alpha$ atoms of amino acid residues.
+
+??? info "Advanced material"
+
+    *Local Atomic Environment*
+
+    For a central atom $i$, the local environment is defined as the set of neighboring atoms lying within 
+    a cutoff radius $r_{\mathrm{cut}}$:
+
+    $$
+    \mathcal{N}_i
+    =
+    \left{
+    j ; | ;
+    r_{ij} < r_{\mathrm{cut}}
+    \right},
+    $$
+
+    where
+
+    $$
+    r_{ij}
+    =
+    \left|
+    \mathbf{r}_j-\mathbf{r}_i
+    \right|
+    $$
+
+    is the distance between atoms $i$ and $j$.
+
+    The relative position vector is
+
+    $$
+    \mathbf{r}_{ij}=\mathbf{r}_j-\mathbf{r}_i.
+    $$
+
+    Because ACE is constructed from relative atomic positions, a global translation of the 
+    molecule does not change the representation.
+
+    *Atomic Density Expansion*
+
+    The local environment is expanded using radial basis functions and spherical harmonics. 
+    A one-particle basis function can be written schematically as
+
+    $$
+    \phi_{znlm}
+    \left(
+    \mathbf{r}_{ij}
+    \right)
+    =
+    \delta_{z,z_j}
+    R_{nl}
+    \left(
+    r_{ij}
+    \right)
+    Y_l^m
+    \left(
+    \hat{\mathbf{r}}_{ij}
+    \right),
+    $$
+
+    where $z_j$ represents the chemical species of neighboring atom $j$, $R_{nl}(r)$ is a 
+    radial basis function, and $Y_l^m$ is a spherical harmonic describing angular information.
+
+    The contributions from all neighbors are summed to obtain the atomic-density projections
+
+    $$
+    A_{znlm}^{(i)}=
+    \sum_{j\in\mathcal{N}*i}
+    \delta*{z,z_j}
+    R_{nl}
+    \left(
+    r_{ij}
+    \right)
+    Y_l^m
+    \left(
+    \hat{\mathbf{r}}_{ij}
+    \right).
+    $$
+
+    These coefficients provide the fundamental building blocks of the Atomic Cluster Expansion.
+
+    *Many-Body Information*
+
+    Products of the density projections introduce higher-order information about groups of 
+    neighboring atoms. Schematically,
+
+    $$
+    A_{\nu_1}^{(i)}
+    A_{\nu_2}^{(i)}
+    \cdots
+    A_{\nu_p}^{(i)}
+    $$
+
+    contains information involving increasingly large atomic clusters.
+    For example, low-order terms primarily describe radial relationships between the central atom 
+    and its neighbors, while higher-order terms encode angular and many-body correlations involving 
+    several atoms simultaneously.
+    This creates a systematic hierarchy:
+
+    ```text
+    central atom
+        |
+        +---- neighbor
+        |        |
+        |        +------ radial information
+        |
+        +---- neighbor pair
+        |        |
+        |        +------ angular information
+        |
+        +---- larger clusters
+                |
+                +------ higher-body correlations
+    ```
+
+    The complexity of the representation can therefore be increased systematically by including 
+    higher body orders.
+
+    *Rotationally Invariant ACE Features*
+
+    The spherical-harmonic components can be coupled so that the final features are invariant 
+    under rotation. A rotationally invariant ACE basis function can be written schematically as
+
+    $$
+    B_{\alpha}^{(i)}
+    =
+    \sum_{\mathbf{m}}
+    C_{\mathbf{m}}^{\alpha}
+    \prod_{t=1}^{p}
+    A_{z_t n_t l_t m_t}^{(i)},
+    $$
+
+    where $C_{\mathbf{m}}^{\alpha}$ represents angular-coupling coefficients.
+    The resulting descriptor for atomic environment $i$ is
+
+    $$
+    \mathbf{B}_i
+    =
+    \left[
+    B_1^{(i)},
+    B_2^{(i)},
+    \ldots,
+    B_D^{(i)}
+    \right].
+    $$
+
+    For invariant ACE descriptors, rotating or translating the entire molecular structure leaves these 
+    scalar features unchanged. Permutations of equivalent neighboring atoms also do not change the representation.
+    ACE can additionally be formulated to generate equivariant vector and tensor features when the 
+    predicted quantity must transform under rotation.
+
+    *ACE for Proteins*
+
+    For an atomistic protein structure, each atom can have its own local ACE representation:
+
+    $$
+    \mathbf{B}_1,
+    \mathbf{B}_2,
+    \ldots,
+    \mathbf{B}_N.
+    $$
+
+    The chemical species channels can distinguish atoms such as carbon, nitrogen, oxygen, sulfur, and 
+    hydrogen. These descriptors can then be used as input to machine learning models for atomistic 
+    properties or interatomic potentials.
+    A simpler coarse-grained protein representation can instead assign one point to each amino acid 
+    using its C$^\alpha$ coordinate:
+
+    $$
+    \mathbf{r}*i^{,C*\alpha}
+    =
+    \begin{bmatrix}
+    x_i\
+    y_i\
+    z_i
+    \end{bmatrix}.
+    $$
+
+    Local environments are then constructed from neighboring C$^\alpha$ atoms:
+
+    $$
+    \mathcal{N}*i^{C*\alpha}
+    =
+    \left{
+    j :
+    \left|
+    \mathbf{r}*j^{C*\alpha}
+    -
+    \mathbf{r}*i^{C*\alpha}
+    \right|
+    <
+    r_{\mathrm{cut}}
+    \right}.
+    $$
+
+    This coarse-grained representation captures aspects of local protein geometry but, 
+    if only C$^\alpha$ coordinates are used, it does not contain the detailed atomic chemistry 
+    of the amino-acid side chains.
+
+#### Example: Low-Order ACE Representation of 3MUF
+
+??? note "Example"
+
+    The following example illustrates the basic ideas behind ACE using the C$^\alpha$ atoms from chain A of `3MUF.pdb`.
+
+    For clarity, the example implements a **small low-order ACE-style invariant basis directly in Python** 
+    rather than relying on a specialized ACE potential package. It includes radial two-body information 
+    and angular three-body information.
+
+    A smooth cutoff function is first defined as
+
+    $$
+    f_{\mathrm{cut}}(r)
+    =
+    \frac{1}{2}
+    \left[
+    \cos
+    \left(
+    \frac{\pi r}{r_{\mathrm{cut}}}
+    \right)
+    +1
+    \right],
+    $$
+
+    for
+
+    $$
+    r < r_{\mathrm{cut}},
+    $$
+
+    and zero otherwise.
+
+    Simple radial basis functions are then constructed as
+
+    $$
+    R_n(r)
+    =
+    f_{\mathrm{cut}}(r)
+    \left(
+    \frac{r}{r_{\mathrm{cut}}}
+    \right)^n.
+    $$
+
+    A low-order radial invariant can be calculated as
+
+    $$
+    B_n^{(2)}
+    =
+    \sum_{j\in\mathcal{N}*i}
+    R_n(r*{ij}).
+    $$
+
+    Angular information involving the central atom $i$ and two neighbors $j$ and $k$ 
+    can be incorporated using Legendre polynomials:
+
+    $$
+    B_{nl}^{(3)}
+    =
+    \sum_{j<k}
+    R_n(r_{ij})
+    R_n(r_{ik})
+    P_l
+    \left(
+    \cos\theta_{jik}
+    \right),
+    $$
+
+    where
+
+    $$
+    \cos\theta_{jik}
+    =
+    \frac{
+    \mathbf{r}*{ij}\cdot\mathbf{r}*{ik}
+    }{
+    r_{ij}r_{ik}
+    }.
+    $$
+
+    Because these quantities depend on distances and angles rather than the absolute orientation 
+    of the protein, they are invariant to global rotations.
+
+    ```python
+    import numpy as np
+
+    from Bio.PDB import PDBParser
+    from Bio.PDB.Polypeptide import is_aa
+
+    from numpy.polynomial.legendre import Legendre
+
+    # 1. Load protein structure
+    pdb_file = "3MUF.pdb"
+
+    parser = PDBParser(QUIET=True)
+
+    structure = parser.get_structure(
+        "3MUF",
+        pdb_file
+    )
+
+    model = structure[0]
+    chain = model["A"]
+
+    # 2. Extract C-alpha coordinates
+    residues = []
+
+    for residue in chain:
+
+        if not is_aa(
+            residue,
+            standard=True
+        ):
+            continue
+
+        if "CA" not in residue:
+            continue
+
+        residues.append({
+            "name":
+                residue.get_resname(),
+
+            "number":
+                residue.id[1],
+
+            "coord":
+                residue["CA"]
+                .get_coord()
+                .astype(float)
+        })
+
+    coordinates = np.array([
+        residue["coord"]
+        for residue in residues
+    ])
+
+    print("Number of C-alpha atoms:",len(coordinates))
+
+    # 3. Define smooth cutoff function
+    def cutoff_function(r,r_cut):
+
+        if r >= r_cut:
+            return 0.0
+
+        return 0.5 * (np.cos(np.pi * r / r_cut) + 1.0)
+
+    # 4. Define radial basis
+    def radial_basis(r,n,r_cut):
+
+        return (
+            cutoff_function(r,r_cut)*(r / r_cut) ** n
+        )
+
+    # 5. Calculate low-order ACE-style features
+    def calculate_ace_features(
+        center_index,
+        coordinates,
+        r_cut=8.0,
+        n_max=4,
+        l_max=3
+    ):
+
+        center = coordinates[center_index]
+        neighbor_vectors = []
+
+        # Find neighbors
+        for j, coord in enumerate(
+            coordinates
+        ):
+
+            if j == center_index:
+                continue
+
+            vector = coord - center
+
+            distance = np.linalg.norm(vector)
+
+            if distance < r_cut:
+
+                neighbor_vectors.append(
+                    (vector,distance)
+                )
+
+        features = []
+
+        # Two-body radial features
+        for n in range(
+            n_max
+        ):
+
+            value = 0.0
+
+            for vector, distance in (neighbor_vectors):
+
+                value += radial_basis(distance,n,r_cut)
+
+            features.append(value)
+
+        # Three-body angular features
+        for n in range(n_max):
+
+            for l in range(l_max + 1):
+
+                value = 0.0
+                P_l = Legendre.basis(l)
+
+                for j in range(
+                    len(
+                        neighbor_vectors
+                    )
+                ):
+
+                    vector_j, r_j = (
+                        neighbor_vectors[j]
+                    )
+
+                    for k in range(
+                        j + 1,
+                        len(neighbor_vectors)
+                    ):
+
+                        vector_k, r_k = (
+                            neighbor_vectors[k]
+                        )
+
+                        cos_theta = np.dot(
+                            vector_j,
+                            vector_k
+                        ) / (r_j * r_k)
+
+                        # Numerical protection
+                        cos_theta = np.clip(
+                            cos_theta,
+                            -1.0,
+                            1.0
+                        )
+
+                        value += (
+                            radial_basis(r_j,n,r_cut)
+                            *
+                            radial_basis(r_k,n,r_cut)
+                            *
+                            P_l(cos_theta)
+                        )
+
+                features.append(
+                    value
+                )
+
+        return np.array(features,dtype=float)
+
+    # 6. Calculate ACE-style descriptors
+    #    for every C-alpha environment
+    ace_features = np.array([
+
+        calculate_ace_features(
+            i,
+            coordinates,
+            r_cut=8.0,
+            n_max=4,
+            l_max=3
+        )
+
+        for i in range(len(coordinates))
+    ])
+
+    print("ACE feature matrix shape:",ace_features.shape)
+
+    # 7. Examine one residue environment
+    residue_index = 50
+
+    residue = residues[residue_index]
+
+    print("\nResidue:",residue["name"],residue["number"])
+
+    print("First 10 ACE-style features:")
+
+    print(ace_features[residue_index,:10])
+
+    # 8. Compare two local environments
+    i = 20
+    j = 50
+
+    descriptor_i = ace_features[i]
+    descriptor_j = ace_features[j]
+
+    similarity = np.dot(
+        descriptor_i,
+        descriptor_j
+    ) / (
+        np.linalg.norm(descriptor_i)
+        *
+        np.linalg.norm(descriptor_j)
+    )
+
+    print("\nResidue 1:",residues[i]["name"],residues[i]["number"])
+    print("Residue 2:",residues[j]["name"],residues[j]["number"])
+
+    print("Descriptor similarity:",similarity)
+    ```
+
+    The resulting matrix has the form
+
+    $$
+    B
+    =
+    \begin{bmatrix}
+    \mathbf{B}_1\\
+    \mathbf{B}_2\\
+    \vdots\\
+    \mathbf{B}_N
+    \end{bmatrix},
+    $$
+
+    where each row represents the local structural environment surrounding one C$^\alpha$ atom.
+
+    The example combines two levels of structural information. The radial terms 
+    describe the distribution of neighboring residues around the central residue, while 
+    the angular terms describe the relative arrangement of pairs of neighboring residues.
+
+    Consequently, two residues can have similar ACE descriptors when their surrounding 
+    three-dimensional environments have similar geometries, even if they occur at different positions in the protein sequence.
 
 ## 3. Traditional Machine Learning Methods
 
