@@ -389,7 +389,7 @@ One important responsibility of this wrapper is **unit conversion**.
 GROMACS coordinates are normally expressed in nanometers, whereas many ML chemistry models operate in Ångström. Therefore,
 
 $$
-1\ \mathrm{nm}=10\ \text{\AA}.
+1\ \mathrm{nm}=10\ \mathring{\text{A}}.
 $$
 
 For ANI, energies are naturally associated with Hartree, while GROMACS uses
@@ -407,7 +407,7 @@ $$
 The wrapper therefore performs transformations such as
 
 $$
-\mathbf R_{\text{\AA }}=10\mathbf R_{\mathrm{nm}},
+\mathbf R_{\mathring{\text{A}}}=10\mathbf R_{\mathrm{nm}},
 $$
 
 evaluates the network, and then converts its energy back to GROMACS units.
@@ -548,7 +548,7 @@ machine-learning metric.
 Suppose someone reports
 
 $$
-\mathrm{RMSE}_{F}=30\ \mathrm{meV/\AA}.
+\mathrm{RMSE}_{F}=30\ \mathrm{meV/\mathring{\text{A}}}.
 $$
 
 That number is useful, but it does not answer whether the potential is appropriate for a mineral simulation.
