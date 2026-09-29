@@ -407,7 +407,7 @@ $$
 The wrapper therefore performs transformations such as
 
 $$
-\mathbf R_{\text{\AA}}=10\mathbf R_{\mathrm{nm}},
+\mathbf R_{\text{\AA }}=10\mathbf R_{\mathrm{nm}},
 $$
 
 evaluates the network, and then converts its energy back to GROMACS units.
