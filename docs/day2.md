@@ -64,7 +64,6 @@ Common supervised learning tasks include:
 
     ```python
     # Example: Predicting molecular solubility using linear regression 
-
     import numpy as np
     from sklearn.model_selection import train_test_split
     from sklearn.linear_model import LinearRegression
@@ -81,30 +80,20 @@ Common supervised learning tasks include:
         [320.5, 75.0, 3.8],
         [150.2, 30.5, 0.8],
         [275.4, 68.2, 2.9],
-        [210.0, 50.0, 1.7]
-    ])
+        [210.0, 50.0, 1.7]])
 
-    """ Experimental solubility values """
+    # Experimental solubility values
     y = np.array([12.5, 8.1, 3.2, 15.0, 6.4, 10.2])
-
-    """ 
-     Split dataset into training and testing sets
-    """ 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
-
-    """ 
-     Create and train the model
-    """ 
+ 
+    # Split dataset into training and testing sets 
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+ 
+    # Create and train the model 
     model = LinearRegression()
     model.fit(X_train, y_train)
-
-    """ 
-     Evaluate the model
-    """ 
+ 
+    # Evaluate the model
     y_pred = model.predict(X_test)
-
     mse = mean_squared_error(y_test, y_pred)
     print("Mean Squared Error:", mse)
 
@@ -115,7 +104,6 @@ Common supervised learning tasks include:
      polar_surface_area = 55
      logP = 2.1
     """ 
-
     new_molecule = np.array([[240.0, 55.0, 2.1]])
     prediction = model.predict(new_molecule)
     print("Predicted solubility:", prediction[0])
@@ -139,13 +127,12 @@ $$
 J=\sum_{k=1}^{K}\sum_{\mathbf{x}_i\in C_k}|\mathbf{x}_i-\boldsymbol{\mu}_k|^2,
 $$
 
-where (\boldsymbol{\mu}_k) is the centroid of cluster (C_k).
+where $\boldsymbol{\mu}_k$ is the centroid of cluster $C_k$.
 
 ??? note "Example"
 
     ```python
     # Example: Clustering molecules by similarity using K-Means
-
     import numpy as np
     from sklearn.cluster import KMeans
     import matplotlib.pyplot as plt
@@ -169,35 +156,21 @@ where (\boldsymbol{\mu}_k) is the centroid of cluster (C_k).
         [1, 1, 0, 0, 1],
         [1, 1, 0, 0, 0],
         [0, 0, 1, 1, 1],
-        [0, 0, 1, 1, 0]
-    ])
+        [0, 0, 1, 1, 0]])
 
-    """ 
-     Create the K-Means clustering model
-    """ 
+    # Create the K-Means clustering model
     kmeans = KMeans(n_clusters=4, random_state=42)
 
-    """ Assign each molecule to a cluster """
+    # Assign each molecule to a cluster
     clusters = kmeans.fit_predict(molecular_fingerprints)
-
-    """ 
-     Display clustering results
-    """ 
+ 
+    # Display clustering results 
     for i, cluster_id in enumerate(clusters):
         print(f"Molecule {i + 1} belongs to Cluster {cluster_id}")
-
-    """ 
-     Visualize clusters using the first two features
-    """ 
+ 
+    # Visualize clusters using the first two features
     plt.figure(figsize=(6, 5))
-
-    scatter = plt.scatter(
-        molecular_fingerprints[:, 0],
-        molecular_fingerprints[:, 1],
-        c=clusters,
-        s=100
-    )
-
+    scatter = plt.scatter(molecular_fingerprints[:, 0],molecular_fingerprints[:, 1],c=clusters,s=100)
     plt.xlabel("Feature 1")
     plt.ylabel("Feature 2")
     plt.title("Molecular Clustering with K-Means")
@@ -271,38 +244,21 @@ RDKit is widely used in cheminformatics, drug discovery, and other data-driven a
 
     ```python
     # example: data preparation + feature engineering
-
     import pandas as pd
     import numpy as np
  
     # 1. Create a small example dataset
     data = pd.DataFrame({
-        "molecule_name": [
-            "Ethanol",
-            "Acetic acid",
-            "Benzene",
-            "Acetone",
-            "Phenol",
+        "molecule_name": ["Ethanol","Acetic acid","Benzene",
+            "Acetone","Phenol",
             "Ethanol",          # duplicate row
-            "Invalid molecule",
-            "Large outlier"
-        ],
+            "Invalid molecule","Large outlier"],
         "smiles": [
-            "CCO",
-            "CC(=O)O",
-            "c1ccccc1",
-            "CC(=O)C",
-            "c1ccccc1O",
+            "CCO","CC(=O)O","c1ccccc1","CC(=O)C","c1ccccc1O",
             "CCO",              # duplicate row
             "not_a_smiles",     # invalid molecule
-            "CCCCCCCCCCCCCCCC"
-        ],
-        "property": [
-            -0.31,
-            -0.17,
-            -2.13,
-            -0.24,
-            -1.46,
+            "CCCCCCCCCCCCCCCC"],
+        "property": [-0.31,-0.17,-2.13,-0.24,-1.46,
             -0.31,              # duplicate value
             np.nan,             # missing value
             50.0                # artificial outlier
@@ -337,9 +293,7 @@ RDKit is widely used in cheminformatics, drug discovery, and other data-driven a
     data = data.dropna(subset=["smiles", "property"])
 
     # 7. Remove outliers using the 3-sigma rule
-    z_scores = np.abs(
-        (data["property"] - data["property"].mean()) / data["property"].std()
-    )
+    z_scores = np.abs((data["property"] - data["property"].mean()) / data["property"].std())
 
     data_clean = data[z_scores < 3].copy()
     print("\nCleaned data:")
@@ -389,26 +343,13 @@ RDKit is widely used in cheminformatics, drug discovery, and other data-driven a
 
     # Reorder columns
     features_df = features_df[
-        [
-            "molecule_name",
-            "smiles",
-            "molecular_weight",
-            "logP",
-            "num_h_donors",
-            "num_h_acceptors",
-            "tpsa",
-            "num_rotatable_bonds",
-            "num_aromatic_rings",
-            "property"
-        ]
+        ["molecule_name","smiles","molecular_weight","logP","num_h_donors","num_h_acceptors","tpsa","num_rotatable_bonds","num_aromatic_rings","property"]
     ]
-
     print("\nFinal feature table:")
     print(features_df)
 
     # 10. Save final processed dataset
     features_df.to_csv("molecular_features.csv", index=False)
-
     print("\nProcessed dataset saved as molecular_features.csv")
     ```
 
@@ -481,20 +422,10 @@ Test Set       -> Evaluate final performance
     y = np.array([1, 1, 2, 2, 3, 3, 4, 4, 5, 5])
 
     # 2. First split: training set and temporary set
-    X_train, X_temp, y_train, y_temp = train_test_split(
-        X,
-        y,
-        test_size=0.30,
-        random_state=42
-    )
+    X_train, X_temp, y_train, y_temp = train_test_split(X,y,test_size=0.30,random_state=42)
 
     # 3. Second split: validation set and test set
-    X_val, X_test, y_val, y_test = train_test_split(
-        X_temp,
-        y_temp,
-        test_size=0.50,
-        random_state=42
-    )
+    X_val, X_test, y_val, y_test = train_test_split(X_temp,y_temp,test_size=0.50,random_state=42)
  
     # 4. Print the results
     print("Training set:")
@@ -601,12 +532,7 @@ previously unseen structural cores.
     ]
 
     # Example target property
-    y = np.array([
-        1.2, 1.4, 1.1,
-        0.8, 0.9, 0.7,
-        1.7, 1.6, 1.8,
-        0.5, 0.6, 0.4
-    ])
+    y = np.array([1.2, 1.4, 1.1,0.8, 0.9, 0.7,1.7, 1.6, 1.8,0.5, 0.6, 0.4])
 
     # 2. Generate simple molecular features
     X = []
@@ -615,11 +541,7 @@ previously unseen structural cores.
 
         mol = Chem.MolFromSmiles(smiles)
 
-        features = [
-            mol.GetNumAtoms(),
-            mol.GetNumBonds(),
-            mol.GetRingInfo().NumRings()
-        ]
+        features = [mol.GetNumAtoms(),mol.GetNumBonds(),mol.GetRingInfo().NumRings()]
 
         X.append(features)
 
@@ -630,40 +552,22 @@ previously unseen structural cores.
 
         mol = Chem.MolFromSmiles(smiles)
 
-        return MurckoScaffold.MurckoScaffoldSmiles(
-            mol=mol
-        )
+        return MurckoScaffold.MurckoScaffoldSmiles(mol=mol)
 
 
-    scaffolds = np.array([
-        get_scaffold(smiles)
-        for smiles in molecules
-    ])
+    scaffolds = np.array([get_scaffold(smiles) for smiles in molecules])
 
 
     print("Molecular scaffolds:\n")
 
-    for smiles, scaffold in zip(
-        molecules,
-        scaffolds
-    ):
-        print(
-            f"{smiles:20s} -> {scaffold}"
-        )
+    for smiles, scaffold in zip(molecules,scaffolds):
+        print(f"{smiles:20s} -> {scaffold}")
 
     # 4. Scaffold-based train/test split
-    splitter = GroupShuffleSplit(
-        n_splits=1,
-        test_size=0.25,
-        random_state=42
-    )
+    splitter = GroupShuffleSplit(n_splits=1,test_size=0.25,random_state=42)
 
     train_idx, test_idx = next(
-        splitter.split(
-            X,
-            y,
-            groups=scaffolds
-        )
+        splitter.split(X,y,groups=scaffolds)
     )
 
     # 5. Create training and test sets
@@ -679,20 +583,15 @@ previously unseen structural cores.
     for i in train_idx:
         print(molecules[i], " scaffold:", scaffolds[i])
 
-
     print("\nTest set:")
 
     for i in test_idx:
         print(molecules[i], " scaffold:", scaffolds[i])
 
     # 7. Verify scaffold separation
-    train_scaffolds = set(
-        scaffolds[train_idx]
-    )
+    train_scaffolds = set(scaffolds[train_idx])
 
-    test_scaffolds = set(
-        scaffolds[test_idx]
-    )
+    test_scaffolds = set(scaffolds[test_idx])
 
     print("\nTraining scaffolds:")
     print(train_scaffolds)
@@ -700,9 +599,7 @@ previously unseen structural cores.
     print("\nTest scaffolds:")
     print(test_scaffolds)
 
-    print("\nShared scaffolds:",
-        train_scaffolds.intersection(
-            test_scaffolds    )) 
+    print("\nShared scaffolds:",train_scaffolds.intersection(test_scaffolds)) 
     ```
 
 ## 3. Overfitting and Underfitting
@@ -745,7 +642,6 @@ previously unseen structural cores.
     np.random.seed(42)
 
     # 1. Generate synthetic dataset
-
     # Input variable 
     X = np.linspace(0, 10, 50)
 
@@ -753,7 +649,6 @@ previously unseen structural cores.
     y = 0.5 * X**2 - 2 * X + 3 + np.random.normal(0, 4, 50)
 
     # 2. Train polynomial models
-    
     # Underfitting model: Degree 1 polynomial (linear model) 
     underfit_model = np.poly1d( np.polyfit(X, y, 1) )
     
@@ -773,39 +668,19 @@ previously unseen structural cores.
     plt.scatter(X, y, alpha=0.7, label="Training Data")
 
     # Underfitting curve
-    plt.plot(
-        X_plot,
-        underfit_model(X_plot),
-        linestyle="--",
-        linewidth=2,
-        label="Underfitting (Degree 1)"
-    )
+    plt.plot(X_plot,underfit_model(X_plot),linestyle="--",linewidth=2,label="Underfitting (Degree 1)")
 
     # Good fit curve 
-    plt.plot(
-        X_plot,
-        good_model(X_plot),
-        linewidth=2,
-        label="Good Fit (Degree 2)"
-    )
+    plt.plot(X_plot,good_model(X_plot),linewidth=2,label="Good Fit (Degree 2)")
 
     # Overfitting curve
-    plt.plot(
-        X_plot,
-        overfit_model(X_plot),
-        linestyle=":",
-        linewidth=2,
-        label="Overfitting (Degree 15)"
-    )
+    plt.plot(X_plot,overfit_model(X_plot),linestyle=":",linewidth=2,label="Overfitting (Degree 15)")
 
     # 5. Labels and formatting
     plt.xlabel("Input Feature")
     plt.ylabel("Target Value")
-
     plt.title("Underfitting vs Good Fit vs Overfitting")
-
     plt.legend()
-
     plt.grid(True)
     plt.savefig("underfitting-overfitting.png", dpi=300, bbox_inches="tight")
     plt.show()
@@ -875,37 +750,18 @@ Validation accuracy -> High and close to training
     X = np.linspace(0, 10, 100).reshape(-1, 1)
 
     # True relationship is quadratic
-    y = (
-        0.5 * X[:, 0]**2
-        - 2 * X[:, 0]
-        + 3
-        + np.random.normal(0, 4, 100)
-    )
+    y = (0.5 * X[:, 0]**2- 2 * X[:, 0]+ 3+ np.random.normal(0, 4, 100))
 
     # 2. Define an intentionally complex model
-    model = make_pipeline(
-        PolynomialFeatures(degree=10),
-        LinearRegression()
-    )
+    model = make_pipeline(PolynomialFeatures(degree=10),LinearRegression())
 
     # 3. Define cross-validation
-    cv = KFold(
-        n_splits=5,
-        shuffle=True,
-        random_state=42
-    )
+    cv = KFold(n_splits=5,shuffle=True,random_state=42)
 
     # 4. Compute learning curves
     train_sizes, train_scores, val_scores = learning_curve(
-        model,
-        X,
-        y,
-        train_sizes=np.linspace(0.1, 1.0, 10),
-        cv=cv,
-        scoring="neg_mean_squared_error",
-        shuffle=True,
-        random_state=42
-    )
+        model,X,y,train_sizes=np.linspace(0.1, 1.0, 10),cv=cv,
+        scoring="neg_mean_squared_error",shuffle=True,random_state=42)
 
     # 5. Convert negative MSE into positive MSE
     train_errors = -train_scores.mean(axis=1)
@@ -917,56 +773,27 @@ Validation accuracy -> High and close to training
     # 6. Plot learning curves
     plt.figure(figsize=(10, 6))
 
-    plt.plot(
-        train_sizes,
-        train_errors,
-        marker="o",
-        label="Training Error"
-    )
+    plt.plot(train_sizes,train_errors,marker="o",label="Training Error")
 
-    plt.plot(
-        train_sizes,
-        val_errors,
-        marker="o",
-        label="Validation Error"
-    )
+    plt.plot(train_sizes,val_errors,marker="o",label="Validation Error")
 
-    plt.fill_between(
-        train_sizes,
-        train_errors - train_std,
-        train_errors + train_std,
-        alpha=0.2
-    )
+    plt.fill_between(train_sizes,train_errors - train_std,train_errors + train_std,alpha=0.2)
 
-    plt.fill_between(
-        train_sizes,
-        val_errors - val_std,
-        val_errors + val_std,
-        alpha=0.2
-    )
+    plt.fill_between(train_sizes,val_errors - val_std,val_errors + val_std,alpha=0.2)
 
     plt.xlabel("Training Set Size")
     plt.ylabel("Mean Squared Error")
     plt.title("Learning Curves")
-
     plt.legend()
     plt.grid(True)
-
-    plt.savefig(
-        "learning-curves.png",
-        dpi=300,
-        bbox_inches="tight"
-    )
-
+    plt.savefig("learning-curves.png",dpi=300,bbox_inches="tight")
     plt.show()
 
     # 7. Print numerical results
     print("Training set sizes:")
     print(train_sizes)
-
     print("\nTraining errors:")
     print(train_errors)
-
     print("\nValidation errors:")
     print(val_errors)
     ```
@@ -1086,72 +913,38 @@ or provide overlapping information.
     from sklearn.feature_selection import SelectKBest, f_regression
 
     # 1. Generate a synthetic regression dataset
-    X, y = make_regression(
-        n_samples=100,
-        n_features=20,
-        n_informative=8,
-        noise=10,
-        random_state=42
-    )
+    X, y = make_regression(n_samples=100,n_features=20,n_informative=8,noise=10,random_state=42)
 
     # 2. Create a DataFrame with feature names
-    feature_names = [
-        f"feature_{i}"
-        for i in range(20)
-    ]
+    feature_names = [f"feature_{i}" for i in range(20)]
 
-    X = pd.DataFrame(
-        X,
-        columns=feature_names
-    )
+    X = pd.DataFrame(X,columns=feature_names)
 
     # 3. Split the dataset into training and test sets
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42
-    )
+    X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2,random_state=42)
 
     # 4. Select the top 8 features
     # The synthetic dataset was generated with
     # 8 informative features, so we ask SelectKBest
     # to retain 8 features.
-    selector = SelectKBest(
-        score_func=f_regression,
-        k=8
-    )
+    selector = SelectKBest(score_func=f_regression,k=8)
 
     # Fit the selector only on the training data
-    X_train_selected = selector.fit_transform(
-        X_train,
-        y_train
-    )
+    X_train_selected = selector.fit_transform(X_train,y_train)
 
     # Apply the same feature selection to the test set
-    X_test_selected = selector.transform(
-        X_test
-    )
+    X_test_selected = selector.transform(X_test)
 
     # 5. Display feature scores
-    feature_scores = pd.DataFrame({
-        "Feature": X.columns,
-        "F-score": selector.scores_,
-        "Selected": selector.get_support()
-    })
+    feature_scores = pd.DataFrame({"Feature": X.columns,"F-score": selector.scores_,"Selected": selector.get_support()})
 
-    feature_scores = feature_scores.sort_values(
-        by="F-score",
-        ascending=False
-    )
+    feature_scores = feature_scores.sort_values(by="F-score",ascending=False)
 
     print("Feature scores:\n")
     print(feature_scores)
 
     # 6. Display selected feature names
-    selected_features = X.columns[
-        selector.get_support()
-    ]
+    selected_features = X.columns[selector.get_support()]
 
     print("\nSelected features:")
     print(selected_features.tolist())
@@ -1225,29 +1018,17 @@ reported as the average score across all folds, giving a more stable estimate th
     from sklearn.model_selection import cross_val_score
 
     # 1. Generate example regression dataset
-    X, y = make_regression(
-        n_samples=100,
-        n_features=3,
-        noise=15,
-        random_state=42
-    )
+    X, y = make_regression( n_samples=100, n_features=3, noise=15, random_state=42 )
 
     # 2. Define machine learning model
     model = LinearRegression()
 
     # 3. Perform 5-fold cross-validation
-    scores = cross_val_score(
-        model,
-        X,
-        y,
-        cv=5,
-        scoring="r2"
-    )
+    scores = cross_val_score( model, X, y, cv=5, scoring="r2" )
 
     # 4. Display results
     print("R² score for each fold:")
     print(scores)
-
     print("\nAverage cross-validation performance:")
     print(f"Cross-validation R²: {scores.mean():.3f} ± {scores.std():.3f}")
     ```
@@ -1397,9 +1178,7 @@ import matplotlib.pyplot as plt
 
 plt.figure(figsize=(8, 8))
 plt.scatter(y_true, y_pred, alpha=0.5)
-plt.plot([y_true.min(), y_true.max()], 
-         [y_true.min(), y_true.max()], 
-         'r--', linewidth=2, label='Perfect Prediction')
+plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', linewidth=2, label='Perfect Prediction')
 plt.xlabel('True Values')
 plt.ylabel('Predicted Values')
 plt.title(f'R² = {r2:.3f}, RMSE = {rmse:.3f}')
@@ -1522,76 +1301,40 @@ classification performance, while an AUC near 0.5 suggests random guessing.
     from sklearn.model_selection import train_test_split
     from sklearn.linear_model import LogisticRegression
 
-    from sklearn.metrics import (
-        roc_curve,
-        roc_auc_score
-    )
+    from sklearn.metrics import ( roc_curve, roc_auc_score )
 
     # 1. Generate example classification dataset
-    X, y = make_classification(
-        n_samples=1000,
-        n_features=10,
-        n_informative=5,
-        n_redundant=2,
-        random_state=42
-    )
+    X, y = make_classification( n_samples=1000, n_features=10, n_informative=5, n_redundant=2, random_state=42 )
 
     # 2. Split dataset into training and test sets
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42
-    )
+    X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.2, random_state=42 )
 
     # 3. Train classification model
     model = LogisticRegression()
-
     model.fit(X_train, y_train)
 
     # 4. Get probability predictions
-
     # Probability of belonging to class 1
     y_prob = model.predict_proba(X_test)[:, 1]
 
     # 5. Calculate ROC curve and AUC
-    fpr, tpr, thresholds = roc_curve(
-        y_test,
-        y_prob
-    )
+    fpr, tpr, thresholds = roc_curve( y_test, y_prob )
 
-    auc = roc_auc_score(
-        y_test,
-        y_prob
-    )
-
+    auc = roc_auc_score( y_test, y_prob )
     print(f"AUC score: {auc:.3f}")
 
     # 6. Plot ROC curve
     plt.figure(figsize=(8, 6))
 
-    plt.plot(
-        fpr,
-        tpr,
-        linewidth=2,
-        label=f"ROC Curve (AUC = {auc:.3f})"
-    )
+    plt.plot( fpr, tpr, linewidth=2, label=f"ROC Curve (AUC = {auc:.3f})" )
 
     # Random classifier reference line
-    plt.plot(
-        [0, 1],
-        [0, 1],
-        "k--",
-        label="Random Classifier"
-    )
+    plt.plot( [0, 1], [0, 1], "k--", label="Random Classifier" )
 
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
-
     plt.title("Receiver Operating Characteristic (ROC) Curve")
-
     plt.legend()
-
     plt.grid(True)
     plt.savefig("roc-curve.png", dpi=300, bbox_inches="tight")
     plt.show()
@@ -1628,30 +1371,15 @@ PR curves are widely used in applications such as:
     from sklearn.model_selection import train_test_split
     from sklearn.linear_model import LogisticRegression
 
-    from sklearn.metrics import (
-        precision_recall_curve,
-        average_precision_score
-    )
+    from sklearn.metrics import ( precision_recall_curve, average_precision_score )
 
     # 1. Generate example classification dataset
     # Imbalanced dataset
-    X, y = make_classification(
-        n_samples=1000,
-        n_features=10,
-        n_informative=5,
-        n_redundant=2,
-        weights=[0.9, 0.1],   # 90% class 0, 10% class 1
-        random_state=42
-    )
+    X, y = make_classification( n_samples=1000, n_features=10, n_informative=5, n_redundant=2, weights=[0.9, 0.1],   # 90% class 0, 10% class 1 random_state=42 )
 
     # 2. Split dataset into training and test sets
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42
-    )
+    X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.2, random_state=42 )
 
     # 3. Train classification model
     model = LogisticRegression()
@@ -1663,39 +1391,23 @@ PR curves are widely used in applications such as:
     y_prob = model.predict_proba(X_test)[:, 1]
 
     # 5. Compute Precision-Recall curve
-    precision, recall, thresholds = precision_recall_curve(
-        y_test,
-        y_prob
-    )
+    precision, recall, thresholds = precision_recall_curve( y_test, y_prob )
 
     # Average Precision (AP)
-    ap = average_precision_score(
-        y_test,
-        y_prob
-    )
-
+    ap = average_precision_score( y_test, y_prob )
     print(f"Average Precision (AP): {ap:.3f}")
 
     # 6. Plot Precision-Recall curve
     plt.figure(figsize=(8, 6))
 
-    plt.plot(
-        recall,
-        precision,
-        linewidth=2,
-        label=f"PR Curve (AP = {ap:.3f})"
-    )
+    plt.plot( recall, precision, linewidth=2, label=f"PR Curve (AP = {ap:.3f})" )
 
     plt.xlabel("Recall")
     plt.ylabel("Precision")
-
     plt.title("Precision-Recall Curve")
-
     plt.legend()
-
     plt.grid(True)
     plt.savefig("pr-curve.png", dpi=300, bbox_inches="tight")
-
     plt.show()
 
     # 7. Interpretation
@@ -1744,22 +1456,10 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
 
 # Define parameter grid
-param_grid = {
-    'n_estimators': [100, 200, 500],
-    'max_depth': [10, 20, 30, None],
-    'min_samples_split': [2, 5, 10],
-    'min_samples_leaf': [1, 2, 4]
-}
+param_grid = { 'n_estimators': [100, 200, 500], 'max_depth': [10, 20, 30, None], 'min_samples_split': [2, 5, 10], 'min_samples_leaf': [1, 2, 4] }
 
 # Grid search with cross-validation
-grid_search = GridSearchCV(
-    RandomForestRegressor(random_state=42),
-    param_grid,
-    cv=5,
-    scoring='r2',
-    n_jobs=-1,  # Use all CPUs
-    verbose=2
-)
+grid_search = GridSearchCV( RandomForestRegressor(random_state=42), param_grid, cv=5, scoring='r2', n_jobs=-1,  # Use all CPUs verbose=2 )
 
 grid_search.fit(X_train, y_train)
 
