@@ -1762,6 +1762,7 @@ set_seed(42)
 - TensorFlow: https://tensorflow.org/
 
 ### Practice Platforms
+- Jupyter notebook on RDKit: https://github.com/gashawmg/Molecular-fingerprints/tree/main 
 - Kaggle: https://kaggle.com/
 - Google Colab: https://colab.research.google.com/
-- Papers with Code: https://paperswithcode.com/
+- Papers with Code: https://huggingface.co/papers/trending
