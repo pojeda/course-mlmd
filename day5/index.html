@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://pojeda.github.io/course-mlmd/day5/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Generative Models - ML/MD course</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_markdown_exec_pyodide.css" rel="stylesheet" />
+        <link href="../assets/_markdown_exec_ansi.css" rel="stylesheet" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+        <link href="../css/extra.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Generative Models";
+        var mkdocs_page_input_path = "day5.md";
+        var mkdocs_page_url = "/course-mlmd/day5/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../images/hpc2n-mlmm.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Module 1 (I)</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day1/">Mathematics for Machine Learning</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Module 1 (II)</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day2/">Machine Learning Concepts</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Module 2 (I)</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day3/">ML for Molecular Systems</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Module 2 (II)</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../day4/">Neural Networks</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Module 2 (III)</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Generative Models</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#learning-objectives-and-prerequisites">Learning Objectives and Prerequisites</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#1-what-is-a-generative-model">1. What Is a Generative Model?</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2-probability-distributions-and-sampling">2. Probability Distributions and Sampling</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#3-unconditional-and-conditional-generation">3. Unconditional and Conditional Generation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#4-latent-variables-and-learned-representations">4. Latent Variables and Learned Representations</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#5-training-generative-models-with-likelihood">5. Training Generative Models with Likelihood</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#6-autoregressive-models">6. Autoregressive Models</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#7-variational-autoencoders">7. Variational Autoencoders</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#8-generative-adversarial-networks">8. Generative Adversarial Networks</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#9-diffusion-models-forward-noising-and-reverse-generation">9. Diffusion Models: Forward Noising and Reverse Generation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#10-practical-exercise-train-a-small-denoising-model">10. Practical Exercise: Train a Small Denoising Model</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#11-three-dimensional-molecular-representations">11. Three-Dimensional Molecular Representations</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#12-geometric-symmetry-invariance-and-equivariance">12. Geometric Symmetry: Invariance and Equivariance</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#13-python-example-noising-the-calpha-coordinates-of-3muf">13. Python Example: Noising the C\(\alpha\) Coordinates of 3MUF</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#14-flow-matching-learning-continuous-generative-dynamics">14. Flow Matching: Learning Continuous Generative Dynamics</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#15-protein-structure-as-a-learning-problem">15. Protein Structure as a Learning Problem</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#16-alphafold-1-learning-residue-level-geometry">16. AlphaFold 1: Learning Residue-Level Geometry</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#17-alphafold-2-a-structure-prediction-architecture">17. AlphaFold 2: A Structure-Prediction Architecture</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#18-the-alphafold-2-ecosystem">18. The AlphaFold 2 Ecosystem</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#19-rfdiffusion-generative-design-of-protein-backbones">19. RFdiffusion: Generative Design of Protein Backbones</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#20-alphafold-3-conditional-generative-structure-prediction">20. AlphaFold 3: Conditional Generative Structure Prediction</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#21-simplefold-and-flow-based-protein-structure-prediction">21. SimpleFold and Flow-Based Protein Structure Prediction</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#22-protein-structure-prediction-and-protein-design">22. Protein-Structure Prediction and Protein Design</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#23-evaluating-predictive-and-generative-protein-models">23. Evaluating Predictive and Generative Protein Models</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#24-practical-exercises-and-discussion-questions">24. Practical Exercises and Discussion Questions</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#25-computational-considerations-and-hpc-workflows">25. Computational Considerations and HPC Workflows</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#26-summary">26. Summary</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#references-and-suggested-reading">References and Suggested Reading</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../day8/">MLPs</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">ML/MD course</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Module 2 (III)</li>
+      <li class="breadcrumb-item active">Generative Models</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="generative-models-for-molecular-science-alphafold-as-a-case-study">Generative Models for Molecular Science: AlphaFold as a Case Study<a class="headerlink" href="#generative-models-for-molecular-science-alphafold-as-a-case-study" title="Anchor link to this section for reference">&para;</a></h1>
+<p>Generative machine learning provides a framework for creating new examples from patterns learned in data. In molecular science, the generated objects may be chemical structures, SMILES strings, molecular graphs, amino-acid sequences, or three-dimensional atomic coordinates. Such methods support molecular discovery, protein design, and the exploration of structural alternatives.</p>
+<p>This course introduces the mathematical foundations of generative modeling and develops their connection to modern biomolecular structure prediction and design. We begin with probability distributions and sampling, progress through autoregressive models, variational autoencoders (VAEs), generative adversarial networks (GANs), diffusion models, and flow matching, and then examine how these ideas relate to the evolution of <strong>AlphaFold</strong> and related protein-design methods.</p>
+<p>A central distinction runs throughout the course: <strong>predicting the structure of a specified protein</strong> is not the same scientific task as <strong>designing a new protein structure</strong>. Nevertheless, a predictive system may contain a generative model internally. AlphaFold 2, AlphaFold 3, RFdiffusion, and SimpleFold provide useful examples of this distinction.</p>
+<p>The material is intended for approximately two days of instruction, but it is organized as one continuous sequence of topics rather than as separate daily chapters. Mathematical expressions use LaTeX syntax compatible with MathJax, and the practical exercises use Python code blocks inside collapsible <strong>Material for MkDocs</strong> admonitions.</p>
+<h2 id="learning-objectives-and-prerequisites">Learning Objectives and Prerequisites<a class="headerlink" href="#learning-objectives-and-prerequisites" title="Anchor link to this section for reference">&para;</a></h2>
+<p>After completing the course, participants should be able to explain how a generative model differs from a conventional property-prediction model; describe sampling, likelihood, latent variables, and conditional distributions; compare major generative-model families; explain the forward and reverse processes in diffusion models; and understand why geometric symmetry matters when generating molecular structures.</p>
+<p>Participants should also be able to distinguish AlphaFold 2 from AlphaFold 3, explain the roles of RFdiffusion and SimpleFold, and identify the limitations of generated structures and their evaluation metrics.</p>
+<p>Basic familiarity with Python, NumPy, neural networks, molecular structures, and protein sequences is helpful. Practical examples use <code>numpy</code>, <code>matplotlib</code>, <code>biopython</code>, and optionally <code>torch</code>.</p>
+<details class="note">
+<summary>Python environment</summary>
+<p>Install the packages used in the exercises in a suitable virtual environment:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>numpy<span class="w"> </span>matplotlib<span class="w"> </span>biopython<span class="w"> </span>torch
+</span></code></pre></div>
+<p>The small numerical examples require only NumPy and Matplotlib. The protein example requires Biopython and a PDB coordinate file. The neural-network exercise requires PyTorch. No AlphaFold model weights or GPU are needed for these educational demonstrations.</p>
+</details>
+<h2 id="1-what-is-a-generative-model">1. What Is a Generative Model?<a class="headerlink" href="#1-what-is-a-generative-model" title="Anchor link to this section for reference">&para;</a></h2>
+<p>A <strong>generative model</strong> learns the statistical structure of a dataset and uses this information to produce new samples. Let the observations be drawn from an unknown data distribution,</p>
+<div class="arithmatex">\[
+\mathbf{x}\sim p_{\mathrm{data}}(\mathbf{x}).
+\]</div>
+<p>A probabilistic generative model seeks a parameterized approximation,</p>
+<div class="arithmatex">\[
+p_{\theta}(\mathbf{x})\approx p_{\mathrm{data}}(\mathbf{x}),
+\]</div>
+<p>where <span class="arithmatex">\(\theta\)</span> represents model parameters learned from training data. Once trained, the model can generate a sample,</p>
+<div class="arithmatex">\[
+\mathbf{x}_{\mathrm{new}}\sim p_{\theta}(\mathbf{x}).
+\]</div>
+<p>The result may differ from every training example while remaining consistent with patterns in the learned distribution. In practice, not all generative models provide a directly evaluable probability density: some define only a procedure for sampling.</p>
+<p>For molecular applications, <span class="arithmatex">\(\mathbf{x}\)</span> might encode a molecular graph, a SMILES string, a protein sequence, or an array of atomic coordinates. Each representation brings its own constraints. A generated SMILES string must describe a valid molecular graph; a generated protein backbone must obey geometrical and stereochemical constraints.</p>
+<h3 id="predictive-and-generative-modeling">Predictive and generative modeling<a class="headerlink" href="#predictive-and-generative-modeling" title="Anchor link to this section for reference">&para;</a></h3>
+<p>A conventional supervised prediction model learns a relationship between features and a target,</p>
+<div class="arithmatex">\[
+\hat y=f_{\theta}(\mathbf{x}).
+\]</div>
+<p>For example, a QSAR regressor maps molecular descriptors to predicted solubility. A generative model instead defines how to sample candidate objects. Conditional generative models may perform generation <strong>given an input</strong> rather than generating freely.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Property prediction:       molecule  ---&gt;  predicted solubility
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>Protein prediction:        sequence  ---&gt;  predicted structure
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Molecular generation:      noise     ---&gt;  candidate molecule
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>Conditional generation:    noise + constraints  ---&gt;  candidate structure
+</span></code></pre></div>
+<p>These categories describe <strong>tasks</strong>, not necessarily exclusive network architectures. A structure predictor that uses diffusion to generate its output is performing a predictive scientific task through a generative mechanism.</p>
+<h2 id="2-probability-distributions-and-sampling">2. Probability Distributions and Sampling<a class="headerlink" href="#2-probability-distributions-and-sampling" title="Anchor link to this section for reference">&para;</a></h2>
+<p>For a discrete random variable, the probabilities of all possible outcomes must sum to one,</p>
+<div class="arithmatex">\[
+\sum_{\mathbf{x}}p_{\theta}(\mathbf{x})=1.
+\]</div>
+<p>For a continuous random variable, the probability density integrates to one,</p>
+<div class="arithmatex">\[
+\int_{\mathbb{R}^{d}}p_{\theta}(\mathbf{x})\,d\mathbf{x}=1.
+\]</div>
+<p><strong>Sampling</strong> means producing an observation according to such a distribution. A simple Gaussian distribution is written as</p>
+<div class="arithmatex">\[
+x\sim\mathcal{N}(\mu,\sigma^2),
+\]</div>
+<p>where <span class="arithmatex">\(\mu\)</span> is the mean and <span class="arithmatex">\(\sigma\)</span> is the standard deviation.</p>
+<details class="note">
+<summary>Example: sampling from a Gaussian distribution</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">mu</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">sigma</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">samples</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Sample mean: </span><span class="si">{</span><span class="n">samples</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Sample std:  </span><span class="si">{</span><span class="n">samples</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">)</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"Probability density"</span><span class="p">)</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"Samples from a Gaussian Distribution"</span><span class="p">)</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"gaussian_samples.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">"tight"</span><span class="p">)</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></code></pre></div>
+</details>
+<p>This is a sampling demonstration, not a <strong>learned</strong> generative model. Its value is to make clear what it means to draw multiple, nonidentical examples from one probability distribution.</p>
+<h2 id="3-unconditional-and-conditional-generation">3. Unconditional and Conditional Generation<a class="headerlink" href="#3-unconditional-and-conditional-generation" title="Anchor link to this section for reference">&para;</a></h2>
+<p>An <strong>unconditional model</strong> samples directly from a learned distribution <span class="arithmatex">\(p_{\theta}(\mathbf{x})\)</span>. A <strong>conditional generative model</strong> uses additional information <span class="arithmatex">\(\mathbf{c}\)</span> and samples from</p>
+<div class="arithmatex">\[
+p_{\theta}(\mathbf{x}\mid\mathbf{c}).
+\]</div>
+<p>The condition can represent a desired physicochemical property, a protein sequence, a binding partner, a structural motif, a chemical composition, or experimentally measured information. For example, generating a protein backbone around a fixed catalytic motif is a conditional generation task.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Condition: sequence, binding target, or structural motif
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>                         +
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>                    random sample
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>                         |
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>                         v
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>              Conditional generator
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>                         |
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>                         v
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>                   3D structure
+</span></code></pre></div>
+<p>Conditioning does not guarantee that an output satisfies every scientific requirement. Generated candidates still require structural validation, property assessment, and often experimental testing.</p>
+<h2 id="4-latent-variables-and-learned-representations">4. Latent Variables and Learned Representations<a class="headerlink" href="#4-latent-variables-and-learned-representations" title="Anchor link to this section for reference">&para;</a></h2>
+<p>A <strong>latent variable</strong> <span class="arithmatex">\(\mathbf{z}\)</span> is an internal variable that can capture variation in the data. A common starting choice is a standard multivariate normal distribution,</p>
+<div class="arithmatex">\[
+\mathbf{z}\sim p(\mathbf{z})=\mathcal{N}(\mathbf{0},\mathbf{I}).
+\]</div>
+<p>A generator can transform this latent input into a sample,</p>
+<div class="arithmatex">\[
+\mathbf{x}=G_{\theta}(\mathbf{z}).
+\]</div>
+<p>In a probabilistic latent-variable model, the observed-data distribution may be written as</p>
+<div class="arithmatex">\[
+p_{\theta}(\mathbf{x})
+=\int p_{\theta}(\mathbf{x}\mid\mathbf{z})p(\mathbf{z})\,d\mathbf{z}.
+\]</div>
+<p>A latent space is not necessarily a direct or interpretable coordinate system for physical properties. Its usefulness depends on the model architecture, training data, objective, and learned representations.</p>
+<h2 id="5-training-generative-models-with-likelihood">5. Training Generative Models with Likelihood<a class="headerlink" href="#5-training-generative-models-with-likelihood" title="Anchor link to this section for reference">&para;</a></h2>
+<p>One way to train a probabilistic generative model is <strong>maximum likelihood estimation</strong>. Given <span class="arithmatex">\(N\)</span> independent observations</p>
+<div class="arithmatex">\[
+\mathcal{D}=\{\mathbf{x}_1,\mathbf{x}_2,\ldots,\mathbf{x}_N\},
+\]</div>
+<p>the likelihood of the dataset is</p>
+<div class="arithmatex">\[
+L(\theta)=\prod_{i=1}^{N}p_{\theta}(\mathbf{x}_i).
+\]</div>
+<p>Taking the logarithm transforms products into sums,</p>
+<div class="arithmatex">\[
+\log L(\theta)=\sum_{i=1}^{N}\log p_{\theta}(\mathbf{x}_i).
+\]</div>
+<p>Training usually minimizes the <strong>negative log-likelihood</strong>,</p>
+<div class="arithmatex">\[
+\mathcal{L}_{\mathrm{NLL}}(\theta)
+=-\frac{1}{N}\sum_{i=1}^{N}\log p_{\theta}(\mathbf{x}_i).
+\]</div>
+<p>Not every generative model uses this loss explicitly. VAEs optimize a likelihood-related lower bound, GANs use an adversarial objective, and diffusion/flow-matching models are often trained with denoising or velocity-matching losses.</p>
+<h2 id="6-autoregressive-models">6. Autoregressive Models<a class="headerlink" href="#6-autoregressive-models" title="Anchor link to this section for reference">&para;</a></h2>
+<p>An autoregressive model generates a sequence one element at a time. For a sequence <span class="arithmatex">\(\mathbf{x}=(x_1,\ldots,x_T)\)</span>, the chain rule gives</p>
+<div class="arithmatex">\[
+p_{\theta}(\mathbf{x})
+=\prod_{t=1}^{T}
+p_{\theta}(x_t\mid x_1,\ldots,x_{t-1}).
+\]</div>
+<p>For proteins, each <span class="arithmatex">\(x_t\)</span> may represent an amino-acid identity. The model predicts a distribution over possible next residues, samples one, and repeats. Real protein language models use learned contextual representations and all 20 standard amino acids (plus any special tokens), not merely the identity of the previous residue.</p>
+<details class="note">
+<summary>Example: a toy sequential amino-acid generator</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">amino_acids</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"G"</span><span class="p">,</span> <span class="s2">"L"</span><span class="p">,</span> <span class="s2">"V"</span><span class="p">]</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1"># Invented transition probabilities for teaching.</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">transitions</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="s2">"A"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.10</span><span class="p">,</span> <span class="mf">0.30</span><span class="p">,</span> <span class="mf">0.40</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">],</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="s2">"G"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.30</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.30</span><span class="p">],</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="s2">"L"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.40</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">],</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="s2">"V"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.30</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.30</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">],</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="p">}</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="n">sequence</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">]</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">19</span><span class="p">):</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="n">previous</span> <span class="o">=</span> <span class="n">sequence</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    <span class="n">next_residue</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>        <span class="n">amino_acids</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">transitions</span><span class="p">[</span><span class="n">previous</span><span class="p">]</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    <span class="p">)</span>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>    <span class="n">sequence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">next_residue</span><span class="p">)</span>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Generated toy sequence:"</span><span class="p">,</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sequence</span><span class="p">))</span>
+</span></code></pre></div>
+</details>
+<p>This example is a <strong>first-order Markov chain with hand-chosen probabilities</strong>, not a trained protein language model. It illustrates the sampling process, but it does not produce validated biological sequences.</p>
+<h2 id="7-variational-autoencoders">7. Variational Autoencoders<a class="headerlink" href="#7-variational-autoencoders" title="Anchor link to this section for reference">&para;</a></h2>
+<p>A <strong>Variational Autoencoder (VAE)</strong> combines a probabilistic encoder and a decoder. The encoder estimates a distribution over latent variables conditioned on an observation,</p>
+<div class="arithmatex">\[
+q_{\phi}(\mathbf{z}\mid\mathbf{x}),
+\]</div>
+<p>while the decoder defines a distribution over reconstructed data,</p>
+<div class="arithmatex">\[
+p_{\theta}(\mathbf{x}\mid\mathbf{z}).
+\]</div>
+<p>A VAE is commonly trained by maximizing the <strong>evidence lower bound (ELBO)</strong>,</p>
+<div class="arithmatex">\[
+\mathcal{L}_{\mathrm{ELBO}}(\mathbf{x})
+=
+\mathbb{E}_{q_{\phi}(\mathbf{z}\mid\mathbf{x})}
+\left[\log p_{\theta}(\mathbf{x}\mid\mathbf{z})\right]
+-
+D_{\mathrm{KL}}\!\left(
+q_{\phi}(\mathbf{z}\mid\mathbf{x})
+\middle\|
+p(\mathbf{z})
+\right).
+\]</div>
+<p>The first term rewards reconstruction quality; the Kullback–Leibler divergence encourages consistency between the learned approximate posterior and the chosen latent prior. After training, samples can be generated by drawing <span class="arithmatex">\(\mathbf{z}\)</span> from the prior and passing it through the decoder.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Training:   molecule --&gt; encoder --&gt; latent z --&gt; decoder --&gt; reconstruction
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Generation: random z -------------------------&gt; decoder --&gt; new candidate
+</span></code></pre></div>
+<p>VAEs have been explored for molecular generation using continuous latent representations of molecules and molecular structures.</p>
+<h2 id="8-generative-adversarial-networks">8. Generative Adversarial Networks<a class="headerlink" href="#8-generative-adversarial-networks" title="Anchor link to this section for reference">&para;</a></h2>
+<p>A <strong>Generative Adversarial Network (GAN)</strong> trains a generator <span class="arithmatex">\(G_{\theta}\)</span> against a discriminator <span class="arithmatex">\(D_{\phi}\)</span>. The generator maps noise to candidate samples,</p>
+<div class="arithmatex">\[
+\mathbf{x}_{\mathrm{fake}}=G_{\theta}(\mathbf{z}),
+\]</div>
+<p>while the discriminator attempts to distinguish generated samples from real observations. The original minimax objective is</p>
+<div class="arithmatex">\[
+\min_G\max_D\left[
+\mathbb{E}_{\mathbf{x}\sim p_{\mathrm{data}}}
+\log D(\mathbf{x})
++
+\mathbb{E}_{\mathbf{z}\sim p(\mathbf{z})}
+\log\bigl(1-D(G(\mathbf{z}))\bigr)
+\right].
+\]</div>
+<p>GAN training can generate realistic samples, but it can also suffer from instability or <strong>mode collapse</strong>, where the generator produces insufficient diversity. GANs are useful historical context before considering diffusion and flow-based methods that are now prominent in geometric generative modeling.</p>
+<h2 id="9-diffusion-models-forward-noising-and-reverse-generation">9. Diffusion Models: Forward Noising and Reverse Generation<a class="headerlink" href="#9-diffusion-models-forward-noising-and-reverse-generation" title="Anchor link to this section for reference">&para;</a></h2>
+<p>A <strong>diffusion model</strong> learns to reverse a process that progressively corrupts data with noise. It consists conceptually of a <strong>forward noising process</strong> and a learned <strong>reverse generative process</strong>.</p>
+<p>For a discrete-time Gaussian diffusion model, the forward transition is</p>
+<div class="arithmatex">\[
+q(\mathbf{x}_t\mid\mathbf{x}_{t-1})
+=\mathcal{N}\!\left(
+\sqrt{1-\beta_t}\,\mathbf{x}_{t-1},
+\beta_t\mathbf{I}
+\right),
+\]</div>
+<p>where <span class="arithmatex">\(0&lt;\beta_t&lt;1\)</span> controls the noise variance at step <span class="arithmatex">\(t\)</span>. Define</p>
+<div class="arithmatex">\[
+\alpha_t=1-\beta_t,
+\qquad
+\bar\alpha_t=\prod_{s=1}^{t}\alpha_s.
+\]</div>
+<p>The noisy sample at arbitrary step <span class="arithmatex">\(t\)</span> can be constructed directly from a clean example <span class="arithmatex">\(\mathbf{x}_0\)</span>:</p>
+<div class="arithmatex">\[
+\boxed{
+\mathbf{x}_t
+=\sqrt{\bar\alpha_t}\,\mathbf{x}_0
++\sqrt{1-\bar\alpha_t}\,\boldsymbol\epsilon,
+\qquad
+\boldsymbol\epsilon\sim\mathcal{N}(\mathbf{0},\mathbf{I}).
+}
+\]</div>
+<p>When <span class="arithmatex">\(\bar\alpha_t\)</span> is near one, the sample remains close to the original data. When <span class="arithmatex">\(\bar\alpha_t\)</span> becomes small, the sample is dominated by noise.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Forward (fixed):   clean x0 --&gt; noisier x1 --&gt; ... --&gt; noise xT
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>Reverse (learned): noise xT --&gt; denoise --&gt; ... --&gt; generated x0
+</span></code></pre></div>
+<p>During generation, the reverse model begins from an approximately Gaussian sample and gradually transforms it into a sample resembling the training distribution. The reverse transitions are <strong>learned</strong>, rather than being obtained by simply subtracting arbitrary noise.</p>
+<h3 id="noise-prediction-and-clean-sample-objectives">Noise-prediction and clean-sample objectives<a class="headerlink" href="#noise-prediction-and-clean-sample-objectives" title="Anchor link to this section for reference">&para;</a></h3>
+<p>A common diffusion training strategy predicts the noise added at step <span class="arithmatex">\(t\)</span>,</p>
+<div class="arithmatex">\[
+\boldsymbol\epsilon_{\theta}(\mathbf{x}_t,t).
+\]</div>
+<p>The corresponding objective is</p>
+<div class="arithmatex">\[
+\mathcal{L}_{\mathrm{noise}}
+=\mathbb{E}_{\mathbf{x}_0,t,\boldsymbol\epsilon}
+\left[
+\left\|
+\boldsymbol\epsilon-
+\boldsymbol\epsilon_{\theta}(\mathbf{x}_t,t)
+\right\|_2^2
+\right].
+\]</div>
+<p>An alternative is to predict the <strong>clean sample</strong> <span class="arithmatex">\(\hat{\mathbf{x}}_0\)</span> directly. This distinction matters for AlphaFold 3: its diffusion module is trained to take noisy atomic coordinates and predict denoised coordinates, rather than being adequately described as an ordinary noise-prediction network.</p>
+<details class="note">
+<summary>Example: visualize progressive diffusion noise</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">x0</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">scale</span><span class="o">=</span><span class="mf">0.35</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">x1</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">scale</span><span class="o">=</span><span class="mf">0.35</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="n">clean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">])</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="n">alpha_bar_values</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">]</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">),</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">alpha_bar</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">alpha_bar_values</span><span class="p">):</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>    <span class="n">noise</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">clean</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="n">noisy</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>        <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">alpha_bar</span><span class="p">)</span> <span class="o">*</span> <span class="n">clean</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>        <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alpha_bar</span><span class="p">)</span> <span class="o">*</span> <span class="n">noise</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>    <span class="p">)</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">noisy</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">noisy</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">"alpha_bar = </span><span class="si">{</span><span class="n">alpha_bar</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">)</span>
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"y"</span><span class="p">)</span>
+</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a><span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">"Forward Diffusion: Increasing Noise"</span><span class="p">)</span>
+</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a><span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a><span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"forward_diffusion.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">"tight"</span><span class="p">)</span>
+</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></code></pre></div>
+</details>
+<p>The two clusters above are synthetic and have no molecular meaning. They are useful because the effect of the noise schedule can be seen clearly in two dimensions.</p>
+<h2 id="10-practical-exercise-train-a-small-denoising-model">10. Practical Exercise: Train a Small Denoising Model<a class="headerlink" href="#10-practical-exercise-train-a-small-denoising-model" title="Anchor link to this section for reference">&para;</a></h2>
+<p>The preceding example only adds noise. To demonstrate <strong>learning</strong>, we can train a small neural network to predict the added noise for synthetic two-dimensional data. The network receives both the corrupted point <span class="arithmatex">\(\mathbf{x}_t\)</span> and the diffusion step <span class="arithmatex">\(t\)</span>, and learns a noise estimate <span class="arithmatex">\(\boldsymbol\epsilon_{\theta}(\mathbf{x}_t,t)\)</span>.</p>
+<p>After training, the model performs approximate reverse diffusion. The demonstration is deliberately small and is <strong>not</strong> a molecular generator or an implementation of AlphaFold.</p>
+<details class="note">
+<summary>Example: a learned two-dimensional diffusion model (PyTorch)</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># 1. Two synthetic clusters (training data)</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="n">n</span> <span class="o">=</span> <span class="mi">2000</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="n">left</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">n</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.35</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="o">-</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="n">right</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">n</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.35</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="n">training_data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="c1"># 2. Gaussian diffusion schedule</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="n">T</span> <span class="o">=</span> <span class="mi">80</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="n">betas</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0005</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="n">alphas</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">betas</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="n">alpha_bars</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumprod</span><span class="p">(</span><span class="n">alphas</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="c1"># 3. Model input: [x_coordinate, y_coordinate, normalized_time]</span>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="n">denoiser</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>    <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>    <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>    <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>    <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>    <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a><span class="p">)</span>
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a><span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">denoiser</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>
+</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="c1"># 4. Learn to predict noise at randomly selected timesteps</span>
+</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">800</span><span class="p">):</span>
+</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>    <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="mi">256</span><span class="p">,))</span>
+</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>    <span class="n">x0</span> <span class="o">=</span> <span class="n">training_data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>    <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="p">(</span><span class="mi">256</span><span class="p">,))</span>
+</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>    <span class="n">epsilon</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x0</span><span class="p">)</span>
+</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>
+</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a>    <span class="n">a_bar</span> <span class="o">=</span> <span class="n">alpha_bars</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a>    <span class="n">xt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">a_bar</span><span class="p">)</span> <span class="o">*</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">a_bar</span><span class="p">)</span> <span class="o">*</span> <span class="n">epsilon</span>
+</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>    <span class="n">time_feature</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a>
+</span><span id="__span-8-40"><a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a>    <span class="n">predicted_noise</span> <span class="o">=</span> <span class="n">denoiser</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">xt</span><span class="p">,</span> <span class="n">time_feature</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span><span id="__span-8-41"><a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a>    <span class="n">loss</span> <span class="o">=</span> <span class="p">((</span><span class="n">predicted_noise</span> <span class="o">-</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span><span id="__span-8-42"><a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a>
+</span><span id="__span-8-43"><a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a>    <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span><span id="__span-8-44"><a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a>    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span><span id="__span-8-45"><a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a>    <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span><span id="__span-8-46"><a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a>
+</span><span id="__span-8-47"><a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-8-48"><a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Step </span><span class="si">{</span><span class="n">step</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">: loss = </span><span class="si">{</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-8-49"><a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a>
+</span><span id="__span-8-50"><a id="__codelineno-8-50" name="__codelineno-8-50" href="#__codelineno-8-50"></a><span class="c1"># 5. Generate samples by approximate reverse diffusion</span>
+</span><span id="__span-8-51"><a id="__codelineno-8-51" name="__codelineno-8-51" href="#__codelineno-8-51"></a><span class="n">denoiser</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span><span id="__span-8-52"><a id="__codelineno-8-52" name="__codelineno-8-52" href="#__codelineno-8-52"></a><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span><span id="__span-8-53"><a id="__codelineno-8-53" name="__codelineno-8-53" href="#__codelineno-8-53"></a>    <span class="n">generated</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-8-54"><a id="__codelineno-8-54" name="__codelineno-8-54" href="#__codelineno-8-54"></a>
+</span><span id="__span-8-55"><a id="__codelineno-8-55" name="__codelineno-8-55" href="#__codelineno-8-55"></a>    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">T</span><span class="p">)):</span>
+</span><span id="__span-8-56"><a id="__codelineno-8-56" name="__codelineno-8-56" href="#__codelineno-8-56"></a>        <span class="n">time_feature</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">generated</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">t</span> <span class="o">/</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+</span><span id="__span-8-57"><a id="__codelineno-8-57" name="__codelineno-8-57" href="#__codelineno-8-57"></a>        <span class="n">predicted_noise</span> <span class="o">=</span> <span class="n">denoiser</span><span class="p">(</span>
+</span><span id="__span-8-58"><a id="__codelineno-8-58" name="__codelineno-8-58" href="#__codelineno-8-58"></a>            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">generated</span><span class="p">,</span> <span class="n">time_feature</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-8-59"><a id="__codelineno-8-59" name="__codelineno-8-59" href="#__codelineno-8-59"></a>        <span class="p">)</span>
+</span><span id="__span-8-60"><a id="__codelineno-8-60" name="__codelineno-8-60" href="#__codelineno-8-60"></a>
+</span><span id="__span-8-61"><a id="__codelineno-8-61" name="__codelineno-8-61" href="#__codelineno-8-61"></a>        <span class="n">mean</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-8-62"><a id="__codelineno-8-62" name="__codelineno-8-62" href="#__codelineno-8-62"></a>            <span class="n">generated</span>
+</span><span id="__span-8-63"><a id="__codelineno-8-63" name="__codelineno-8-63" href="#__codelineno-8-63"></a>            <span class="o">-</span> <span class="n">betas</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha_bars</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="o">*</span> <span class="n">predicted_noise</span>
+</span><span id="__span-8-64"><a id="__codelineno-8-64" name="__codelineno-8-64" href="#__codelineno-8-64"></a>        <span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">alphas</span><span class="p">[</span><span class="n">t</span><span class="p">])</span>
+</span><span id="__span-8-65"><a id="__codelineno-8-65" name="__codelineno-8-65" href="#__codelineno-8-65"></a>
+</span><span id="__span-8-66"><a id="__codelineno-8-66" name="__codelineno-8-66" href="#__codelineno-8-66"></a>        <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-8-67"><a id="__codelineno-8-67" name="__codelineno-8-67" href="#__codelineno-8-67"></a>            <span class="n">posterior_variance</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-8-68"><a id="__codelineno-8-68" name="__codelineno-8-68" href="#__codelineno-8-68"></a>                <span class="n">betas</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha_bars</span><span class="p">[</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+</span><span id="__span-8-69"><a id="__codelineno-8-69" name="__codelineno-8-69" href="#__codelineno-8-69"></a>                <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha_bars</span><span class="p">[</span><span class="n">t</span><span class="p">])</span>
+</span><span id="__span-8-70"><a id="__codelineno-8-70" name="__codelineno-8-70" href="#__codelineno-8-70"></a>            <span class="p">)</span>
+</span><span id="__span-8-71"><a id="__codelineno-8-71" name="__codelineno-8-71" href="#__codelineno-8-71"></a>            <span class="n">generated</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">posterior_variance</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">generated</span><span class="p">)</span>
+</span><span id="__span-8-72"><a id="__codelineno-8-72" name="__codelineno-8-72" href="#__codelineno-8-72"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-8-73"><a id="__codelineno-8-73" name="__codelineno-8-73" href="#__codelineno-8-73"></a>            <span class="n">generated</span> <span class="o">=</span> <span class="n">mean</span>
+</span><span id="__span-8-74"><a id="__codelineno-8-74" name="__codelineno-8-74" href="#__codelineno-8-74"></a>
+</span><span id="__span-8-75"><a id="__codelineno-8-75" name="__codelineno-8-75" href="#__codelineno-8-75"></a><span class="c1"># 6. Compare training and generated samples</span>
+</span><span id="__span-8-76"><a id="__codelineno-8-76" name="__codelineno-8-76" href="#__codelineno-8-76"></a><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+</span><span id="__span-8-77"><a id="__codelineno-8-77" name="__codelineno-8-77" href="#__codelineno-8-77"></a><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">training_data</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">training_data</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+</span><span id="__span-8-78"><a id="__codelineno-8-78" name="__codelineno-8-78" href="#__codelineno-8-78"></a><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"Training Distribution"</span><span class="p">)</span>
+</span><span id="__span-8-79"><a id="__codelineno-8-79" name="__codelineno-8-79" href="#__codelineno-8-79"></a><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">generated</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">generated</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.4</span><span class="p">)</span>
+</span><span id="__span-8-80"><a id="__codelineno-8-80" name="__codelineno-8-80" href="#__codelineno-8-80"></a><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"Generated Samples"</span><span class="p">)</span>
+</span><span id="__span-8-81"><a id="__codelineno-8-81" name="__codelineno-8-81" href="#__codelineno-8-81"></a>
+</span><span id="__span-8-82"><a id="__codelineno-8-82" name="__codelineno-8-82" href="#__codelineno-8-82"></a><span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
+</span><span id="__span-8-83"><a id="__codelineno-8-83" name="__codelineno-8-83" href="#__codelineno-8-83"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+</span><span id="__span-8-84"><a id="__codelineno-8-84" name="__codelineno-8-84" href="#__codelineno-8-84"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</span><span id="__span-8-85"><a id="__codelineno-8-85" name="__codelineno-8-85" href="#__codelineno-8-85"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">)</span>
+</span><span id="__span-8-86"><a id="__codelineno-8-86" name="__codelineno-8-86" href="#__codelineno-8-86"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"y"</span><span class="p">)</span>
+</span><span id="__span-8-87"><a id="__codelineno-8-87" name="__codelineno-8-87" href="#__codelineno-8-87"></a>
+</span><span id="__span-8-88"><a id="__codelineno-8-88" name="__codelineno-8-88" href="#__codelineno-8-88"></a><span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</span><span id="__span-8-89"><a id="__codelineno-8-89" name="__codelineno-8-89" href="#__codelineno-8-89"></a><span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"toy_learned_diffusion.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">"tight"</span><span class="p">)</span>
+</span><span id="__span-8-90"><a id="__codelineno-8-90" name="__codelineno-8-90" href="#__codelineno-8-90"></a><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></code></pre></div>
+</details>
+<p>The network sees many noisy versions of the training points. During generation, the learned noise estimates guide the reverse trajectory from random noise toward the data distribution. Exact agreement is not expected: the network is small and trained for a limited number of optimization steps. This exercise is intended to illustrate the distinction between <strong>adding noise</strong> and <strong>learning how to generate</strong>.</p>
+<h2 id="11-three-dimensional-molecular-representations">11. Three-Dimensional Molecular Representations<a class="headerlink" href="#11-three-dimensional-molecular-representations" title="Anchor link to this section for reference">&para;</a></h2>
+<p>For a molecule or protein with <span class="arithmatex">\(N\)</span> atoms, let the coordinates be collected in an <span class="arithmatex">\(N\times 3\)</span> matrix,</p>
+<div class="arithmatex">\[
+\mathbf{R}
+=
+\begin{bmatrix}
+\mathbf{r}_1^{\mathsf T}\\
+\mathbf{r}_2^{\mathsf T}\\
+\vdots\\
+\mathbf{r}_N^{\mathsf T}
+\end{bmatrix},
+\qquad
+\mathbf{r}_i=
+\begin{bmatrix}
+x_i\\y_i\\z_i
+\end{bmatrix}.
+\]</div>
+<p>Each row of <span class="arithmatex">\(\mathbf{R}\)</span> represents a point in three-dimensional space. Atomic coordinates preserve detailed geometry, but they also present challenges: meaningful molecular structures occupy a tiny fraction of all possible coordinate arrays. Most arbitrary coordinate samples have unrealistic bond lengths, severe steric clashes, or incorrect stereochemistry.</p>
+<p>For protein modeling, a common coarse-grained representation uses the <span class="arithmatex">\(C_\alpha\)</span> atom of each amino acid, while a more detailed representation retains backbone or all-atom coordinates. A C<span class="arithmatex">\(\alpha\)</span>-only model cannot represent side-chain chemistry or all atomic interactions directly.</p>
+<h2 id="12-geometric-symmetry-invariance-and-equivariance">12. Geometric Symmetry: Invariance and Equivariance<a class="headerlink" href="#12-geometric-symmetry-invariance-and-equivariance" title="Anchor link to this section for reference">&para;</a></h2>
+<p>A molecule has no preferred absolute orientation or position. Suppose each coordinate is rotated by <span class="arithmatex">\(\mathbf{Q}\in SO(3)\)</span> and translated by <span class="arithmatex">\(\mathbf{t}\in\mathbb{R}^3\)</span>:</p>
+<div class="arithmatex">\[
+\mathbf{r}_i'
+=\mathbf{Q}\mathbf{r}_i+\mathbf{t}.
+\]</div>
+<p>A scalar molecular quantity such as potential energy should be <strong>invariant</strong> under a global rigid transformation:</p>
+<div class="arithmatex">\[
+E(\{\mathbf{Q}\mathbf{r}_i+\mathbf{t}\})
+=E(\{\mathbf{r}_i\}).
+\]</div>
+<p>A coordinate-valued prediction should transform <strong>equivariantly</strong>. For a mapping <span class="arithmatex">\(f\)</span> that outputs vectors,</p>
+<div class="arithmatex">\[
+f(\{\mathbf{Q}\mathbf{r}_i+\mathbf{t}\})
+=\{\mathbf{Q}f_i(\mathbf{R})+\mathbf{t}\},
+\]</div>
+<p>when its outputs are positions. For a force predictor, the translation term is absent:</p>
+<div class="arithmatex">\[
+\mathbf{F}_i(\{\mathbf{Q}\mathbf{r}_j+\mathbf{t}\})
+=\mathbf{Q}\mathbf{F}_i(\mathbf{R}).
+\]</div>
+<p>These distinctions are central in geometry-based molecular machine learning. Importantly, <strong>not every successful protein model hard-codes geometric equivariance into its neural architecture</strong>. In particular, AlphaFold 3 does not impose explicit rotation-equivariant operations in its diffusion module; instead, its training and model formulation encourage geometrically appropriate predictions. It is therefore important to distinguish a desired physical symmetry from the architectural mechanism used to learn or enforce it.</p>
+<details class="info">
+<summary>Advanced material: removing rigid-body degrees of freedom</summary>
+<p>A collection of <span class="arithmatex">\(N\)</span> points in three dimensions has <span class="arithmatex">\(3N\)</span> Cartesian coordinates. Overall translation and rotation do not change internal geometry. One can center a structure before comparing or perturbing it,</p>
+<div class="arithmatex">\[
+\widetilde{\mathbf{r}}_i
+=\mathbf{r}_i-\frac{1}{N}\sum_{j=1}^{N}\mathbf{r}_j.
+\]</div>
+<p>Centering removes global translation, but not rotational freedom. Shape comparisons often additionally align two structures by finding a best-fit rotation. The appropriate treatment of these degrees of freedom depends on the model and its sampling procedure.</p>
+</details>
+<h2 id="13-python-example-noising-the-calpha-coordinates-of-3muf">13. Python Example: Noising the C<span class="arithmatex">\(\alpha\)</span> Coordinates of 3MUF<a class="headerlink" href="#13-python-example-noising-the-calpha-coordinates-of-3muf" title="Anchor link to this section for reference">&para;</a></h2>
+<p>The next exercise connects diffusion mathematics to protein structure. We extract the <span class="arithmatex">\(C_\alpha\)</span> coordinates of chain A from <code>3muf.pdb</code>, center and normalize them, and add Gaussian noise using the forward-diffusion equation. We then compare consecutive C<span class="arithmatex">\(\alpha\)</span> distances before and after perturbation.</p>
+<p>This demonstration deliberately <strong>does not produce valid protein conformations</strong>: it applies generic Gaussian noise without a trained structural prior or stereochemical constraints. The point is to visualize what a denoising model needs to learn.</p>
+<details class="note">
+<summary>Example: forward diffusion of 3MUF C-alpha coordinates</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">urllib.request</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlretrieve</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">Bio.PDB</span><span class="w"> </span><span class="kn">import</span> <span class="n">PDBParser</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">Bio.PDB.Polypeptide</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_aa</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="c1"># 1. Download the file if it is not already available</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">pdb_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"3muf.pdb"</span><span class="p">)</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="k">if</span> <span class="ow">not</span> <span class="n">pdb_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">urlretrieve</span><span class="p">(</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>        <span class="s2">"https://files.rcsb.org/download/3MUF.pdb"</span><span class="p">,</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>        <span class="nb">str</span><span class="p">(</span><span class="n">pdb_file</span><span class="p">),</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="p">)</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="c1"># 2. Read chain A and extract C-alpha atoms</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="n">structure</span> <span class="o">=</span> <span class="n">PDBParser</span><span class="p">(</span><span class="n">QUIET</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">get_structure</span><span class="p">(</span><span class="s2">"3MUF"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">pdb_file</span><span class="p">))</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="n">chain</span> <span class="o">=</span> <span class="n">structure</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"A"</span><span class="p">]</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="n">residue_names</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a><span class="n">coordinates</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a><span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="n">chain</span><span class="p">:</span>
+</span><span id="__span-9-24"><a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_aa</span><span class="p">(</span><span class="n">residue</span><span class="p">,</span> <span class="n">standard</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"CA"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">residue</span><span class="p">:</span>
+</span><span id="__span-9-25"><a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>        <span class="k">continue</span>
+</span><span id="__span-9-26"><a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>    <span class="n">residue_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">get_resname</span><span class="p">())</span>
+</span><span id="__span-9-27"><a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a>    <span class="n">coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">residue</span><span class="p">[</span><span class="s2">"CA"</span><span class="p">]</span><span class="o">.</span><span class="n">get_coord</span><span class="p">())</span>
+</span><span id="__span-9-28"><a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>
+</span><span id="__span-9-29"><a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a><span class="n">coordinates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span id="__span-9-30"><a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a><span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+</span><span id="__span-9-31"><a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Not enough C-alpha atoms were found"</span><span class="p">)</span>
+</span><span id="__span-9-32"><a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"C-alpha coordinate matrix:"</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</span><span id="__span-9-33"><a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a>
+</span><span id="__span-9-34"><a id="__codelineno-9-34" name="__codelineno-9-34" href="#__codelineno-9-34"></a><span class="c1"># 3. Normalize to a dimensionless representation</span>
+</span><span id="__span-9-35"><a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a><span class="n">center</span> <span class="o">=</span> <span class="n">coordinates</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-9-36"><a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a><span class="n">scale</span> <span class="o">=</span> <span class="n">coordinates</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+</span><span id="__span-9-37"><a id="__codelineno-9-37" name="__codelineno-9-37" href="#__codelineno-9-37"></a><span class="k">if</span> <span class="n">scale</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-9-38"><a id="__codelineno-9-38" name="__codelineno-9-38" href="#__codelineno-9-38"></a>    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Coordinate scale must be nonzero"</span><span class="p">)</span>
+</span><span id="__span-9-39"><a id="__codelineno-9-39" name="__codelineno-9-39" href="#__codelineno-9-39"></a><span class="n">x0</span> <span class="o">=</span> <span class="p">(</span><span class="n">coordinates</span> <span class="o">-</span> <span class="n">center</span><span class="p">)</span> <span class="o">/</span> <span class="n">scale</span>
+</span><span id="__span-9-40"><a id="__codelineno-9-40" name="__codelineno-9-40" href="#__codelineno-9-40"></a>
+</span><span id="__span-9-41"><a id="__codelineno-9-41" name="__codelineno-9-41" href="#__codelineno-9-41"></a><span class="c1"># 4. Add diffusion-style Gaussian noise</span>
+</span><span id="__span-9-42"><a id="__codelineno-9-42" name="__codelineno-9-42" href="#__codelineno-9-42"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</span><span id="__span-9-43"><a id="__codelineno-9-43" name="__codelineno-9-43" href="#__codelineno-9-43"></a><span class="n">alpha_bar</span> <span class="o">=</span> <span class="mf">0.50</span>
+</span><span id="__span-9-44"><a id="__codelineno-9-44" name="__codelineno-9-44" href="#__codelineno-9-44"></a><span class="n">epsilon</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</span><span id="__span-9-45"><a id="__codelineno-9-45" name="__codelineno-9-45" href="#__codelineno-9-45"></a><span class="n">xt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">alpha_bar</span><span class="p">)</span> <span class="o">*</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha_bar</span><span class="p">)</span> <span class="o">*</span> <span class="n">epsilon</span>
+</span><span id="__span-9-46"><a id="__codelineno-9-46" name="__codelineno-9-46" href="#__codelineno-9-46"></a>
+</span><span id="__span-9-47"><a id="__codelineno-9-47" name="__codelineno-9-47" href="#__codelineno-9-47"></a><span class="c1"># 5. Return noisy coordinates to the original distance scale</span>
+</span><span id="__span-9-48"><a id="__codelineno-9-48" name="__codelineno-9-48" href="#__codelineno-9-48"></a><span class="n">noisy_coordinates</span> <span class="o">=</span> <span class="n">xt</span> <span class="o">*</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">center</span>
+</span><span id="__span-9-49"><a id="__codelineno-9-49" name="__codelineno-9-49" href="#__codelineno-9-49"></a><span class="n">original_distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-9-50"><a id="__codelineno-9-50" name="__codelineno-9-50" href="#__codelineno-9-50"></a><span class="n">noisy_distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">noisy_coordinates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-9-51"><a id="__codelineno-9-51" name="__codelineno-9-51" href="#__codelineno-9-51"></a>
+</span><span id="__span-9-52"><a id="__codelineno-9-52" name="__codelineno-9-52" href="#__codelineno-9-52"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Original mean consecutive CA distance: </span><span class="si">{</span><span class="n">original_distances</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> Å"</span><span class="p">)</span>
+</span><span id="__span-9-53"><a id="__codelineno-9-53" name="__codelineno-9-53" href="#__codelineno-9-53"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Noisy mean consecutive CA distance:    </span><span class="si">{</span><span class="n">noisy_distances</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> Å"</span><span class="p">)</span>
+</span><span id="__span-9-54"><a id="__codelineno-9-54" name="__codelineno-9-54" href="#__codelineno-9-54"></a>
+</span><span id="__span-9-55"><a id="__codelineno-9-55" name="__codelineno-9-55" href="#__codelineno-9-55"></a><span class="c1"># 6. Plot an x-y projection, colored by residue index</span>
+</span><span id="__span-9-56"><a id="__codelineno-9-56" name="__codelineno-9-56" href="#__codelineno-9-56"></a><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+</span><span id="__span-9-57"><a id="__codelineno-9-57" name="__codelineno-9-57" href="#__codelineno-9-57"></a><span class="n">residue_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coordinates</span><span class="p">))</span>
+</span><span id="__span-9-58"><a id="__codelineno-9-58" name="__codelineno-9-58" href="#__codelineno-9-58"></a>
+</span><span id="__span-9-59"><a id="__codelineno-9-59" name="__codelineno-9-59" href="#__codelineno-9-59"></a><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+</span><span id="__span-9-60"><a id="__codelineno-9-60" name="__codelineno-9-60" href="#__codelineno-9-60"></a>    <span class="n">coordinates</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">coordinates</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+</span><span id="__span-9-61"><a id="__codelineno-9-61" name="__codelineno-9-61" href="#__codelineno-9-61"></a>    <span class="n">c</span><span class="o">=</span><span class="n">residue_index</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"viridis"</span>
+</span><span id="__span-9-62"><a id="__codelineno-9-62" name="__codelineno-9-62" href="#__codelineno-9-62"></a><span class="p">)</span>
+</span><span id="__span-9-63"><a id="__codelineno-9-63" name="__codelineno-9-63" href="#__codelineno-9-63"></a><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"Original 3MUF C-alpha Coordinates"</span><span class="p">)</span>
+</span><span id="__span-9-64"><a id="__codelineno-9-64" name="__codelineno-9-64" href="#__codelineno-9-64"></a>
+</span><span id="__span-9-65"><a id="__codelineno-9-65" name="__codelineno-9-65" href="#__codelineno-9-65"></a><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+</span><span id="__span-9-66"><a id="__codelineno-9-66" name="__codelineno-9-66" href="#__codelineno-9-66"></a>    <span class="n">noisy_coordinates</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">noisy_coordinates</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+</span><span id="__span-9-67"><a id="__codelineno-9-67" name="__codelineno-9-67" href="#__codelineno-9-67"></a>    <span class="n">c</span><span class="o">=</span><span class="n">residue_index</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"viridis"</span>
+</span><span id="__span-9-68"><a id="__codelineno-9-68" name="__codelineno-9-68" href="#__codelineno-9-68"></a><span class="p">)</span>
+</span><span id="__span-9-69"><a id="__codelineno-9-69" name="__codelineno-9-69" href="#__codelineno-9-69"></a><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"Forward-Diffused Coordinates"</span><span class="p">)</span>
+</span><span id="__span-9-70"><a id="__codelineno-9-70" name="__codelineno-9-70" href="#__codelineno-9-70"></a>
+</span><span id="__span-9-71"><a id="__codelineno-9-71" name="__codelineno-9-71" href="#__codelineno-9-71"></a><span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
+</span><span id="__span-9-72"><a id="__codelineno-9-72" name="__codelineno-9-72" href="#__codelineno-9-72"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"x (Å)"</span><span class="p">)</span>
+</span><span id="__span-9-73"><a id="__codelineno-9-73" name="__codelineno-9-73" href="#__codelineno-9-73"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"y (Å)"</span><span class="p">)</span>
+</span><span id="__span-9-74"><a id="__codelineno-9-74" name="__codelineno-9-74" href="#__codelineno-9-74"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">"equal"</span><span class="p">,</span> <span class="n">adjustable</span><span class="o">=</span><span class="s2">"box"</span><span class="p">)</span>
+</span><span id="__span-9-75"><a id="__codelineno-9-75" name="__codelineno-9-75" href="#__codelineno-9-75"></a>
+</span><span id="__span-9-76"><a id="__codelineno-9-76" name="__codelineno-9-76" href="#__codelineno-9-76"></a><span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</span><span id="__span-9-77"><a id="__codelineno-9-77" name="__codelineno-9-77" href="#__codelineno-9-77"></a><span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"3muf_forward_diffusion.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">"tight"</span><span class="p">)</span>
+</span><span id="__span-9-78"><a id="__codelineno-9-78" name="__codelineno-9-78" href="#__codelineno-9-78"></a><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></code></pre></div>
+</details>
+<p>The example uses <strong>only the modeled C<span class="arithmatex">\(\alpha\)</span> atoms</strong>, not the ligands, waters, or side-chain atoms. The normalization is for a convenient numerical illustration: practical biomolecular generative models use more carefully designed coordinate representations, noise schedules, and geometry-aware learning procedures.</p>
+<h2 id="14-flow-matching-learning-continuous-generative-dynamics">14. Flow Matching: Learning Continuous Generative Dynamics<a class="headerlink" href="#14-flow-matching-learning-continuous-generative-dynamics" title="Anchor link to this section for reference">&para;</a></h2>
+<p><strong>Flow matching</strong> is another approach to generative modeling. It learns a time-dependent velocity field that transports samples from a simple reference distribution toward a target data distribution. A sample follows an ordinary differential equation,</p>
+<div class="arithmatex">\[
+\frac{d\mathbf{x}_t}{dt}
+=\mathbf{v}_{\theta}(\mathbf{x}_t,t),
+\qquad t\in[0,1].
+\]</div>
+<p>If <span class="arithmatex">\(\mathbf{x}_0\)</span> is drawn from a simple distribution, integrating the learned vector field can produce a sample whose distribution resembles the training data at <span class="arithmatex">\(t=1\)</span>.</p>
+<p>A generic flow-matching loss compares the learned velocity with a target field <span class="arithmatex">\(\mathbf{u}_t\)</span>:</p>
+<div class="arithmatex">\[
+\mathcal{L}_{\mathrm{FM}}
+=\mathbb{E}\left[
+\left\|
+\mathbf{v}_{\theta}(\mathbf{x}_t,t)
+-\mathbf{u}_t
+\right\|_2^2
+\right].
+\]</div>
+<p>Flow matching and diffusion are closely related areas of generative modeling, but they are not identical algorithms. Diffusion is commonly framed through stochastic noising and learned denoising, whereas flow matching learns a continuous transport vector field. Either approach may be made conditional on a molecular or protein context <span class="arithmatex">\(\mathbf{c}\)</span>.</p>
+<details class="info">
+<summary>Advanced material: conditional flow matching</summary>
+<p>For a conditioned protein-structure problem, a flow-based model may learn</p>
+<div class="arithmatex">\[
+\frac{d\mathbf{R}_t}{dt}
+=\mathbf{v}_{\theta}(\mathbf{R}_t,t,\mathbf{c}),
+\]</div>
+<p>where <span class="arithmatex">\(\mathbf{c}\)</span> encodes sequence or other structural constraints. The network must learn how the conditioning information changes the trajectories that lead to valid structures.</p>
+</details>
+<h2 id="15-protein-structure-as-a-learning-problem">15. Protein Structure as a Learning Problem<a class="headerlink" href="#15-protein-structure-as-a-learning-problem" title="Anchor link to this section for reference">&para;</a></h2>
+<p>A protein sequence containing <span class="arithmatex">\(L\)</span> amino acids can be represented as</p>
+<div class="arithmatex">\[
+S=(s_1,s_2,\ldots,s_L).
+\]</div>
+<p>A protein-structure prediction model uses sequence-derived information to estimate a three-dimensional structure,</p>
+<div class="arithmatex">\[
+S\longrightarrow\widehat{\mathbf{R}}.
+\]</div>
+<p>In practice, the conditioning information may include multiple sequence alignments, structural templates, or information about other molecular components. Protein modeling must account for local geometry, nonlocal contacts, folding constraints, and the existence of multiple possible conformations.</p>
+<h3 id="folding-landscapes-and-structural-ensembles">Folding landscapes and structural ensembles<a class="headerlink" href="#folding-landscapes-and-structural-ensembles" title="Anchor link to this section for reference">&para;</a></h3>
+<p>Protein folding is often illustrated as motion over a free-energy landscape. Different conformations have different free energies, and stable or metastable conformational states may occupy distinct basins.</p>
+<p>For a conformation <span class="arithmatex">\(\mathbf{R}\)</span> at temperature <span class="arithmatex">\(T\)</span>, the equilibrium probability density can be expressed schematically as</p>
+<div class="arithmatex">\[
+p_{\mathrm{eq}}(\mathbf{R})
+=\frac{1}{Z}
+\exp\left[-\frac{F(\mathbf{R})}{k_{\mathrm B}T}\right],
+\]</div>
+<p>where <span class="arithmatex">\(F(\mathbf{R})\)</span> denotes an effective conformational free energy and <span class="arithmatex">\(Z\)</span> is the normalization constant. The expression illustrates a thermodynamic viewpoint; neither AlphaFold 2 nor AlphaFold 3 directly provides this equilibrium density in general.</p>
+<p>Because proteins fluctuate in solution, a single static structure is not a full description of protein dynamics. This distinction becomes particularly important when interpreting multiple samples from a generative structure model.</p>
+<h2 id="16-alphafold-1-learning-residue-level-geometry">16. AlphaFold 1: Learning Residue-Level Geometry<a class="headerlink" href="#16-alphafold-1-learning-residue-level-geometry" title="Anchor link to this section for reference">&para;</a></h2>
+<p>AlphaFold 1 achieved a major advance in the CASP13 protein-structure prediction assessment. Rather than directly using the later diffusion paradigm, it learned geometrical information about relationships between residues. One important representation is a <strong>distogram</strong>, which describes a probability distribution over residue-pair distances.</p>
+<p>For a pair of residues <span class="arithmatex">\(i\)</span> and <span class="arithmatex">\(j\)</span> and distance bin <span class="arithmatex">\(k\)</span>,</p>
+<div class="arithmatex">\[
+p_{ij,k}
+=P\!\left(d_{ij}\in[b_k,b_{k+1})\mid\text{input features}\right).
+\]</div>
+<p>This type of output is probabilistic, but <strong>predicting a probability distribution over distances is not by itself the same as a generative model that samples complete protein structures</strong>. The geometric predictions were used to guide the construction of a three-dimensional model.</p>
+<h2 id="17-alphafold-2-a-structure-prediction-architecture">17. AlphaFold 2: A Structure-Prediction Architecture<a class="headerlink" href="#17-alphafold-2-a-structure-prediction-architecture" title="Anchor link to this section for reference">&para;</a></h2>
+<p>AlphaFold 2 introduced a substantially redesigned architecture that combines multiple sequence alignments, residue-pair information, optional structural templates, the <strong>Evoformer</strong>, and a geometry-aware <strong>structure module</strong>.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>Protein sequence
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>       |
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>       +--&gt; sequence search / multiple sequence alignment
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>       |
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>       +--&gt; optional structural templates
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>       |
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>       v
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>  MSA and pair representations
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>       |
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>       v
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>     Evoformer
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>       |
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>       v
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>  Structure module
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>       |
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>       v
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a> Predicted 3D protein structure
+</span></code></pre></div>
+<p>The Evoformer repeatedly updates the MSA and pair representations to capture evolutionary and structural relationships. The structure module produces a coordinate model using learned geometric information. Recycling can refine predictions by feeding previous results back into the model.</p>
+<h3 id="why-alphafold-2-is-not-usually-classified-as-generative">Why AlphaFold 2 is not usually classified as generative<a class="headerlink" href="#why-alphafold-2-is-not-usually-classified-as-generative" title="Anchor link to this section for reference">&para;</a></h3>
+<p>AlphaFold 2 is primarily a conditional <strong>structure predictor</strong>. It does not generate structures by sampling a learned iterative diffusion process from coordinate noise. Although internal representations and the training procedure involve probabilistic ideas, its central inference task is to predict a structure corresponding to the supplied sequence and context.</p>
+<p>This is a useful reminder that the presence of neural networks, attention, probability distributions, or random initialization does not automatically make an entire system a generative model.</p>
+<h2 id="18-the-alphafold-2-ecosystem">18. The AlphaFold 2 Ecosystem<a class="headerlink" href="#18-the-alphafold-2-ecosystem" title="Anchor link to this section for reference">&para;</a></h2>
+<p><strong>ColabFold</strong> makes AlphaFold-style structure prediction more accessible and uses MMseqs2 for rapid homology searches. It is well suited for notebook demonstrations and workflows in which obtaining the MSA efficiently is important.</p>
+<p><strong>AlphaFold-Multimer</strong> extends AlphaFold 2 to protein complexes and places particular emphasis on predicting the arrangement of interacting chains and their interfaces.</p>
+<p><strong>AlphaPulldown</strong> builds workflows for screening potential protein-protein interactions with AlphaFold-based models. It is particularly relevant to batch processing, dataset preparation, and high-performance computing.</p>
+<p><strong>AlphaFold Unmasked</strong> extends AlphaFold 2-related approaches to incorporate resolved experimental structure information and to fill missing structural regions through inpainting. Structural inpainting is closely related to conditional completion, though the use of a reconstruction or completion task does not automatically mean the model is a diffusion generator.</p>
+<p>These tools expand the use cases of AlphaFold 2, but should be distinguished from methods specifically trained for generative structure sampling.</p>
+<h2 id="19-rfdiffusion-generative-design-of-protein-backbones">19. RFdiffusion: Generative Design of Protein Backbones<a class="headerlink" href="#19-rfdiffusion-generative-design-of-protein-backbones" title="Anchor link to this section for reference">&para;</a></h2>
+<p><strong>RFdiffusion</strong> provides a direct example of generative modeling for proteins. It adapts the RoseTTAFold structure-prediction framework to a diffusion process capable of sampling <strong>new protein backbones</strong>, including structures conditioned on design constraints.</p>
+<p>During training, protein structures are corrupted by noise. The model learns to denoise these representations and, during generation, begins from random structural states and constructs protein-like backbones iteratively.</p>
+<p>A schematic conditional sampling task is</p>
+<div class="arithmatex">\[
+\mathbf{R}_{\mathrm{new}}
+\sim p_{\theta}(\mathbf{R}\mid\mathbf{c}),
+\]</div>
+<p>where the condition <span class="arithmatex">\(\mathbf{c}\)</span> could specify a target-binding surface, a structural motif, a topology, or symmetry requirements.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>Noise + optional design constraints
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>                  |
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>                  v
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>        RFdiffusion model
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>                  |
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>                  v
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>     Iterative backbone denoising
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>                  |
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>                  v
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>        New protein backbone
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>                  |
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>                  v
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>      Sequence design / testing
+</span></code></pre></div>
+<p>The original RFdiffusion formulation models residue-level rigid-body frames, including positions and orientations, rather than merely adding independent coordinate noise to C<span class="arithmatex">\(\alpha\)</span> positions. Designed backbones may subsequently be assigned amino-acid sequences using tools such as <strong>ProteinMPNN</strong>, after which structure prediction and experimental characterization can be used to assess the design.</p>
+<p>RFdiffusion therefore illustrates a different scientific objective from conventional AlphaFold structure prediction: instead of asking how a <strong>specified protein sequence</strong> folds, it can propose a <strong>new structural design</strong> compatible with chosen constraints.</p>
+<h2 id="20-alphafold-3-conditional-generative-structure-prediction">20. AlphaFold 3: Conditional Generative Structure Prediction<a class="headerlink" href="#20-alphafold-3-conditional-generative-structure-prediction" title="Anchor link to this section for reference">&para;</a></h2>
+<p><strong>AlphaFold 3</strong> extends structure prediction to complexes containing proteins, nucleic acids, small molecules, ions, and modified residues. It introduces major changes to the AlphaFold 2 architecture, including the <strong>Pairformer</strong> and a <strong>diffusion-based structure module</strong> that operates on atomic coordinates.</p>
+<p>The Pairformer processes representations of molecular tokens and their relationships. The diffusion module receives noisy atomic positions together with the representations produced by the preceding network and iteratively predicts denoised coordinates.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>Protein / nucleic-acid / ligand / ion information
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>                         |
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>                         v
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>                  Input features
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>                         |
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>                         v
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>                    Pairformer
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>                         |
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>                         v
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>          Conditional atomic structure model
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>                         +
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>                 Noisy coordinates
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>                         |
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>                         v
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>              Iterative denoising
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>                         |
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>                         v
+</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>             Predicted biomolecular complex
+</span></code></pre></div>
+<p>The model can be understood schematically as learning a conditional distribution</p>
+<div class="arithmatex">\[
+p_{\theta}(\mathbf{R}\mid\mathbf{c}),
+\]</div>
+<p>where <span class="arithmatex">\(\mathbf{R}\)</span> denotes atomic coordinates and <span class="arithmatex">\(\mathbf{c}\)</span> captures sequence, molecular identities, and other context. Inference uses random initialization followed by recurrent denoising to produce a structural prediction.</p>
+<h3 id="what-makes-alphafold-3-generative">What makes AlphaFold 3 generative?<a class="headerlink" href="#what-makes-alphafold-3-generative" title="Anchor link to this section for reference">&para;</a></h3>
+<p>AlphaFold 3 has a <strong>generative coordinate-production mechanism</strong>: its diffusion module can sample a three-dimensional structure conditioned on the specified molecular system. Its scientific purpose, however, is primarily <strong>conditional biomolecular structure prediction</strong>, not unrestricted invention of new protein sequences.</p>
+<p>This distinction can be summarized by the different questions the models answer:</p>
+<p><strong>AlphaFold 2:</strong> What structure is associated with this protein sequence?</p>
+<p><strong>AlphaFold 3:</strong> What joint atomic structure is compatible with these biomolecular components and their context, using diffusion-based coordinate generation?</p>
+<p><strong>RFdiffusion:</strong> What new protein backbone could satisfy these design constraints?</p>
+<h3 id="important-limitations">Important limitations<a class="headerlink" href="#important-limitations" title="Anchor link to this section for reference">&para;</a></h3>
+<p>Multiple samples produced with different random seeds should <strong>not</strong> automatically be interpreted as a Boltzmann-weighted or equilibrium conformational ensemble. AlphaFold 3 primarily models structures represented in its training data, and its authors explicitly caution that repeated sampling does not recover the physical solution ensemble. Generated structures may also be confidently ordered in regions that are actually disordered, or may miss biologically relevant conformational states.</p>
+<p>Consequently, generative sampling must be distinguished from molecular dynamics, statistical-mechanical sampling, and experimental characterization of conformational distributions.</p>
+<h2 id="21-simplefold-and-flow-based-protein-structure-prediction">21. SimpleFold and Flow-Based Protein Structure Prediction<a class="headerlink" href="#21-simplefold-and-flow-based-protein-structure-prediction" title="Anchor link to this section for reference">&para;</a></h2>
+<p><strong>SimpleFold</strong> is a protein-folding approach that uses a generative <strong>flow-matching objective</strong> with general-purpose transformer blocks. In contrast to architectures centered on specialized pair-representation and triangular-update machinery, SimpleFold explores whether a comparatively general transformer design can perform competitive structure prediction through a learned generative flow.</p>
+<p>A conceptual conditional flow for protein coordinates can be written as</p>
+<div class="arithmatex">\[
+\frac{d\mathbf{R}_t}{dt}
+=\mathbf{v}_{\theta}(\mathbf{R}_t,t,S),
+\]</div>
+<p>where <span class="arithmatex">\(S\)</span> is the protein sequence. Samples are transported along a learned trajectory toward protein-like coordinates that agree with the conditioning information.</p>
+<p>SimpleFold is a useful comparison to AlphaFold 3 because it demonstrates that <strong>conditional generative structure prediction</strong> need not be implemented only through conventional discrete diffusion. Its reported results also motivate discussion of alternative architectural designs and the challenge of predicting structural ensembles.</p>
+<p>The following comparison is particularly useful for students:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Model</th>
+<th style="text-align: left;">Primary task</th>
+<th style="text-align: left;">Central architectural idea</th>
+<th style="text-align: left;">Generative mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">AlphaFold 1</td>
+<td style="text-align: left;">Protein structure prediction</td>
+<td style="text-align: left;">Learned geometrical restraints</td>
+<td style="text-align: left;">Not a modern diffusion generator</td>
+</tr>
+<tr>
+<td style="text-align: left;">AlphaFold 2</td>
+<td style="text-align: left;">Protein structure prediction</td>
+<td style="text-align: left;">Evoformer and structure module</td>
+<td style="text-align: left;">Generally not described as generative</td>
+</tr>
+<tr>
+<td style="text-align: left;">AlphaFold 3</td>
+<td style="text-align: left;">Biomolecular complex prediction</td>
+<td style="text-align: left;">Pairformer and coordinate diffusion module</td>
+<td style="text-align: left;">Conditional diffusion</td>
+</tr>
+<tr>
+<td style="text-align: left;">RFdiffusion</td>
+<td style="text-align: left;">De novo protein-backbone design</td>
+<td style="text-align: left;">RoseTTAFold-derived denoising</td>
+<td style="text-align: left;">Diffusion-based generation</td>
+</tr>
+<tr>
+<td style="text-align: left;">SimpleFold</td>
+<td style="text-align: left;">Protein structure prediction</td>
+<td style="text-align: left;">General-purpose transformer</td>
+<td style="text-align: left;">Flow matching</td>
+</tr>
+</tbody>
+</table>
+<p>This classification describes the main scientific roles of the systems and should not be interpreted as implying that all their architectures or sampling objectives are equivalent.</p>
+<h2 id="22-protein-structure-prediction-and-protein-design">22. Protein-Structure Prediction and Protein Design<a class="headerlink" href="#22-protein-structure-prediction-and-protein-design" title="Anchor link to this section for reference">&para;</a></h2>
+<p>Several related tasks are often grouped together under the broad term <em>protein modeling</em>, but they involve different inputs and outputs.</p>
+<p><strong>Structure prediction</strong> seeks the structure corresponding to a sequence and relevant context,</p>
+<div class="arithmatex">\[
+S\longrightarrow\widehat{\mathbf{R}}.
+\]</div>
+<p><strong>Inverse folding or sequence design</strong> seeks sequences compatible with a desired structure,</p>
+<div class="arithmatex">\[
+\mathbf{R}_{\mathrm{target}}\longrightarrow S_{\mathrm{candidate}}.
+\]</div>
+<p><strong>De novo backbone generation</strong> produces a new structural candidate from a learned model, often conditioned on a functional motif or target,</p>
+<div class="arithmatex">\[
+\mathbf{z},\mathbf{c}\longrightarrow\mathbf{R}_{\mathrm{new}}.
+\]</div>
+<p>An end-to-end design workflow might therefore involve backbone generation, sequence assignment, structural validation, and experimental assessment. A model that predicts the structure of a proposed sequence may be very useful in such a workflow without itself being the generator of the sequence or backbone.</p>
+<h2 id="23-evaluating-predictive-and-generative-protein-models">23. Evaluating Predictive and Generative Protein Models<a class="headerlink" href="#23-evaluating-predictive-and-generative-protein-models" title="Anchor link to this section for reference">&para;</a></h2>
+<p>The evaluation of structure-prediction models and generative-design models overlaps, but their main questions differ. In prediction, we may ask whether the proposed coordinates resemble a reference experimental structure. In design, we must also ask whether the new structure is plausible, diverse, novel, functionally appropriate, and experimentally realizable.</p>
+<h3 id="structural-similarity-and-geometrical-quality">Structural similarity and geometrical quality<a class="headerlink" href="#structural-similarity-and-geometrical-quality" title="Anchor link to this section for reference">&para;</a></h3>
+<p>For two aligned coordinate sets, a basic structural error is the <strong>root-mean-square deviation</strong>,</p>
+<div class="arithmatex">\[
+\mathrm{RMSD}
+=\sqrt{
+\frac{1}{N}
+\sum_{i=1}^{N}
+\left\|
+\mathbf{r}_i-\hat{\mathbf{r}}_i
+\right\|_2^2
+}.
+\]</div>
+<p>RMSD depends on the atom mapping and alignment procedure. Other structural similarity measures, such as <strong>TM-score</strong>, are often useful because they account for protein-length and fold-similarity considerations differently.</p>
+<p>A generated structure should also be checked for reasonable bond lengths and angles, steric clashes, stereochemical consistency, and physically plausible interfaces. For a coarse-grained C<span class="arithmatex">\(\alpha\)</span> backbone, adjacent C<span class="arithmatex">\(\alpha\)</span> separations are a useful initial diagnostic, but they are not sufficient to establish structural validity.</p>
+<h3 id="generative-quality">Generative quality<a class="headerlink" href="#generative-quality" title="Anchor link to this section for reference">&para;</a></h3>
+<p><strong>Validity</strong> asks whether generated structures satisfy chemical and geometric constraints. <strong>Diversity</strong> asks whether repeated samples explore distinct solutions. <strong>Novelty</strong> asks whether samples differ meaningfully from known or training structures. <strong>Conditional consistency</strong> asks whether the output satisfies its specified motif, interface, or target requirements. <strong>Functional performance</strong> asks whether the designed object actually carries out the desired biological role.</p>
+<p>Model-provided confidence scores, including AlphaFold&rsquo;s pLDDT-related predictions, are useful diagnostics of expected structural accuracy under the model&rsquo;s assumptions. They are <strong>not</strong> direct measures of binding affinity, thermodynamic stability, experimental function, or the probability that a de novo design will succeed in the laboratory.</p>
+<details class="info">
+<summary>Advanced material: Why many generated structures do not form a thermodynamic ensemble</summary>
+<p>A thermodynamic ensemble at equilibrium assigns conformational probabilities according to physical free-energy differences,</p>
+<div class="arithmatex">\[
+p_{\mathrm{eq}}(\mathbf{R})
+\propto
+\exp\left[-\beta F(\mathbf{R})\right],
+\qquad
+\beta=\frac{1}{k_{\mathrm B}T}.
+\]</div>
+<p>A generative model instead samples from the distribution it has learned. Unless the model has been specifically trained or constrained to reproduce equilibrium statistics, there is no general reason for</p>
+<div class="arithmatex">\[
+p_{\theta}(\mathbf{R}\mid\mathbf{c})
+=p_{\mathrm{eq}}(\mathbf{R}\mid\mathbf{c}).
+\]</div>
+<p>This is why multiple AlphaFold 3 predictions should not automatically be treated as an equilibrium ensemble.</p>
+</details>
+<h2 id="24-practical-exercises-and-discussion-questions">24. Practical Exercises and Discussion Questions<a class="headerlink" href="#24-practical-exercises-and-discussion-questions" title="Anchor link to this section for reference">&para;</a></h2>
+<h3 id="exercise-a-prediction-or-generation">Exercise A: Prediction or generation?<a class="headerlink" href="#exercise-a-prediction-or-generation" title="Anchor link to this section for reference">&para;</a></h3>
+<p>Classify the role of machine learning in the following applications and justify your answer in one or two sentences:</p>
+<ol>
+<li>Predict aqueous solubility from molecular descriptors.</li>
+<li>Predict a structure from a specified protein sequence using AlphaFold 2.</li>
+<li>Generate a new protein backbone with RFdiffusion under a motif constraint.</li>
+<li>Produce atomic coordinates from the AlphaFold 3 diffusion module.</li>
+<li>Generate new amino-acid sequences using an autoregressive language model.</li>
+<li>Evaluate the expected quality of a proposed protein structure with a confidence model.</li>
+</ol>
+<details class="note">
+<summary>Suggested interpretation</summary>
+<p>The first, second, and sixth examples primarily concern <strong>prediction or evaluation</strong>. The third and fifth concern <strong>generation</strong>. The fourth uses a <strong>conditional generative mechanism within a structure-prediction system</strong>. The important distinction is the scientific task and the mechanism used to achieve it.</p>
+</details>
+<h3 id="exercise-b-limiting-cases-of-the-diffusion-equation">Exercise B: Limiting cases of the diffusion equation<a class="headerlink" href="#exercise-b-limiting-cases-of-the-diffusion-equation" title="Anchor link to this section for reference">&para;</a></h3>
+<p>Starting from</p>
+<div class="arithmatex">\[
+\mathbf{x}_t
+=\sqrt{\bar\alpha_t}\,\mathbf{x}_0
++\sqrt{1-\bar\alpha_t}\,\boldsymbol\epsilon,
+\]</div>
+<p>explain what happens as <span class="arithmatex">\(\bar\alpha_t\rightarrow 1\)</span> and as <span class="arithmatex">\(\bar\alpha_t\rightarrow 0\)</span>.</p>
+<details class="note">
+<summary>Suggested solution</summary>
+<p>If <span class="arithmatex">\(\bar\alpha_t\rightarrow 1\)</span>, then <span class="arithmatex">\(\mathbf{x}_t\rightarrow\mathbf{x}_0\)</span>. The data are almost unchanged.</p>
+<p>If <span class="arithmatex">\(\bar\alpha_t\rightarrow 0\)</span>, then <span class="arithmatex">\(\mathbf{x}_t\rightarrow\boldsymbol\epsilon\)</span>, and information about the original example is largely lost.</p>
+<p>This intuition assumes the data have been represented and scaled appropriately for the chosen Gaussian noise process.</p>
+</details>
+<h3 id="exercise-c-protein-coordinate-perturbation">Exercise C: Protein coordinate perturbation<a class="headerlink" href="#exercise-c-protein-coordinate-perturbation" title="Anchor link to this section for reference">&para;</a></h3>
+<p>Using the 3MUF example, change <code>alpha_bar</code> and compare the mean distance between consecutive C<span class="arithmatex">\(\alpha\)</span> atoms before and after adding noise. Why does the geometry rapidly cease to resemble a valid protein? What extra structural knowledge would a trained denoiser need?</p>
+<h3 id="exercise-d-conditional-structure-modeling">Exercise D: Conditional structure modeling<a class="headerlink" href="#exercise-d-conditional-structure-modeling" title="Anchor link to this section for reference">&para;</a></h3>
+<p>Suppose a model is asked to produce a protein that binds a known target. Identify possible conditioning variables and propose at least two independent ways to assess the generated candidate. Explain why a high predicted confidence score alone is insufficient to establish successful binding.</p>
+<h2 id="25-computational-considerations-and-hpc-workflows">25. Computational Considerations and HPC Workflows<a class="headerlink" href="#25-computational-considerations-and-hpc-workflows" title="Anchor link to this section for reference">&para;</a></h2>
+<p>Large protein structure models often separate sequence processing, database searches, neural-network inference, and downstream analysis into distinct computational stages. For some AlphaFold 2-based workflows, generating multiple sequence alignments can be CPU- and I/O-intensive, while the structure-inference stage benefits from GPUs.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>Protein sequences / molecular components
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>                  |
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>                  v
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>      Data preparation and, when needed,
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>      sequence search / MSA generation
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>                  |
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>                  v
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>           Model features
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>                  |
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>                  v
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>     Accelerator-based model inference
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>                  |
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>                  v
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>       Predicted/generated structures
+</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>                  |
+</span><span id="__span-13-16"><a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>                  v
+</span><span id="__span-13-17"><a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>      Validation and downstream analysis
+</span></code></pre></div>
+<p>On an HPC system, computational planning should account for model weights, software environments, database storage, temporary files, GPU memory, job scheduling, and the number of independent prediction or generation jobs. Different tools have different requirements: an AlphaFold 2/ColabFold workflow may depend heavily on MSA preparation, whereas some newer models reduce that dependency.</p>
+<p>The Python examples in this chapter demonstrate mathematical operations and lightweight training principles; they do <strong>not</strong> require running the full AlphaFold 3 or RFdiffusion models.</p>
+<h2 id="26-summary">26. Summary<a class="headerlink" href="#26-summary" title="Anchor link to this section for reference">&para;</a></h2>
+<p>A generative model learns statistical structure from observed data and uses it to produce samples. Some models provide explicit probability densities, while others define implicit sampling mechanisms. Conditioning makes it possible to generate structures that depend on sequences, molecules, target properties, or geometric constraints.</p>
+<p>Autoregressive models generate sequences step by step, VAEs sample from latent-variable models, GANs learn through an adversarial objective, diffusion models reverse a noising process, and flow matching learns continuous transport between distributions. For molecular structures, the validity of generated coordinates and the treatment of rotational and translational symmetry are central concerns.</p>
+<p>The AlphaFold family highlights the difference between a <strong>scientific task</strong> and the <strong>generative mechanism used to perform it</strong>. AlphaFold 2 is primarily a structure-prediction system, AlphaFold 3 uses diffusion-based coordinate generation for conditional biomolecular structure prediction, and RFdiffusion is designed to generate new protein backbones. SimpleFold shows how flow matching can also be applied to protein structure modeling.</p>
+<p>The major practical lesson is that producing a plausible structure is not equivalent to establishing chemical validity, physical equilibrium, biological function, or experimental success. Generative modeling is a powerful approach for proposing and exploring candidates, but careful evaluation remains essential.</p>
+<h2 id="references-and-suggested-reading">References and Suggested Reading<a class="headerlink" href="#references-and-suggested-reading" title="Anchor link to this section for reference">&para;</a></h2>
+<p>The following references cover both the foundational generative-model methods and the protein structure models discussed in the chapter.</p>
+<ol>
+<li>Kingma, D. P. and Welling, M. <em>Auto-Encoding Variational Bayes</em> (2014). <a href="https://arxiv.org/abs/1312.6114">arXiv:1312.6114</a>.</li>
+<li>Goodfellow, I. et al. <em>Generative Adversarial Nets</em> (2014). <a href="https://arxiv.org/abs/1406.2661">arXiv:1406.2661</a>.</li>
+<li>Ho, J., Jain, A. and Abbeel, P. <em>Denoising Diffusion Probabilistic Models</em> (2020). <a href="https://arxiv.org/abs/2006.11239">arXiv:2006.11239</a>.</li>
+<li>Lipman, Y. et al. <em>Flow Matching for Generative Modeling</em> (2023). <a href="https://arxiv.org/abs/2210.02747">arXiv:2210.02747</a>.</li>
+<li>Senior, A. W. et al. <em>Improved protein structure prediction using potentials from deep learning</em>. <strong>Nature 577</strong>, 706–710 (2020). <a href="https://doi.org/10.1038/s41586-019-1923-7">DOI</a>.</li>
+<li>Jumper, J. et al. <em>Highly accurate protein structure prediction with AlphaFold</em>. <strong>Nature 596</strong>, 583–589 (2021). <a href="https://doi.org/10.1038/s41586-021-03819-2">DOI</a>.</li>
+<li>Mirdita, M. et al. <em>ColabFold: making protein folding accessible to all</em>. <strong>Nature Methods 19</strong>, 679–682 (2022). <a href="https://doi.org/10.1038/s41592-022-01488-1">DOI</a>.</li>
+<li>Watson, J. L. et al. <em>De novo design of protein structure and function with RFdiffusion</em>. <strong>Nature 620</strong>, 1089–1100 (2023). <a href="https://doi.org/10.1038/s41586-023-06415-8">DOI</a>.</li>
+<li>Abramson, J. et al. <em>Accurate structure prediction of biomolecular interactions with AlphaFold 3</em>. <strong>Nature 630</strong>, 493–500 (2024). <a href="https://doi.org/10.1038/s41586-024-07487-w">DOI</a>.</li>
+<li>Wang, Y. et al. <em>SimpleFold: Folding Proteins is Simpler than You Think</em>. <strong>ICLR 2026</strong>. <a href="https://arxiv.org/abs/2509.18480">arXiv:2509.18480</a>.</li>
+<li>For specialized AlphaFold-Multimer, AlphaPulldown, and AlphaFold Unmasked applications, consult their corresponding papers and official tool documentation.</li>
+</ol>
+<details class="info">
+<summary>Advanced material: score-based diffusion</summary>
+<p>The <strong>score</strong> of a continuously differentiable probability density is</p>
+<div class="arithmatex">\[
+\mathbf{s}(\mathbf{x},t)
+=\nabla_{\mathbf{x}}\log p_t(\mathbf{x}).
+\]</div>
+<p>Score-based generative models learn an approximation to the score of noisy data distributions. This quantity is related to denoising and can be used to formulate reverse-time sampling procedures.</p>
+</details>
+<details class="info">
+<summary>Advanced material: conditional denoising</summary>
+<p>A conditional noise-prediction network has the form</p>
+<div class="arithmatex">\[
+\boldsymbol\epsilon_{\theta}
+(\mathbf{x}_t,t,\mathbf{c}),
+\]</div>
+<p>while a model trained to predict clean coordinates may instead take the form</p>
+<div class="arithmatex">\[
+\widehat{\mathbf{R}}_0
+=f_{\theta}(\mathbf{R}_t,t,\mathbf{c}).
+\]</div>
+<p>Both are possible parameterizations of a denoising model, but they should not be conflated when describing a particular architecture such as AlphaFold 3.</p>
+</details>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../day4/" class="btn btn-neutral float-left" title="Neural Networks"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../day8/" class="btn btn-neutral float-right" title="MLPs">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../day4/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../day8/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../assets/_markdown_exec_pyodide.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="../search/main.js"></script>
+      <script src="../js/open_in_new_tab.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
