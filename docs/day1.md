@@ -391,11 +391,7 @@ $$
 \theta_{new} = \theta_{old} - \eta \nabla L(\theta)
 $$
 
-Where:
-
-- $\theta$ are the model parameters
-- $\eta$ is the learning rate
-- $L(\theta)$ is the loss function
+Where: $\theta$ are the model parameters, $\eta$ is the learning rate, and $L(\theta)$ is the loss function
 
 #### Example: Gradient Descent in PyTorch
 
@@ -442,9 +438,7 @@ $$
 then the derivative of $y$ with respect to $x$ is:
 
 $$
-\frac{dy}{dx}=
-\frac{dy}{dg}
-\frac{dg}{dx}
+\frac{dy}{dx}= \frac{dy}{dg} \frac{dg}{dx}
 $$
 
 The chain rule decomposes complex derivatives into products of simpler derivatives.
@@ -474,9 +468,7 @@ The chain rule decomposes complex derivatives into products of simpler derivativ
     Using the chain rule:
 
     $$
-    \frac{dy}{dx}=
-    \frac{dy}{du}
-    \frac{du}{dx}
+    \frac{dy}{dx}= \frac{dy}{du} \frac{du}{dx}
     $$
 
     Compute each derivative:
@@ -492,17 +484,13 @@ The chain rule decomposes complex derivatives into products of simpler derivativ
     Substituting:
 
     $$
-    \frac{dy}{dx}
-    =
-    2u \cdot 3
+    \frac{dy}{dx} = 2u \cdot 3
     $$
 
     Since $u = 3x + 1$:
 
     $$
-    \frac{dy}{dx}
-    =
-    6(3x + 1)
+    \frac{dy}{dx} = 6(3x + 1)
     $$
 
 #### Chain Rule in Multiple Dimensions
@@ -516,21 +504,13 @@ $$
 where:
 
 $$
-x = g(t)
-\quad \text{and} \quad
-y = h(t)
+x = g(t) \quad \text{and} \quad y = h(t)
 $$
 
 the chain rule becomes:
 
 $$
-\frac{dz}{dt}
-=
-\frac{\partial z}{\partial x}
-\frac{dx}{dt}
-+
-\frac{\partial z}{\partial y}
-\frac{dy}{dt}
+\frac{dz}{dt} = \frac{\partial z}{\partial x} \frac{dx}{dt} + \frac{\partial z}{\partial y} \frac{dy}{dt}
 $$
 
 This generalized form is heavily used in neural networks.
@@ -540,7 +520,7 @@ This generalized form is heavily used in neural networks.
 
 The chain rule is essential to modern deep learning. Frameworks such as PyTorch
 and TensorFlow compute gradients by repeatedly applying it through the layers of
-a neural network — a process known as backpropagation — which in turn enables
+a neural network (a process known as backpropagation) which in turn enables
 gradient descent to update the network's parameters. This same mechanism
 underlies automatic differentiation, where computational graphs make the
 chain rule's repeated application explicit and efficient.
@@ -578,19 +558,13 @@ chain rule's repeated application explicit and efficient.
     The derivative is:
 
     $$
-    \frac{dy}{dx}
-    =
-    2(3x + 1)(3)
+    \frac{dy}{dx} = 2(3x + 1)(3)
     $$
 
     For $x = 2$:
 
     $$
-    \frac{dy}{dx}
-    =
-    2(7)(3)
-    =
-    42
+    \frac{dy}{dx} = 2(7)(3) = 42
     $$
 
 ### Automatic Differentiation
@@ -616,7 +590,7 @@ $$
 
 Machine learning frameworks construct a computational graph that tracks these
 elementary operations and their dependencies. Gradients are then computed by
-traversing this graph — either forward (forward-mode AD) or backward
+traversing this graph, either forward (forward-mode AD) or backward
 (reverse-mode AD, of which backpropagation is the most well-known application).
 
 #### Forward and Reverse Mode Differentiation
@@ -624,15 +598,15 @@ traversing this graph — either forward (forward-mode AD) or backward
 Forward-mode automatic differentiation propagates derivatives from inputs to
 outputs alongside the computation itself. Each forward pass computes the
 derivative with respect to one input, making it efficient when the number of
-inputs is small relative to the number of outputs — the cost scales with the
+inputs is small relative to the number of outputs, the cost scales with the
 number of inputs.
 
 Reverse-mode automatic differentiation, by contrast, propagates derivatives
 backward from outputs to inputs. Each backward pass computes the derivative of
 one output with respect to all inputs simultaneously, so the cost scales with
 the number of outputs rather than the number of inputs. This makes reverse mode
-particularly efficient when the output is a scalar — as is the case with loss
-functions in deep learning — regardless of how many parameters the model has.
+particularly efficient when the output is a scalar, as is the case with loss
+functions in deep learning, regardless of how many parameters the model has.
 Backpropagation is the most well-known application of reverse-mode automatic
 differentiation.
 
@@ -645,11 +619,7 @@ $$
 y = x^2 + 3x
 $$
 
-can be decomposed into elementary operations:
-
-- Multiplication
-- Addition
-
+can be decomposed into elementary operations: Multiplication and Addition
 The framework stores intermediate values and computes derivatives automatically.
 
 #### Example: Automatic Differentiation with PyTorch
@@ -727,26 +697,10 @@ around a mean value.
 The probability density function of a Gaussian distribution is:
 
 $$
-p(x)
-=
-\frac{1}{
-\sqrt{2\pi\sigma^2}
-}
-\exp
-\left(
--\frac{
-(x - \mu)^2
-}{
-2\sigma^2
-}
-\right)
+p(x) = \frac{1}{ \sqrt{2\pi\sigma^2} } \exp \left( -\frac{ (x - \mu)^2 }{ 2\sigma^2 } \right)
 $$
 
-where:
-
-- $\mu$ is the mean of the distribution
-- $\sigma^2$ is the variance
-- $\sigma$ is the standard deviation
+where: $\mu$ is the mean of the distribution, $\sigma^2$ is the variance, and $\sigma$ is the standard deviation
 
 #### Properties of the Gaussian Distribution
 
@@ -800,25 +754,17 @@ $$
     print("Standard deviation:", torch.std(x))
     ```
 
-
 ### Bayesian Inference
 
 Bayesian inference is a probabilistic framework for updating beliefs using observed data. It is 
 based on Bayes' theorem, which relates prior knowledge to new evidence.
-
 Bayes' theorem is given by:
 
 $$
-P(\theta \mid D)=
-\frac{P(D \mid \theta) P(\theta)}{P(D)}
+P(\theta \mid D)= \frac{P(D \mid \theta) P(\theta)}{P(D)}
 $$
 
-where:
-
-- $P(\theta \mid D)$ is the posterior distribution
-- $P(D \mid \theta)$ is the likelihood
-- $P(\theta)$ is the prior distribution
-- $P(D)$ is the evidence or marginal likelihood
+where: $P(\theta \mid D)$ is the posterior distribution, $P(D \mid \theta)$ is the likelihood, $P(\theta)$ is the prior distribution, and $P(D)$ is the evidence or marginal likelihood
 
 #### Interpretation
 
@@ -827,8 +773,7 @@ Bayesian inference updates our belief about parameters $\theta$ after observing 
 The process can be summarized as:
 
 $$
-\text{Posterior}=
-\frac{\text{Likelihood} \times \text{Prior}}{\text{Evidence}}
+\text{Posterior}= \frac{\text{Likelihood} \times \text{Prior}}{\text{Evidence}}
 $$
 
 #### Advantages of Bayesian Methods
@@ -852,7 +797,6 @@ knowing how confident a model is matters as much as the prediction itself.
     - Observed data: number of heads and tails
 
     then Bayesian inference computes the posterior probability distribution over $\theta$.
-
     As more observations are collected, the posterior becomes more concentrated around the true probability.
 
 #### Applications in Machine Learning
@@ -874,15 +818,10 @@ Gaussian Processes (GPs) are nonparametric probabilistic models used for regress
 A Gaussian Process defines a probability distribution over functions:
 
 $$
-f(x)
-\sim
-\mathcal{GP}(m(x), k(x, x'))
+f(x) \sim \mathcal{GP}(m(x), k(x, x'))
 $$
 
-where:
-
-- $m(x)$ is the mean function
-- $k(x, x')$ is the covariance kernel function
+where:  $m(x)$ is the mean function and $k(x, x')$ is the covariance kernel function
 
 A Gaussian Process assumes that any finite collection of function values follows a multivariate Gaussian distribution.
 
@@ -903,35 +842,18 @@ $$
 #### Covariance Kernel
 
 The kernel defines similarity between input points.
-
 One common kernel is the Radial Basis Function (RBF) kernel:
 
 $$
-k(x, x')=
-\sigma^2
-\exp
-\left(
--\frac{
-||x - x'||^2
-}{
-2l^2
-}
-\right)
+k(x, x')= \sigma^2 \exp \left( -\frac{ ||x - x'||^2 }{ 2l^2 } \right)
 $$
 
-where:
-
-- $\sigma^2$ controls the variance
-- $l$ is the length scale
+where: $\sigma^2$ controls the variance and $l$ is the length scale
 
 #### Intuition
 
 Gaussian Processes model smooth functions by assuming that nearby points have correlated outputs.
-Predictions include both:
-
-- A mean estimate
-- A predictive uncertainty
-
+Predictions include both: a mean estimate and a predictive uncertainty.
 This makes Gaussian Processes particularly useful when uncertainty quantification is important.
 
 #### Gaussian Process Regression
@@ -1012,13 +934,7 @@ Gaussian Processes are commonly used in:
     plt.plot(X, y, 'o', label='Training Data')
     plt.plot(X_test, y_pred, label='GP Mean Prediction')
 
-    plt.fill_between(
-        X_test.ravel(),
-        y_pred - 2 * sigma,
-        y_pred + 2 * sigma,
-        alpha=0.3,
-        label='Uncertainty'
-    )
+    plt.fill_between( X_test.ravel(), y_pred - 2 * sigma, y_pred + 2 * sigma, alpha=0.3, label='Uncertainty')
 
     plt.xlabel("x")
     plt.ylabel("f(x)")
@@ -1084,9 +1000,7 @@ numerically stable way.
     loss_function = nn.CrossEntropyLoss()
 
     # Predicted logits
-    predictions = torch.tensor([
-        [2.0, 0.5, 0.3]
-    ])
+    predictions = torch.tensor([ [2.0, 0.5, 0.3] ])
 
     # Correct class
     labels = torch.tensor([0])
@@ -1095,8 +1009,6 @@ numerically stable way.
 
     print("Cross-entropy loss:", loss.item())
     ```
-
-
 
 ## 5. Basic Graph Theory
 
@@ -1181,10 +1093,7 @@ These features could represent:
 # Matrix multiplication:
 # adjacency × node_features
 
-aggregated_features = torch.matmul(
-    adjacency,
-    node_features
-)
+aggregated_features = torch.matmul( adjacency, node_features)
 
 print("\nAggregated neighbor features:")
 print(aggregated_features)
@@ -1270,22 +1179,10 @@ removing noise and redundant information.
     plt.scatter( X_reduced[:, 0], X_reduced[:, 1], s=60)
 
     for i, name in enumerate(molecule_names):
-        plt.annotate(
-            name,
-            (X_reduced[i, 0], X_reduced[i, 1]),
-            xytext=(5, 5),
-            textcoords="offset points"
-        )
+        plt.annotate( name, (X_reduced[i, 0], X_reduced[i, 1]), xytext=(5, 5), textcoords="offset points")
 
-    plt.xlabel(
-        f"Principal Component 1 "
-        f"({pca.explained_variance_ratio_[0]*100:.1f}% variance)"
-    )
-
-    plt.ylabel(
-        f"Principal Component 2 "
-        f"({pca.explained_variance_ratio_[1]*100:.1f}% variance)"
-    )
+    plt.xlabel( f"Principal Component 1 " f"({pca.explained_variance_ratio_[0]*100:.1f}% variance)")
+    plt.ylabel( f"Principal Component 2 " f"({pca.explained_variance_ratio_[1]*100:.1f}% variance)")
 
     plt.title("PCA of Molecular Compositions")
     plt.tight_layout()
@@ -1462,8 +1359,6 @@ $$
 
 Thus, molecular energies are typically **rotation-invariant**, while molecular forces are **rotation-equivariant**.
 
-
-
 ## 8. Integrated Neural Network Example
 
 The following example combines several concepts introduced during the course.
@@ -1489,11 +1384,7 @@ mechanism behind learning in deep neural networks.
     y = (X.sum(dim=1) > 0).long()
 
     # Simple neural network
-    model = nn.Sequential(
-        nn.Linear(5, 10),
-        nn.ReLU(),
-        nn.Linear(10, 2)
-    )
+    model = nn.Sequential( nn.Linear(5, 10), nn.ReLU(), nn.Linear(10, 2))
 
     # Loss function and optimizer
     loss_function = nn.CrossEntropyLoss()
@@ -1527,4 +1418,3 @@ This module of the course introduced the core mathematical concepts underlying m
 
 * Marc Peter Deisenroth, A. Aldo Faisal, and Cheng Soon Ong; Mathematics for Machine Learning,
 Cambridge University Press, 2020.
-
