@@ -1,27 +1,43 @@
-# Foundations of Machine Learning for Molecular Systems
+# Machine Learning for Molecular Systems
 
 ## Learning Objectives
 
-* Develop an understanding of the key machine learning concepts used in molecular science
-* Become familiar with different approaches for representing molecules and their advantages and limitations
-* Build basic machine learning models for predicting molecular properties
-* Learn how to work with chemical databases, molecular descriptors, and computational representations
-* Recognize the main challenges associated with applying machine learning methods to chemical problems
+* Explain how machine learning complements experiments and molecular simulations
+* Compare molecular representations and identify the information each preserves or omits
+* Calculate molecular descriptors and use them to predict chemical properties
+* Work with chemical databases and evaluate models without data leakage
+* Describe representations for crystals and other periodic materials
+* Recognize the limitations of molecular machine learning and assess generalization
+
+??? info "Running the Python Examples"
+
+    The examples use Python, NumPy, pandas, Matplotlib, and scikit-learn.
+    Molecular exercises additionally require RDKit, while specialized sections
+    use packages such as SELFIES, Biopython, ASE, pymatgen, Matminer, or DeepChem.
+    Install the relevant optional packages before running a particular example.
+    Some exercises download public datasets or protein structures and therefore
+    require an internet connection. Unless stated otherwise, each example is
+    self-contained; the complete pipeline in Section 7 runs sequentially.
 
 ## 1. Introduction to ML in Molecular Systems
 
 ### 1.1 Why Machine Learning for Molecules?
 
-Chemical space is extraordinarily large, with estimates suggesting that approximately $10^{60}$ drug-like 
-molecules could potentially exist (Med. Res. Rev., 16, 3-50, 1996). Exploring such an enormous number of possible 
-compounds using conventional methods is impractical. Traditional drug discovery and materials research often 
-rely on approaches such as:
+Chemical space is vast. A frequently cited order-of-magnitude estimate suggests that
+as many as $10^{60}$ small, drug-like molecular structures could be possible under
+particular chemical constraints (Med. Res. Rev., 16, 3–50, 1996). This figure is
+an illustrative estimate, not a count of all synthesizable compounds. Exhaustively
+exploring even a tiny fraction of this space is impractical. Conventional research
+often relies on approaches such as:
 
 * Synthesizing and experimentally evaluating compounds individually, which can be costly and time-consuming
-* Performing quantum mechanical calculations for candidate molecules, which may require substantial computational resources
+* Performing quantum mechanical calculations for candidate molecules, which
+  may require substantial computational resources
 * Using iterative trial-and-error experiments, which can involve many unsuccessful candidates
 
-Machine learning provides new approaches for exploring molecular systems more efficiently.
+Machine learning (ML) can complement these approaches by learning relationships
+from experimental and computational data. Its predictions are useful primarily
+within the chemical and physical conditions represented by the training data.
 
 **Predict Molecular Properties Computationally**
 
@@ -31,7 +47,7 @@ Machine learning provides new approaches for exploring molecular systems more ef
 
 **Identify Structure-Property Relationships**
 
-* Determine which molecular characteristics are associated with particular properties
+* Identify molecular characteristics associated with particular properties
 * Help reveal relationships between molecular structure and biological or chemical behavior
 * Apply knowledge learned from one group of molecules to related chemical families
 
@@ -43,20 +59,21 @@ Machine learning provides new approaches for exploring molecular systems more ef
 
 **Accelerate Discovery Workflows**
 
-* Conventional drug discovery can require 10–15 years and substantial financial investment to bring a new drug to market
-* Machine learning can help reduce the time and resources required for tasks such as virtual screening, molecular optimization, and candidate prioritization
-* Data-driven molecular design approaches have demonstrated the potential to generate and evaluate new candidate structures on considerably shorter timescales
+* Pharmaceutical development often requires many years of experiments and clinical testing
+* ML can reduce the computational and experimental burden of screening and prioritization
+* Faster candidate generation does not eliminate the need for synthesis, validation,
+  safety assessment, or clinical studies
 
 ### 1.2 Success Stories
 
 **COVID-19 Drug Repurposing**
 
-During the COVID-19 pandemic, machine learning and knowledge-based computational methods were used 
-to rapidly evaluate existing drugs as potential treatments for SARS-CoV-2 infection. One notable 
-example was Baricitinib, originally developed for rheumatoid arthritis, which was identified as a 
-promising candidate for repurposing. It was later authorized for the treatment of COVID-19, 
-illustrating how data-driven approaches can help prioritize existing compounds for new therapeutic 
-applications.
+During the COVID-19 pandemic, computational drug-repurposing approaches were
+used to prioritize existing therapies. Baricitinib, originally used to treat
+rheumatoid arthritis, was proposed as a candidate through a combination of
+knowledge-based and AI-assisted analysis. Subsequent clinical evidence supported
+its use against COVID-19. This example illustrates how computational hypotheses
+can guide experiments, rather than replace clinical evaluation.
 
 **Antibiotic Discovery**
 
@@ -94,37 +111,61 @@ make better use of limited labeled datasets.
 
 #### Physical Constraints
 
-Machine learning models for molecular systems should be consistent with important chemical and physical 
-principles. Depending on the application, these may include energy conservation, atomic valence constraints, 
-and symmetries associated with rotations, translations, and permutations of equivalent atoms. Incorporating 
-these principles into model architectures can improve physical consistency and data efficiency. Equivariant 
-neural networks and other physics-aware approaches are commonly used for this purpose.
+Molecular models must respect physical and chemical constraints relevant to
+their prediction task. These may include valid atomic valences, conservation
+laws, and symmetries under translation, rotation, and permutation of equivalent
+atoms. For example, a scalar molecular energy is invariant to rigid rotation,
+whereas a predicted force vector should rotate with the molecule. Equivariant
+architectures encode such transformation rules, while energy-conserving force
+models can obtain forces from the gradient of a learned potential energy.
 
 #### Interpretability Requirements
 
 In scientific applications, understanding why a model produces a particular prediction can be almost as 
 important as the prediction itself. Identifying the molecular features or structural regions associated 
 with a predicted property can support hypothesis generation, model validation, and experimental design. 
-Methods such as feature importance analysis, attribution techniques, attention visualization, and other 
-explainable machine learning approaches can help researchers examine model behavior.
+Methods such as feature importance and input attribution can help researchers
+examine model behavior. However, an importance score or attention weight is
+not, by itself, evidence of a causal chemical mechanism.
 
 #### Distribution Shift
 
 Molecular models may perform well on compounds similar to those used during training but become less reliable 
 when applied to unfamiliar regions of chemical space. New scaffolds, uncommon functional groups, different 
-molecular sizes, or target values outside the training distribution can all lead to reduced predictive performance. 
+molecular sizes, or target values outside the training distribution can all lead
+to reduced predictive performance.
 Strategies such as uncertainty quantification, active learning, domain adaptation, and carefully designed 
 dataset splits can help identify and reduce the effects of distribution shift.
+
+#### Dependence on Process Conditions
+
+Many properties important in chemical engineering are not determined by molecular
+structure alone. Solubility, reaction rates, phase equilibria, adsorption, and
+transport behavior can also depend on temperature, pressure, concentration, and
+the surrounding chemical environment. A useful model may therefore require
+both molecular descriptors and operating conditions as inputs:
+
+$$
+\hat{y} = f_{\theta}(\mathbf{x}_{\mathrm{mol}}, T, P, \mathbf{c}),
+$$
+
+where $\mathbf{x}_{\mathrm{mol}}$ describes the molecule, $T$ is temperature, $P$
+is pressure, and $\mathbf{c}$ contains relevant composition variables.
+Units, measurement conditions, and the limits of the training range should
+be recorded carefully to avoid misleading predictions.
 
 
 ## 2. Molecular Representations
 
-The choice of molecular representation is crucial; it determines what information is available to
-the model and how efficiently it can learn.
+The choice of representation determines which aspects of a system are available
+to a model. Different representations preserve different combinations of
+composition, chemical connectivity, geometry, and periodic structure. No single
+representation is optimal for every prediction task.
 
 ### 2.1 SMILES (Simplified Molecular Input Line Entry System)
 
-SMILES is a text-based notation that represents molecular structure as a string (J. Chem. Inf. Comput. Sci. 1988, 28, 1, 31–36).
+SMILES is a text-based notation that encodes atoms, bonds, branches, and rings
+in a molecular graph (J. Chem. Inf. Comput. Sci. 1988, 28, 31–36).
 
 #### Basic SMILES Syntax
 
@@ -135,7 +176,7 @@ Methane:    C
 Ethanol:    CCO
 Benzene:    c1ccccc1   (lowercase c indicates aromatic carbon)
 Water:      O
-````
+```
 
 **Branches**:
 
@@ -196,29 +237,27 @@ lowercase, such as `n` for aromatic nitrogen.
     smiles = "CC(=O)Oc1ccccc1C(=O)O"  # Aspirin
     mol = Chem.MolFromSmiles(smiles)
 
-    # heck validity
+    # Check validity before calculating properties or drawing the molecule.
     if mol is None:
-        print("Invalid SMILES!")
-    else:
-        print(f"Valid molecule with {mol.GetNumAtoms()} atoms")
+        raise ValueError(f"Invalid SMILES: {smiles}")
+
+    print(f"Valid molecule with {mol.GetNumAtoms()} atoms")
 
     # Visualize
     img = Draw.MolToImage(mol, size=(300, 300))
     plt.imshow(img)
     plt.axis('off')
     plt.title('Aspirin')
-    #plt.show()
     plt.savefig('aspirin.png', dpi=300, bbox_inches='tight')
     plt.close()
 
-    # Get canonical SMILES (standardized form)
+    # Get RDKit's canonical SMILES for this parsed molecular structure.
     canonical_smiles = Chem.MolToSmiles(mol)
     print(f"Canonical SMILES: {canonical_smiles}")
 
     # Generate randomized SMILES (useful for data augmentation).
-    # doRandom=True randomizes the atom order on each call, so every
-    # iteration yields a different valid string. (canonical=False alone
-    # would return the same non-canonical string every time.)
+    # doRandom=True changes the traversal order. Repeated outputs are
+    # possible, and the generated strings represent the same molecule.
     for i in range(5):
         random_smiles = Chem.MolToSmiles(mol, doRandom=True)
         print(f"Random SMILES {i+1}: {random_smiles}")
@@ -233,13 +272,15 @@ lowercase, such as `n` for aromatic nitrogen.
 
 #### Limitations of SMILES
 
-- **Not unique**: The same molecule can have multiple valid SMILES strings.
+- **Not unique**: A molecular graph can have several valid SMILES strings.
 
 ```python
 # All represent ethanol:
+from rdkit import Chem
+
 smiles_variants = ["CCO", "OCC", "C(O)C"]
-# Use canonical SMILES to obtain a unique, standardized representation
-# for storage and comparison:
+# Canonicalization gives a consistent string for the same parsed graph,
+# but does not automatically harmonize protonation states or tautomers.
 canonical = Chem.MolToSmiles(Chem.MolFromSmiles("OCC"))
 # -> 'CCO'
 ```
@@ -263,16 +304,26 @@ alanine_b = "N[C@H](C)C(=O)O"
 
 - **Sequence-based**: Hard to capture graph structure directly.
 
-- **Fragile**: A single character error invalidates the entire SMILES string.
+- **Syntax-sensitive**: A small change may produce a different valid molecule
+  or an invalid string.
 
 ```python
+from rdkit import Chem
+
 valid = "CCO"
-invalid = "C CO"  # Space breaks it
+invalid = "C1CCC"  # Unmatched ring-closure digit.
+print(Chem.MolFromSmiles(valid) is not None)
+print(Chem.MolFromSmiles(invalid) is None)
 ```
 
 ### 2.2 SELFIES (Self-Referencing Embedded Strings)
 
-SELFIES is an alternative to SMILES that guarantees 100% valid molecules (Mach. Learn Sci. Technol. 1, 045024, 2020).
+SELFIES (Self-Referencing Embedded Strings) is a molecular string representation
+designed so that token sequences drawn from a supported alphabet decode into
+syntactically valid molecular graphs under the SELFIES semantic constraints
+(Mach. Learn.: Sci. Technol. 1, 045024, 2020). This property is useful for
+molecular generation, but it does not guarantee chemical stability,
+synthesizability, biological activity, or an experimentally isolable molecule.
 
 ??? note "Example"
 
@@ -317,7 +368,8 @@ a larger circular environment around the central atom.
 The resulting identifiers represent molecular substructures. In practical implementations, these 
 identifiers are commonly hashed or folded into a fixed-length fingerprint vector. A binary 
 fingerprint records whether particular environments are present, whereas a count fingerprint 
-can record how many times they occur.
+can record how many times they occur. Because multiple identifiers can map to the
+same position, hashed fingerprints may contain collisions.
 
 Morgan fingerprints are commonly used for molecular similarity searches, clustering, virtual 
 screening, classification, regression, and other machine learning applications.
@@ -327,7 +379,8 @@ screening, classification, regression, and other machine learning applications.
 1. Assign an initial identifier to each atom using selected atomic and bonding properties.
 2. Examine the neighborhood surrounding each atom within a specified radius.
 3. Iteratively update the identifiers by incorporating information from neighboring atoms and bonds.
-4. Convert the resulting molecular-environment identifiers into a fixed-length binary or count fingerprint, typically using hashing.
+4. Convert the molecular-environment identifiers into a fixed-length binary
+   or count fingerprint, typically using hashing.
 5. Use the fingerprint as a molecular representation for similarity calculations or machine learning models.
 
 
@@ -346,7 +399,7 @@ screening, classification, regression, and other machine learning applications.
         raise ValueError("Invalid SMILES string")
 
     # 2. Create Morgan fingerprint generator
-    morgan_gen = GetMorganGenerator( radius=2, fpSize=2048)
+    morgan_gen = GetMorganGenerator(radius=2, fpSize=2048)
 
     # 3. Generate Morgan fingerprint as a bit vector
     morgan_fp = morgan_gen.GetFingerprint(mol)
@@ -372,7 +425,8 @@ screening, classification, regression, and other machine learning applications.
 A bit fingerprint records whether particular molecular environments are present, whereas 
 a count fingerprint retains information about how many times those environments occur. 
 Bit fingerprints are often convenient for similarity calculations and introductory examples, 
-while count fingerprints can preserve additional frequency information that may be useful for machine learning.
+while count fingerprints can preserve additional frequency information that
+may be useful for machine learning.
 
 **Important parameters:**
 
@@ -386,7 +440,8 @@ while count fingerprints can preserve additional frequency information that may 
 
   * **1024 bits:** compact and computationally efficient, but more susceptible to hash collisions
   * **2048 bits:** commonly used and provides a good balance between compactness and collision frequency
-  * **4096 bits:** provides more available positions and can reduce collisions, at the cost of increased memory and computational requirements
+  * **4096 bits:** offers more positions and can reduce collisions, at the
+    cost of increased memory and computational requirements
 
 #### MACCS Keys
 
@@ -419,7 +474,7 @@ while the 166 defined MACCS keys occupy positions 1 through 166.
     # The exact SMARTS definitions are part of RDKit's MACCS key set.
 
     # 4. Convert fingerprint to NumPy array
-    maccs_array = np.array( list(maccs.ToBitString()), dtype=int)
+    maccs_array = np.array(list(maccs.ToBitString()), dtype=int)
 
     print("\nFingerprint shape:", maccs_array.shape)
     print("Number of active bits:", maccs_array.sum())
@@ -454,7 +509,7 @@ and machine learning based on molecular structure.
     mol = Chem.MolFromSmiles("CCO")  # Ethanol
 
     # 2. Generate RDKit fingerprint
-    rdkit_fp = RDKFingerprint( mol, fpSize=2048, maxPath=7)
+    rdkit_fp = RDKFingerprint(mol, fpSize=2048, maxPath=7)
 
     # maxPath:
     # Maximum bond path length considered
@@ -467,7 +522,7 @@ and machine learning based on molecular structure.
     print("Number of active bits:", fp_array.sum())
     ```
 
-### Atom Pair and Topological Torsion Fingerprints
+#### Atom Pair and Topological Torsion Fingerprints
 
 **Atom pair fingerprints** describe molecules using pairs of atoms together with the 
 topological distance between them, measured as the number of bonds along the shortest path. 
@@ -491,9 +546,9 @@ are useful for molecular similarity analysis and machine learning.
     mol = Chem.MolFromSmiles("CCCCO")  # 1-butanol
 
     # Create fingerprint generators
-    atom_pair_generator = rdFingerprintGenerator.GetAtomPairGenerator( fpSize=2048)
+    atom_pair_generator = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
 
-    torsion_generator = rdFingerprintGenerator.GetTopologicalTorsionGenerator( fpSize=2048)
+    torsion_generator = rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=2048)
 
     # Generate bit fingerprints
     atom_pairs = atom_pair_generator.GetFingerprint(mol)
@@ -528,7 +583,7 @@ depends on both the fingerprint representation and the metric used for compariso
     mol3 = Chem.MolFromSmiles("c1ccccc1")   # Benzene
 
     # 2. Create a Morgan fingerprint generator
-    morgan_generator = rdFingerprintGenerator.GetMorganGenerator( radius=2, fpSize=2048)
+    morgan_generator = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
 
     # 3. Generate Morgan bit fingerprints
     fp1 = morgan_generator.GetFingerprint(mol1)
@@ -561,9 +616,10 @@ $$
 where $|A|$ and $|B|$ represent the numbers of active bits and $|A \cap B|$ represents the 
 number of bits shared by both fingerprints.
 
-Similarity values typically range from $0$ to $1$, where values closer to $1$ indicate greater 
-fingerprint similarity. However, these scores should be interpreted relative to the fingerprint type, 
-its parameters, and the similarity metric rather than as an absolute measure of chemical similarity.
+Similarity values range from $0$ to $1$ for nonempty binary fingerprints, where
+values closer to $1$ indicate greater fingerprint similarity.
+However, these scores depend on the fingerprint, its parameters, and the
+similarity metric; they are not an absolute measure of chemical similarity.
 
 ### 2.4 3D Molecular Representations
 
@@ -598,6 +654,8 @@ global rotations and translations.
 
     # 1. Create a molecule from SMILES
     mol = Chem.MolFromSmiles("CCO")  # Ethanol
+    if mol is None:
+        raise ValueError("Invalid SMILES string")
 
     # Add explicit hydrogen atoms
     mol = Chem.AddHs(mol)
@@ -606,18 +664,20 @@ global rotations and translations.
     params = AllChem.ETKDGv3()
     params.randomSeed = 42
 
-    conf_id = AllChem.EmbedMolecule( mol, params)
+    conf_id = AllChem.EmbedMolecule(mol, params)
 
     if conf_id == -1:
-        raise RuntimeError( "3D conformer generation failed.")
+        raise RuntimeError("3D conformer generation failed.")
 
     # 3. Optimize the molecular geometry
-    status = AllChem.UFFOptimizeMolecule( mol, confId=conf_id)
+    status = AllChem.UFFOptimizeMolecule(mol, confId=conf_id)
 
     if status == 0:
         print("UFF optimization converged.")
+    elif status == 1:
+        print("UFF optimization reached the iteration limit.")
     else:
-        print("UFF optimization did not fully converge.")
+        raise RuntimeError("UFF optimization could not be initialized")
 
     # 4. Extract atomic coordinates
     conf = mol.GetConformer(conf_id)
@@ -628,7 +688,10 @@ global rotations and translations.
         atom_index = atom.GetIdx()
         pos = conf.GetAtomPosition(atom_index)
 
-        print( f"Atom {atom_index:2d} " f"{atom.GetSymbol():2s} -> " f"x={pos.x:8.3f}, " f"y={pos.y:8.3f}, " f"z={pos.z:8.3f}")
+        print(
+            f"Atom {atom_index:2d} {atom.GetSymbol():2s} -> "
+            f"x={pos.x:8.3f}, y={pos.y:8.3f}, z={pos.z:8.3f}"
+        )
     ```
 
 The resulting coordinates describe one possible three-dimensional conformation of 
@@ -663,6 +726,7 @@ Common protein representations include:
 
     ```python
     from urllib.request import urlretrieve
+    from pathlib import Path
     from ase.io import read
 
     # Get the 3MUF structure
@@ -671,16 +735,20 @@ Common protein representations include:
     url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
     filename = f"{pdb_id}.pdb"
 
-    # Download structure
-    urlretrieve(url, filename)
+    # Download the structure only if it is not already available.
+    if not Path(filename).exists():
+        urlretrieve(url, filename)
 
     # Read with ASE
-    protein = read( filename, format="proteindatabank")
+    protein = read(filename, format="proteindatabank")
     print("Number of atoms:", len(protein))
 
     for index, atom in enumerate(protein[:5]):
         x, y, z = atom.position
-        print( f"Atom {index:2d} " f"{atom.symbol:2s} -> " f"x={x:8.3f} " f"y={y:8.3f} " f"z={z:8.3f}")
+        print(
+            f"Atom {index:2d} {atom.symbol:2s} -> "
+            f"x={x:8.3f} y={y:8.3f} z={z:8.3f}"
+        )
     ```
 
 This example demonstrates how a protein structure stored in PDB format can be converted into 
@@ -690,8 +758,8 @@ Each atom is described by its chemical element and Cartesian coordinates,
 $$
 \mathbf{r}_i =
 \begin{bmatrix}
-x_i \
-y_i \
+x_i \\
+y_i \\
 z_i
 \end{bmatrix},
 $$
@@ -704,7 +772,25 @@ features for machine learning models.
 
 **Coulomb matrix representation**
 
-The Coulomb matrix representation is described in PRL 108, 058301 (2012):
+The Coulomb matrix is a geometry-dependent descriptor originally introduced
+for small molecules (Phys. Rev. Lett. 108, 058301, 2012). For nuclear charges
+$Z_i$ and atomic positions $\mathbf{r}_i$, its entries are
+
+$$
+C_{ij} =
+\begin{cases}
+\dfrac{1}{2} Z_i^{2.4}, & i=j, \\
+\dfrac{Z_i Z_j}{\|\mathbf{r}_i-\mathbf{r}_j\|_2}, & i\neq j.
+\end{cases}
+$$
+
+The following small fragment demonstrates the calculation. The simple flattened
+matrix depends on atom order; sorted eigenvalues remove that dependence but
+can discard structural information. The Coulomb matrix also grows quadratically
+with atom count and is not a convenient direct representation of a whole protein.
+All molecules in a dataset must use consistent distance units and atom-ordering
+conventions. The matrix is a structural descriptor, not a complete molecular
+electrostatic-energy calculation.
 
 ??? note "Example"
 
@@ -1073,8 +1159,8 @@ that a molecule will become a successful drug.
 
 #### Creating Molecular Feature Vectors
 
-Multiple molecular descriptors can be combined into a numerical feature vector f
-or use in machine learning. For a molecule $i$, a descriptor vector may be written as
+Multiple molecular descriptors can be combined into a numerical feature vector
+for use in machine learning. For a molecule $i$, a descriptor vector may be written as
 
 $$
 \mathbf{x}_i = [ MW, \mathrm{LogP}, TPSA, HBD, HBA, \ldots ].
@@ -1245,7 +1331,7 @@ definitive measures of pharmaceutical suitability.
 
 ### 2.7 Graph Representations
 
-Graph representations describe molecular systems as collections of **nodes** connected by **edges**. 
+Graph representations describe molecular systems as collections of **nodes** and **edges**.
 For small molecules, nodes usually correspond to atoms and edges to chemical bonds. For proteins, 
 graphs can instead be constructed at the residue level, where each node represents an amino acid and 
 edges describe sequence connectivity, spatial proximity, or other interactions.
@@ -1259,7 +1345,7 @@ $$
 G=(V,E),
 $$
 
-where (V) is the set of nodes and (E) is the set of edges.
+where $V$ is the set of nodes and $E$ is the set of edges.
 
 #### Graph Structure
 
@@ -1470,7 +1556,11 @@ between categories.
         """
 
         # One-hot hybridization
-        hybridization_types = [ Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2, Chem.rdchem.HybridizationType.SP3 ]
+        hybridization_types = [
+            Chem.rdchem.HybridizationType.SP,
+            Chem.rdchem.HybridizationType.SP2,
+            Chem.rdchem.HybridizationType.SP3,
+        ]
 
         hybridization = [ int( atom.GetHybridization() == h) for h in hybridization_types ]
 
@@ -1540,20 +1630,20 @@ between categories.
 
 #### Protein Graph Representations
 
-Proteins can also be represented as graphs. One common residue-level representation assigns each 
-amino acid residue to a node and uses the position of its C$^\alpha$ atom as the representative 
-three-dimensional coordinate.
+Proteins can also be represented as graphs. One common coarse-grained representation
+assigns each amino acid residue to a node and uses its C$^\alpha$ atom as the
+representative three-dimensional coordinate.
 
 Two different types of relationships are especially useful:
 
 * **Sequence edges** connect residues that are adjacent in the protein sequence.
-* **Spatial-contact edges** connect residues whose C$$\alpha$ atoms lie within a chosen 
+* **Spatial-contact edges** connect residues whose C$^\alpha$ atoms lie within a chosen
 three-dimensional cutoff.
 
 For two residues $i$ and $j$, their C$^\alpha$ distance is
 
 $$
-d_{ij} = \left| \mathbf{r}_i - \mathbf{r}_j \right|.
+d_{ij} = \left\| \mathbf{r}_i - \mathbf{r}_j \right\|_2.
 $$
 
 A simple contact criterion is
@@ -1575,16 +1665,23 @@ chain A in the **3MUF** PDB structure.
     import networkx as nx
     import matplotlib.pyplot as plt
 
+    from pathlib import Path
+    from urllib.request import urlretrieve
     from Bio.PDB import PDBParser
     from Bio.PDB.Polypeptide import is_aa
 
     # 1. Load the PDB structure
     pdb_file = "3MUF.pdb"
+    if not Path(pdb_file).exists():
+        urlretrieve("https://files.rcsb.org/download/3MUF.pdb", pdb_file)
+
     parser = PDBParser( QUIET=True)
     structure = parser.get_structure( "3MUF", pdb_file)
 
     # 2. Select model 0 and protein chain A
     model = structure[0]
+    if "A" not in model:
+        raise ValueError("Chain A was not found in 3MUF.pdb")
     chain = model["A"]
 
     # 3. Extract amino-acid residues containing C-alpha
@@ -1641,14 +1738,21 @@ chain A in the **3MUF** PDB structure.
                 residue["ca_coord"]
         )
 
-    # 5. Add sequence-neighbor edges
+    # 5. Add sequence-neighbor edges.
+    # Avoid connecting across gaps in the observed residue numbering.
     for i in range( len(residues) - 1):
+
+        if residues[i + 1]["residue_number"] != residues[i]["residue_number"] + 1:
+            continue
 
         coord_i = residues[i][ "ca_coord" ]
         coord_j = residues[i + 1][ "ca_coord" ]
         distance = np.linalg.norm( coord_i - coord_j)
 
-        G.add_edge( i, i + 1, distance=distance, sequence_neighbor=True, spatial_contact=False)
+        G.add_edge(
+            i, i + 1, distance=distance,
+            sequence_neighbor=True, spatial_contact=False
+        )
 
     # 6. Add spatial-contact edges
     distance_cutoff = 8.0
@@ -1672,7 +1776,10 @@ chain A in the **3MUF** PDB structure.
 
                 else:
 
-                    G.add_edge( i, j, distance=distance, sequence_neighbor=False, spatial_contact=True)
+                    G.add_edge(
+                        i, j, distance=distance,
+                        sequence_neighbor=False, spatial_contact=True
+                    )
 
     # 7. Display graph information
     print("Number of nodes:",G.number_of_nodes())
@@ -1684,7 +1791,10 @@ chain A in the **3MUF** PDB structure.
     for node in list(G.nodes)[:5]:
 
         data = G.nodes[node]
-        print( f"Node {node:3d}: " f"{data['residue_name']} " f"{data['residue_number']} " f"CA = {data['ca_coord']}")
+        print(
+            f"Node {node:3d}: {data['residue_name']} "
+            f"{data['residue_number']} CA = {data['ca_coord']}"
+        )
 
     print("\nFirst ten edges:\n")
 
@@ -1751,16 +1861,16 @@ chain A in the **3MUF** PDB structure.
 
 **Advantages of Graph Representations**:
 
-- Natural for molecules (atoms connected by bonds)
-- Permutation invariant (atom order doesn't matter)
-- Captures topology and local structure
-- Enables Graph Neural Networks
+- Represent atoms and chemical bonds directly
+- Preserve connectivity independently of how atoms are numbered
+- Incorporate local chemical features and, when available, geometric information
+- Support graph neural networks with permutation-equivariant node processing
 
 **Limitations**:
 
-- More complex to implement
-- Computationally expensive for large molecules
-- Requires specialized neural network architectures
+- Graph construction and feature design require additional care
+- Large molecular systems may require expensive neighbor searches and message passing
+- Bond-only graphs omit 3D conformation unless geometric features are added
 
 #### Atomic Cluster Expansion
 
@@ -1770,7 +1880,8 @@ and angular basis functions and combines these contributions into symmetry-adapt
 
 ACE is particularly useful for molecular and atomistic machine learning because it can systematically 
 incorporate interactions involving pairs, triplets, and higher-order groups of atoms. Increasing the body 
-order and basis resolution provides progressively more detailed information about the local atomic environment.
+order and basis resolution provides progressively more detailed information
+about the local atomic environment.
 
 For proteins, ACE can be applied to an all-atom representation or to a coarse-grained representation based on 
 selected atoms such as the C$^\alpha$ atoms of amino acid residues.
@@ -1809,7 +1920,8 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
     A one-particle basis function can be written schematically as
 
     $$
-    \phi_{znlm} \left( \mathbf{r}_{ij} \right) = \delta_{z,z_j} R_{nl} \left( r_{ij} \right) Y_l^m \left( \hat{\mathbf{r}}_{ij} \right),
+    \phi_{znlm}(\mathbf{r}_{ij}) =
+    \delta_{z,z_j} R_{nl}(r_{ij}) Y_l^m(\hat{\mathbf{r}}_{ij}),
     $$
 
     where $z_j$ represents the chemical species of neighboring atom $j$, $R_{nl}(r)$ is a 
@@ -1818,7 +1930,7 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
     The contributions from all neighbors are summed to obtain the atomic-density projections
 
     $$
-    A_{znlm}^{(i)}= \sum_{j\in\mathcal{N}*i} \delta*{z,z_j} R_{nl} \left( r_{ij} \right) Y_l^m \left( \hat{\mathbf{r}}_{ij} \right).
+    A_{znlm}^{(i)} = \sum_{j\in\mathcal{N}_i} \delta_{z,z_j} R_{nl}(r_{ij}) Y_l^m(\hat{\mathbf{r}}_{ij}).
     $$
 
     These coefficients provide the fundamental building blocks of the Atomic Cluster Expansion.
@@ -1874,7 +1986,8 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
     $$
 
     For invariant ACE descriptors, rotating or translating the entire molecular structure leaves these 
-    scalar features unchanged. Permutations of equivalent neighboring atoms also do not change the representation.
+    scalar features unchanged. Permutations of equivalent neighboring atoms
+    also do not change the representation.
     ACE can additionally be formulated to generate equivariant vector and tensor features when the 
     predicted quantity must transform under rotation.
 
@@ -1893,10 +2006,10 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
     using its C$^\alpha$ coordinate:
 
     $$
-    \mathbf{r}*i^{,C*\alpha} =
+    \mathbf{r}_i^{C_\alpha} =
     \begin{bmatrix}
-    x_i\
-    y_i\
+    x_i\\
+    y_i\\
     z_i
     \end{bmatrix}.
     $$
@@ -1904,7 +2017,9 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
     Local environments are then constructed from neighboring C$^\alpha$ atoms:
 
     $$
-    \mathcal{N}_i^{C_\alpha} = \left\{ j : \left\| \mathbf{r}_j^{C_\alpha} - \mathbf{r}_i^{C_\alpha} \right\| < r_{\mathrm{cut}} \right\}.
+    \mathcal{N}_i^{C_\alpha} = \left\{ j \; \middle| \;
+    \left\|\mathbf{r}_j^{C_\alpha} - \mathbf{r}_i^{C_\alpha}\right\|
+    < r_{\mathrm{cut}} \right\}.
     $$
 
     This coarse-grained representation captures aspects of local protein geometry but, 
@@ -1915,7 +2030,8 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
 
 ??? note "Example"
 
-    The following example illustrates the basic ideas behind ACE using the C$^\alpha$ atoms from chain A of `3MUF.pdb`.
+    The following example illustrates the basic ideas behind ACE using the
+    C$^\alpha$ atoms from chain A of `3MUF.pdb`.
 
     For clarity, the example implements a **small low-order ACE-style invariant basis directly in Python** 
     rather than relying on a specialized ACE potential package. It includes radial two-body information 
@@ -1944,20 +2060,21 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
     A low-order radial invariant can be calculated as
 
     $$
-    B_n^{(2)} = \sum_{j\in\mathcal{N}*i} R_n(r*{ij}).
+    B_n^{(2)} = \sum_{j\in\mathcal{N}_i} R_n(r_{ij}).
     $$
 
     Angular information involving the central atom $i$ and two neighbors $j$ and $k$ 
     can be incorporated using Legendre polynomials:
 
     $$
-    B_{nl}^{(3)} = \sum_{j<k} R_n(r_{ij}) R_n(r_{ik}) P_l \left( \cos\theta_{jik} \right),
+    B_{nl}^{(3)} = \sum_{j<k;\,j,k\in\mathcal{N}_i}
+    R_n(r_{ij}) R_n(r_{ik}) P_l(\cos\theta_{jik}),
     $$
 
     where
 
     $$
-    \cos\theta_{jik} = \frac{ \mathbf{r}*{ij}\cdot\mathbf{r}*{ik} }{ r_{ij}r_{ik} }.
+    \cos\theta_{jik} = \frac{\mathbf{r}_{ij}\cdot\mathbf{r}_{ik}}{r_{ij}r_{ik}}.
     $$
 
     Because these quantities depend on distances and angles rather than the absolute orientation 
@@ -1971,11 +2088,16 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
 
     from numpy.polynomial.legendre import Legendre
 
-    # 1. Load protein structure
-    pdb_file = "3MUF.pdb"
+    # 1. Download the protein structure once, if necessary
+    from pathlib import Path
+    from urllib.request import urlretrieve
+
+    pdb_file = Path("3MUF.pdb")
+    if not pdb_file.exists():
+        urlretrieve("https://files.rcsb.org/download/3MUF.pdb", pdb_file)
 
     parser = PDBParser(QUIET=True)
-    structure = parser.get_structure( "3MUF", pdb_file)
+    structure = parser.get_structure("3MUF", str(pdb_file))
     model = structure[0]
     chain = model["A"]
 
@@ -1984,31 +2106,26 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
 
     for residue in chain:
 
-        if not is_aa( residue, standard=True):
+        if not is_aa(residue, standard=True):
             continue
 
         if "CA" not in residue:
             continue
 
         residues.append({
-            "name":
-                residue.get_resname(),
-
-            "number":
-                residue.id[1],
-
-            "coord":
-                residue["CA"]
-                .get_coord()
-                .astype(float)
+            "name": residue.get_resname(),
+            "number": residue.id[1],
+            "coord": residue["CA"].get_coord().astype(float),
         })
 
-    coordinates = np.array([ residue["coord"] for residue in residues ])
+    coordinates = np.array([r["coord"] for r in residues])
+    if len(coordinates) < 2:
+        raise ValueError("Not enough C-alpha atoms in chain A.")
 
-    print("Number of C-alpha atoms:",len(coordinates))
+    print("Number of C-alpha atoms:", len(coordinates))
 
     # 3. Define smooth cutoff function
-    def cutoff_function(r,r_cut):
+    def cutoff_function(r, r_cut):
 
         if r >= r_cut:
             return 0.0
@@ -2016,18 +2133,19 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
         return 0.5 * (np.cos(np.pi * r / r_cut) + 1.0)
 
     # 4. Define radial basis
-    def radial_basis(r,n,r_cut):
-
-        return ( cutoff_function(r,r_cut)*(r / r_cut) ** n)
+    def radial_basis(r, n, r_cut):
+        return cutoff_function(r, r_cut) * (r / r_cut) ** n
 
     # 5. Calculate low-order ACE-style features
-    def calculate_ace_features( center_index, coordinates, r_cut=8.0, n_max=4, l_max=3):
+    def calculate_ace_features(
+        center_index, coordinates, r_cut=8.0, n_max=4, l_max=3
+    ):
 
         center = coordinates[center_index]
         neighbor_vectors = []
 
         # Find neighbors
-        for j, coord in enumerate( coordinates):
+        for j, coord in enumerate(coordinates):
 
             if j == center_index:
                 continue
@@ -2037,18 +2155,17 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
 
             if distance < r_cut:
 
-                neighbor_vectors.append( (vector,distance))
+                neighbor_vectors.append((vector, distance))
 
         features = []
 
         # Two-body radial features
-        for n in range( n_max):
+        for n in range(n_max):
 
             value = 0.0
 
-            for vector, distance in (neighbor_vectors):
-
-                value += radial_basis(distance,n,r_cut)
+            for _, distance in neighbor_vectors:
+                value += radial_basis(distance, n, r_cut)
 
             features.append(value)
 
@@ -2060,63 +2177,58 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
                 value = 0.0
                 P_l = Legendre.basis(l)
 
-                for j in range( len( neighbor_vectors)):
+                for j in range(len(neighbor_vectors)):
+                    vector_j, r_j = neighbor_vectors[j]
 
-                    vector_j, r_j = ( neighbor_vectors[j])
-
-                    for k in range( j + 1, len(neighbor_vectors)):
-
-                        vector_k, r_k = ( neighbor_vectors[k])
-
-                        cos_theta = np.dot( vector_j, vector_k) / (r_j * r_k)
+                    for k in range(j + 1, len(neighbor_vectors)):
+                        vector_k, r_k = neighbor_vectors[k]
+                        cos_theta = np.dot(vector_j, vector_k) / (r_j * r_k)
 
                         # Numerical protection
-                        cos_theta = np.clip( cos_theta, -1.0, 1.0)
+                        cos_theta = np.clip(cos_theta, -1.0, 1.0)
 
-                        value += ( radial_basis(r_j,n,r_cut) * radial_basis(r_k,n,r_cut) * P_l(cos_theta))
+                        value += (
+                            radial_basis(r_j, n, r_cut)
+                            * radial_basis(r_k, n, r_cut)
+                            * P_l(cos_theta)
+                        )
 
-                features.append( value)
+                features.append(value)
 
-        return np.array(features,dtype=float)
+        return np.array(features, dtype=float)
 
     # 6. Calculate ACE-style descriptors
     #    for every C-alpha environment
     ace_features = np.array([
-
-        calculate_ace_features(
-            i,
-            coordinates,
-            r_cut=8.0,
-            n_max=4,
-            l_max=3
-        )
-
+        calculate_ace_features(i, coordinates, r_cut=8.0, n_max=4, l_max=3)
         for i in range(len(coordinates))
     ])
 
-    print("ACE feature matrix shape:",ace_features.shape)
+    print("ACE feature matrix shape:", ace_features.shape)
 
     # 7. Examine one residue environment
-    residue_index = 50
+    residue_index = min(50, len(residues) - 1)
     residue = residues[residue_index]
 
-    print("\nResidue:",residue["name"],residue["number"])
+    print("\nResidue:", residue["name"], residue["number"])
     print("First 10 ACE-style features:")
-    print(ace_features[residue_index,:10])
+    print(ace_features[residue_index, :10])
 
     # 8. Compare two local environments
-    i = 20
-    j = 50
+    i = 0
+    j = residue_index if residue_index > 0 else 1
 
     descriptor_i = ace_features[i]
     descriptor_j = ace_features[j]
 
-    similarity = np.dot( descriptor_i, descriptor_j) / ( np.linalg.norm(descriptor_i) * np.linalg.norm(descriptor_j))
+    denominator = np.linalg.norm(descriptor_i) * np.linalg.norm(descriptor_j)
+    similarity = (np.dot(descriptor_i, descriptor_j) / denominator
+                  if denominator > 0 else float("nan"))
 
-    print("\nResidue 1:",residues[i]["name"],residues[i]["number"])
-    print("Residue 2:",residues[j]["name"],residues[j]["number"])
+    print("\nResidue 1:", residues[i]["name"], residues[i]["number"])
+    print("Residue 2:", residues[j]["name"], residues[j]["number"])
 
-    print("Descriptor similarity:",similarity)
+    print("Descriptor similarity:", similarity)
     ```
 
     The resulting matrix has the form
@@ -2137,13 +2249,108 @@ selected atoms such as the C$^\alpha$ atoms of amino acid residues.
     the angular terms describe the relative arrangement of pairs of neighboring residues.
 
     Consequently, two residues can have similar ACE descriptors when their surrounding 
-    three-dimensional environments have similar geometries, even if they occur at different positions in the protein sequence.
+    three-dimensional environments have similar geometries, even if they occur
+    at different positions in the protein sequence.
+
+### 2.8 Crystalline Materials and Periodic Representations
+
+Molecular representations usually describe finite collections of atoms, whereas crystals are
+characterized by structures that repeat periodically in three dimensions. Predicting material
+properties therefore often requires information about chemical composition, atomic positions,
+and the arrangement of atoms within the periodic unit cell. Applications include predicting
+formation energies, band gaps, elastic properties, and ionic conductivity.
+
+#### Crystal Structures and Periodic Boundary Conditions
+
+A crystal structure can be specified by three lattice vectors $\mathbf{a}_1$, $\mathbf{a}_2$,
+and $\mathbf{a}_3$, together with the atomic species and fractional coordinates $\mathbf{s}_i$
+of atoms in the unit cell. The corresponding Cartesian coordinates are
+
+$$
+\mathbf{r}_i = \mathbf{A}\mathbf{s}_i, \qquad
+\mathbf{A} = \begin{bmatrix} \mathbf{a}_1 & \mathbf{a}_2 & \mathbf{a}_3 \end{bmatrix}.
+$$
+
+Unlike an isolated molecular graph, a crystal graph must account for neighboring atoms in
+periodic images of the unit cell. A displacement between atom $i$ and an image of atom $j$ is
+
+$$
+\mathbf{r}_{ij,\mathbf{n}} = \mathbf{r}_j + \mathbf{A}\mathbf{n} - \mathbf{r}_i,
+\qquad \mathbf{n} \in \mathbb{Z}^3.
+$$
+
+Here, $\mathbf{n}$ identifies a translated unit cell. Periodic neighbor lists use these
+displacements to identify atoms within a distance cutoff, including neighbors across cell
+boundaries. Crystal graph neural networks can use atomic numbers as node features and
+interatomic distances, bond-like connections, or geometric basis functions as edge features.
+
+#### Composition and Structure Descriptors
+
+**Composition-based descriptors** summarize the elements present, their proportions, and
+statistics of elemental properties such as atomic mass or electronegativity. They can be
+computed even when the crystal structure is unknown. **Structure-based descriptors**
+add information about lattice geometry, coordination environments, symmetry, and local
+atomic neighborhoods. This distinction matters because two polymorphs can have the same
+chemical formula but different crystal structures and physical properties.
+
+Crystal structures are commonly stored in Crystallographic Information Files (`.cif`).
+The following example constructs an ideal sodium chloride crystal and examines its
+periodic neighbors using `pymatgen`.
+
+??? note "Example"
+
+    ```python
+    # Install if necessary: pip install pymatgen
+    from pymatgen.core import Lattice, Structure
+
+    # 1. Define a conventional cubic NaCl unit cell (lattice constant in Å).
+    lattice = Lattice.cubic(5.64)
+
+    # 2. Fractional positions for the rock-salt structure.
+    na_sites = [
+        [0.0, 0.0, 0.0],
+        [0.0, 0.5, 0.5],
+        [0.5, 0.0, 0.5],
+        [0.5, 0.5, 0.0],
+    ]
+    cl_sites = [
+        [0.5, 0.5, 0.5],
+        [0.5, 0.0, 0.0],
+        [0.0, 0.5, 0.0],
+        [0.0, 0.0, 0.5],
+    ]
+
+    structure = Structure(
+        lattice,
+        ["Na"] * 4 + ["Cl"] * 4,
+        na_sites + cl_sites,
+    )
+
+    # 3. Find all neighbors of the first Na site within 3.0 Å.
+    #    Periodic images are included automatically.
+    neighbors = structure.get_neighbors(structure[0], r=3.0)
+
+    print("Chemical formula:", structure.composition.reduced_formula)
+    print("Atoms per unit cell:", len(structure))
+    print("Na coordination number:", len(neighbors))
+
+    for neighbor in neighbors:
+        print(neighbor.species_string, f"{neighbor.nn_distance:.3f} Å")
+
+    assert len(neighbors) == 6  # Six nearest Cl neighbors in ideal NaCl.
+    ```
+
+This example demonstrates why periodicity is essential: some of the six nearest chlorine
+neighbors of a sodium atom belong to adjacent unit cells. A representation that ignores
+periodic images would incorrectly describe atoms near the cell boundaries.
 
 ## 3. Traditional Machine Learning Methods
 
-Before deep learning, these methods were (and still are) workhorses of molecular machine learning.
+Classical machine learning remains important for molecular and materials property prediction.
+Models such as Random Forests can perform well with relatively small datasets and carefully
+chosen descriptors, and they provide useful baselines for more complex neural networks.
 
-### 3.1 Feature engineering principles
+### 3.1 Feature Engineering Principles
 
 **Domain knowledge is key**:
 
@@ -2158,9 +2365,15 @@ Before deep learning, these methods were (and still are) workhorses of molecular
     ```python
     from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
     from sklearn.model_selection import train_test_split
+    from sklearn.datasets import make_regression
+
+    # Create a small example dataset with 20 numerical features.
+    X, y = make_regression(n_samples=200, n_features=20, random_state=42)
 
     # Split first to avoid data leakage
-    X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
     # Standardization: zero mean, unit variance
     standard_scaler = StandardScaler()
@@ -2200,9 +2413,18 @@ set into the model.
 
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.model_selection import train_test_split
+    from sklearn.datasets import make_regression
+
+    # Generate data so that this example runs independently.
+    X, y = make_regression(
+        n_samples=200, n_features=20, n_informative=8,
+        noise=10.0, random_state=42
+    )
 
     # Split first to avoid data leakage
-    X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
     # Remove low-variance features
     variance_selector = VarianceThreshold(threshold=0.01)
@@ -2217,7 +2439,7 @@ set into the model.
     X_test_selected = kbest_selector.transform(X_test)
 
     # Recursive Feature Elimination
-    rfe_model = RandomForestRegressor( n_estimators=100, random_state=42)
+    rfe_model = RandomForestRegressor(n_estimators=30, random_state=42)
 
     rfe_selector = RFE( estimator=rfe_model, n_features_to_select=10)
 
@@ -2231,11 +2453,17 @@ set into the model.
 
     # With prefit=True, the estimator is already fitted, so we call
     # transform directly (without fitting the selector again).
-    importance_selector = SelectFromModel( importance_model, prefit=True, threshold="median")
+    importance_selector = SelectFromModel(
+        importance_model, prefit=True, threshold="median"
+    )
 
     X_train_important = importance_selector.transform(X_train)
     X_test_important = importance_selector.transform(X_test)
     ```
+
+When feature selection is combined with cross-validation, the selector must be fitted
+separately within each training fold. A scikit-learn `Pipeline` can enforce this and
+prevent information from the validation fold from influencing feature selection.
 
 ### 3.2 Random Forests
 
@@ -2280,6 +2508,11 @@ inorganic compositions together with experimentally measured band gaps. Each che
 composition is converted into numerical elemental-property descriptors using the Magpie 
 descriptor set provided by Matminer.
 
+This dataset contains **compositions, not atomic coordinates or crystal structures**.
+Consequently, this model cannot distinguish polymorphs with the same composition.
+The random split below demonstrates the workflow; published Matbench benchmark scores
+should instead use the benchmark's prescribed cross-validation folds.
+
 Random Forests do not normally require feature standardization because decision-tree splits 
 depend on feature thresholds rather than distances between samples.
 
@@ -2317,10 +2550,13 @@ depend on feature thresholds rather than distances between samples.
     feature_names = ( featurizer.feature_labels())
 
     # 4. Construct input features and target
-    X = df[feature_names]
+    X = df[feature_names].replace([np.inf, -np.inf], np.nan)
 
     # Experimental band gap in eV
     y = df["gap expt"]
+    valid_rows = X.notna().all(axis=1) & y.notna()
+    X = X.loc[valid_rows]
+    y = y.loc[valid_rows]
     print( "\nNumber of features:", X.shape[1])
 
     # 5. Split into training and test sets
@@ -2412,7 +2648,8 @@ observations, some samples are not selected for that particular tree. On average
 approximately (36.8%) of the observations are excluded and are referred to as **out-of-bag (OOB) samples**.
 
 These observations can be passed through trees for which they were not included during 
-training, providing an internal estimate of predictive performance without creating an additional validation subset.
+training, providing an internal estimate of predictive performance without
+creating an additional validation subset.
 
 In scikit-learn, OOB estimation can be enabled using
 
@@ -2442,7 +2679,8 @@ splitting criterion across the trees in the forest. For regression, this is comm
 to reductions in squared-error impurity.
 
 Although fast and convenient, impurity-based feature importance can be misleading, 
-particularly when features differ substantially in cardinality or when several variables are strongly correlated.
+particularly when features differ substantially in cardinality or when several
+variables are strongly correlated.
 
 **Permutation importance** provides an alternative approach. After the model has been 
 trained, one feature is randomly shuffled while all other features remain unchanged. If model 
@@ -2459,7 +2697,10 @@ performance decreases substantially, the model was relying strongly on that feat
 
     # Calculate permutation importance
     # using the held-out test set
-    result = permutation_importance( rf_reg, X_test, y_test, scoring="r2", n_repeats=5, random_state=42, n_jobs=-1)
+    result = permutation_importance(
+        rf_reg, X_test, y_test, scoring="r2",
+        n_repeats=5, random_state=42, n_jobs=-1
+    )
 
     # Rank features
     indices = np.argsort( result.importances_mean)[::-1]
@@ -2506,7 +2747,8 @@ training data, so Random Forests generally perform poorly when asked to predict 
 far outside the domain represented during training.
 
 Feature importance must also be interpreted carefully. Correlated materials descriptors may 
-contain overlapping information, making the importance assigned to any individual variable difficult to interpret.
+contain overlapping information, making the importance assigned to any
+individual variable difficult to interpret.
 
 #### Hyperparameter Tuning
 
@@ -2517,6 +2759,10 @@ when searching for a split. These parameters influence the balance between model
 computational cost, and generalization.
 
 Rather than selecting these values manually, they can be explored systematically using cross-validation.
+The earlier baseline score and feature-importance plots are illustrative.
+For a rigorous study, perform all tuning and model selection using training
+data and cross-validation, then evaluate the selected model on the test set
+**only once**. Repeatedly consulting test results can bias model selection.
 
 ??? note "Example"
 
@@ -2558,13 +2804,13 @@ Rather than selecting these values manually, they can be explored systematically
     print( f"\nOptimized test R²: " f"{test_r2:.3f}")
     ```
 
-The hyperparameter search is performed using only the training set. The test 
-set remains untouched until the final model has been selected, ensuring that it 
-provides an independent estimate of generalization performance.
+The hyperparameter search is performed using only the training set.
+The final test score is an independent generalization estimate only if the
+test data have not influenced earlier modeling decisions.
 
 ### 3.3 Model Evaluation Metrics
 
-#### Regression metrics
+#### Regression Metrics
 
 For $n$ samples with true values $y_i$ and predictions $\hat{y}_i$, the most common
 regression metrics are defined as follows.
@@ -2601,6 +2847,10 @@ performs worse than this baseline.
     import numpy as np
     from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
+    # Illustrative measured and predicted values (e.g., band gaps in eV).
+    y_true = np.array([1.0, 2.0, 2.5, 3.5])
+    y_pred = np.array([1.2, 1.8, 2.8, 3.2])
+
     # Mean Absolute Error
     mae = mean_absolute_error(y_true, y_pred)
     print(f"MAE: {mae:.3f}")
@@ -2612,6 +2862,49 @@ performs worse than this baseline.
     # R² Score
     r2 = r2_score(y_true, y_pred)
     print(f"R²: {r2:.3f}")
+    ```
+
+#### Classification Metrics
+
+Some molecular properties are expressed as categories rather than continuous
+values, such as whether a compound inhibits an enzyme at a specified assay
+threshold. For binary classification, a confusion matrix counts true positives
+(TP), true negatives (TN), false positives (FP), and false negatives (FN).
+Useful metrics include
+
+$$
+\mathrm{Accuracy} = \frac{TP+TN}{TP+TN+FP+FN}, \qquad
+\mathrm{Precision} = \frac{TP}{TP+FP},
+$$
+
+$$
+\mathrm{Recall} = \frac{TP}{TP+FN}, \qquad
+F_1 = 2\frac{\mathrm{Precision}\,\mathrm{Recall}}
+{\mathrm{Precision}+\mathrm{Recall}}.
+$$
+
+Precision measures how many predicted positive cases are correct, whereas recall
+measures how many actual positive cases are detected. Accuracy alone can be
+misleading for highly imbalanced datasets. The choice of metric should account
+for the scientific consequences of false positives and false negatives.
+
+??? note "Example"
+
+    ```python
+    from sklearn.metrics import (
+        confusion_matrix, accuracy_score, precision_score,
+        recall_score, f1_score,
+    )
+
+    # 1 indicates an active compound; 0 indicates an inactive compound.
+    y_true = [1, 0, 1, 0, 1, 0, 0, 0]
+    y_pred = [1, 0, 0, 0, 1, 1, 0, 0]
+
+    print("Confusion matrix:\n", confusion_matrix(y_true, y_pred))
+    print(f"Accuracy:  {accuracy_score(y_true, y_pred):.3f}")
+    print(f"Precision: {precision_score(y_true, y_pred):.3f}")
+    print(f"Recall:    {recall_score(y_true, y_pred):.3f}")
+    print(f"F1 score:  {f1_score(y_true, y_pred):.3f}")
     ```
 
 ### 3.4 QSAR (Quantitative Structure–Activity Relationship)
@@ -2872,7 +3165,10 @@ evaluation when the objective is to predict properties for structurally novel mo
     # 3. Retrieve selected properties
     # Look up by CID to reuse the compound we already found
     # (avoids a second name search).
-    properties = pcp.get_properties( [ "MolecularWeight", "XLogP", "TPSA", "Complexity" ], compound.cid, "cid")
+    properties = pcp.get_properties(
+        ["MolecularWeight", "XLogP", "TPSA", "Complexity"],
+        compound.cid, "cid"
+    )
 
     # 4. Display properties
     print("\nSelected Properties\n")
@@ -2904,8 +3200,9 @@ evaluation when the objective is to predict properties for structurally novel mo
     print("Molecule information")
     print("ChEMBL ID:", aspirin["molecule_chembl_id"])
     print("Preferred name:", aspirin["pref_name"])
-    print("Molecular formula:", aspirin["molecule_properties"]["full_molformula"])
-    print("Molecular weight:", aspirin["molecule_properties"]["full_mwt"])
+    properties = aspirin.get("molecule_properties") or {}
+    print("Molecular formula:", properties.get("full_molformula"))
+    print("Molecular weight:", properties.get("full_mwt"))
 
     # 2. Retrieve bioactivity data for aspirin
     activity = new_client.activity
@@ -2921,9 +3218,9 @@ evaluation when the objective is to predict properties for structurally novel mo
     print(df)
     ```
 
-### 4.2 Data preprocessing
+### 4.2 Data Preprocessing
 
-#### Molecular standardization
+#### Molecular Standardization
 
 A basic first step is to remove salts and counterions and return a canonical SMILES.
 Note that `SaltRemover` only strips a predefined list of common salts: it does not
@@ -2964,10 +3261,11 @@ zwitterion will remain charged.
     print(standardized)
     ```
 
-For a more complete and reproducible pipeline, RDKit's `rdMolStandardize` module
-handles fragment selection, functional-group normalization, and charge
-neutralization in a principled way. This is the recommended approach for preparing
-molecules pulled from public databases.
+For a more configurable workflow, RDKit's `rdMolStandardize` module supports
+fragment selection, functional-group normalization, and charge neutralization.
+The appropriate standardization rules depend on the measured property: removing
+counterions or changing protonation states can erase chemically relevant information.
+Document the rules and apply them consistently to all dataset partitions.
 
 ??? note "Example"
 
@@ -3006,11 +3304,13 @@ molecules pulled from public databases.
     print([standardize(smiles) for smiles in smiles_list])
     ```
 
-#### Removing duplicates
+#### Removing Duplicates
 
 Databases frequently contain the same compound under several different SMILES
-strings. Hashing each molecule to its InChIKey provides a canonical identifier
-that makes deduplication straightforward.
+strings. An InChIKey provides a standardized molecular identifier that can help
+identify duplicates. First decide how salts, stereoisomers, protonation states,
+and experimental replicates should be treated. If duplicate records have different
+measurements, investigate or aggregate them rather than silently discarding labels.
 
 ??? note "Example"
 
@@ -3046,55 +3346,66 @@ that makes deduplication straightforward.
 
 #### Train/Test Splitting
 
+In a supervised learning workflow, the **training set** is used to fit model
+parameters. A **validation set**, or cross-validation folds drawn from the
+training set, is used for model comparison and hyperparameter tuning. The
+**test set** is reserved for an independent evaluation after those decisions
+have been made. A fixed random seed makes a split reproducible, but a single
+split does not eliminate sampling uncertainty.
+
+Split molecules before fitting any data-dependent preprocessing or feature selection.
+A random split evaluates performance on samples drawn from a similar distribution,
+while a scaffold-based split groups molecules by Bemis–Murcko ring frameworks.
+The latter probes generalization to unseen scaffolds, but scaffold grouping is
+not always appropriate for every prediction task.
+
 ??? note "Example"
 
     ```python
     from rdkit import Chem
-    from sklearn.model_selection import train_test_split
-
-    # Random split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
-
-    # Scaffold split for molecules
     from rdkit.Chem.Scaffolds import MurckoScaffold
-    from collections import defaultdict
+    from sklearn.model_selection import GroupShuffleSplit
 
-    def scaffold_split(smiles_list, test_size=0.2):
-        """Split molecules by Bemis-Murcko scaffold."""
-        scaffolds = defaultdict(list)
+    def scaffold_split(smiles_list, test_size=0.2, random_state=42):
+        """Return molecule indices from a scaffold-grouped split."""
+        scaffolds = []
 
-        for idx, smiles in enumerate(smiles_list):
+        for smiles in smiles_list:
             mol = Chem.MolFromSmiles(smiles)
 
             if mol is None:
                 raise ValueError(f"Invalid SMILES string: {smiles}")
 
-            scaffold = MurckoScaffold.MurckoScaffoldSmiles( mol=mol, includeChirality=False)
-            scaffolds[scaffold].append(idx)
+            scaffold = MurckoScaffold.MurckoScaffoldSmiles(
+                mol=mol, includeChirality=False
+            )
+            scaffolds.append(scaffold)
 
-        # Sort scaffold groups from largest to smallest
-        scaffold_sets = sorted( scaffolds.values(), key=len, reverse=True)
+        if len(set(scaffolds)) < 2:
+            raise ValueError("At least two distinct scaffolds are required.")
 
-        n_total = len(smiles_list)
-        n_test = int(n_total * test_size)
-
-        train_idx, test_idx = [], []
-        train_count = 0
-
-        # Greedily fill the training set; overflow goes to the test set.
-        # Whole scaffold groups are kept together, so no scaffold appears
-        # in both splits.
-        for scaffold_set in scaffold_sets:
-            if train_count + len(scaffold_set) <= n_total - n_test:
-                train_idx.extend(scaffold_set)
-                train_count += len(scaffold_set)
-            else:
-                test_idx.extend(scaffold_set)
-
+        # Groups cannot appear in both partitions.
+        splitter = GroupShuffleSplit(
+            n_splits=1, test_size=test_size, random_state=random_state
+        )
+        train_idx, test_idx = next(
+            splitter.split(smiles_list, groups=scaffolds)
+        )
         return train_idx, test_idx
+
+    # Demonstrate the split on four scaffold families.
+    smiles_example = [
+        "Cc1ccccc1", "Oc1ccccc1", "c1ccncc1", "Cc1ccncc1",
+        "C1CCCCC1", "OC1CCCCC1", "c1ccsc1", "Cc1ccsc1",
+    ]
+    train_idx, test_idx = scaffold_split(smiles_example, test_size=0.25)
+    print("Training molecules:", [smiles_example[i] for i in train_idx])
+    print("Test molecules:", [smiles_example[i] for i in test_idx])
     ```
+
+`GroupShuffleSplit` selects scaffold groups rather than individual molecules, so
+the actual fraction of molecules in the test set can differ from `test_size`.
+Ring-free molecules share the empty Murcko scaffold and consequently form one group.
 
 ## 5. Practical Example: Solubility Prediction
 
@@ -3111,7 +3422,7 @@ $$
 where $S$ is the solubility in mol/L. Working in log space is standard, since solubility
 spans many orders of magnitude.
 
-### Complete workflow
+### Complete Workflow
 
 ??? note "Example"
 
@@ -3121,6 +3432,7 @@ spans many orders of magnitude.
     from rdkit import Chem
     from rdkit.Chem import Descriptors
     from sklearn.model_selection import train_test_split, cross_val_score
+    from sklearn.model_selection import KFold
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
     import matplotlib.pyplot as plt
@@ -3168,7 +3480,9 @@ spans many orders of magnitude.
     print(f"Valid molecules: {len(X_desc)}")
 
     # Step 3: Train-test split
-    X_train, X_test, y_train, y_test = train_test_split( X_desc, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_desc, y, test_size=0.2, random_state=42
+    )
 
     # Step 4: Train model
     # Note: feature scaling is intentionally omitted here. Random forests
@@ -3190,8 +3504,12 @@ spans many orders of magnitude.
     print(f"MAE:  {mae:.3f}")
     print(f"R²:   {r2:.3f}")
 
-    # Step 6: Cross-validation (more stable than a single split)
-    cv_scores = cross_val_score(model, X_desc, y, cv=5, scoring="r2")
+    # Step 6: Cross-validation on the training partition only.
+    # Keep the test set completely separate from model development.
+    cv = KFold(n_splits=5, shuffle=True, random_state=42)
+    cv_scores = cross_val_score(
+        model, X_train, y_train, cv=cv, scoring="r2"
+    )
     print(f"\n5-fold CV R²: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
 
     # Step 7: Visualize
@@ -3203,7 +3521,6 @@ spans many orders of magnitude.
     plt.title(f'Predictions (R² = {r2:.3f})')
     plt.axis('equal')
     plt.tight_layout()
-    #plt.show()
     plt.savefig('solubilities.png', dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -3216,27 +3533,41 @@ spans many orders of magnitude.
     print(feature_importance_df.head())
     ```
 
-**Expected results (random split)**:
+The exact scores depend on the split, dataset version, chosen descriptors, and
+model hyperparameters. Here, RMSE and MAE are measured in base-10 logarithmic
+solubility units. Feature importances describe model behavior, not causation.
 
-- Test RMSE: ~0.7-0.9 log units
-- R²: ~0.75-0.85
-- Key features: LogP, molecular weight, polar surface area
+### Scaffold-Based Evaluation
 
-### A more realistic evaluation: scaffold split
-
-A random split lets molecules with the same scaffold appear in both training and test
-sets, which inflates performance. Evaluating on a scaffold split (where whole scaffold
-groups are held out) estimates how well the model generalizes to genuinely new chemical
-series. Scaffold-split scores are typically lower than random-split scores, and are the
-more honest number to report.
+A random split can place molecules with the same scaffold in both training and test
+sets, which may make the evaluation optimistic for novel chemical series. A scaffold
+split holds entire structural families out and tests a different generalization
+question. It may yield lower scores, but neither split is universally preferable:
+choose the evaluation strategy that reflects the intended use of the model.
 
 ??? note "Example"
 
     ```python
-    # Reuses the scaffold_split function from Section 4.2.
-    from rdkit import Chem  # noqa: F401  (used inside scaffold_split)
+    # Use the molecule list and descriptor data from the preceding example.
+    # GroupShuffleSplit keeps each Murcko scaffold in one partition.
+    from rdkit.Chem.Scaffolds import MurckoScaffold
+    from sklearn.model_selection import GroupShuffleSplit
 
-    train_idx, test_idx = scaffold_split(valid_smiles, test_size=0.2)
+    scaffold_groups = [
+        MurckoScaffold.MurckoScaffoldSmiles(
+            mol=Chem.MolFromSmiles(smiles)
+        )
+        for smiles in valid_smiles
+    ]
+
+    splitter = GroupShuffleSplit(
+        n_splits=1, test_size=0.2, random_state=42
+    )
+    train_idx, test_idx = next(
+        splitter.split(X_desc, y, groups=scaffold_groups)
+    )
+    assert not (set(np.array(scaffold_groups)[train_idx]) &
+                set(np.array(scaffold_groups)[test_idx]))
 
     X_arr = X_desc.to_numpy()
     X_train_s, X_test_s = X_arr[train_idx], X_arr[test_idx]
@@ -3253,290 +3584,74 @@ more honest number to report.
     print(f"R²:   {r2_score(y_test_s, y_pred_s):.3f}")
     ```
 
-## 6. Practical Example: working with SELFIES
+## 6. Practical Example: Working with SELFIES
+
+SELFIES (Self-Referencing Embedded Strings) provides a token-based representation
+that can be useful for molecular generation. Unlike ordinary SMILES, properly formed
+SELFIES token sequences follow grammar rules designed to decode into chemically
+valid molecular graphs within the supported constraints. This does not guarantee
+that the resulting molecules are stable, synthesizable, or biologically useful.
+
+The following short example encodes three molecules, decodes them, and calculates
+descriptors using RDKit. It also illustrates a simple token modification.
+For more extensive descriptor and molecular-graph examples, see Sections 2.6
+and 2.7.
 
 ??? note "Example"
 
     ```python
-    import numpy as np
+    # Install if necessary: pip install selfies rdkit pandas
+    import pandas as pd
     import selfies as sf
     from rdkit import Chem
-    from rdkit.Chem import Descriptors, Crippen
+    from rdkit.Chem import Descriptors, QED
 
-    # Convert SELFIES to molecule
-    selfies_str = sf.encoder("CC(=O)Oc1ccccc1C(=O)O")  # Aspirin in SELFIES
-    print(f"SELFIES representation: {selfies_str}")
-
-    smiles = sf.decoder(selfies_str)
-    mol = Chem.MolFromSmiles(smiles)
-
-    # Molecular weight
-    mw = Descriptors.MolWt(mol)
-    print(f"Molecular Weight: {mw:.2f} g/mol")
-
-    # Lipophilicity (logP - octanol/water partition coefficient)
-    logp = Crippen.MolLogP(mol)
-    print(f"LogP: {logp:.2f}")
-    # LogP > 5: too lipophilic (Lipinski's rule of five)
-
-    # Topological polar surface area
-    tpsa = Descriptors.TPSA(mol)
-    print(f"TPSA: {tpsa:.2f} Å²")
-    # TPSA <= 140 Å²: associated with good oral bioavailability (Veber rule).
-    # Blood-brain barrier penetration typically requires TPSA below ~90 Å².
-
-    # Molar Refractivity
-    mr = Crippen.MolMR(mol)
-    print(f"Molar Refractivity: {mr:.2f}")
-
-    # Hydrogen bond donors and acceptors
-    h_donors = Descriptors.NumHDonors(mol)
-    h_acceptors = Descriptors.NumHAcceptors(mol)
-    print(f"H-Bond Donors: {h_donors}")
-    print(f"H-Bond Acceptors: {h_acceptors}")
-
-    # Rotatable bonds (flexibility)
-    rot_bonds = Descriptors.NumRotatableBonds(mol)
-    print(f"Rotatable Bonds: {rot_bonds}")
-
-    # Ring information
-    num_rings = Descriptors.RingCount(mol)
-    aromatic_rings = Descriptors.NumAromaticRings(mol)
-    print(f"Total Rings: {num_rings}, Aromatic: {aromatic_rings}")
-
-    # Fraction of sp3 carbons (saturation)
-    frac_sp3 = Descriptors.FractionCSP3(mol)
-    print(f"Fraction Csp3: {frac_sp3:.2f}")
-
-    from rdkit.Chem import GraphDescriptors
-
-    # Balaban J index (molecular branching)
-    balaban = GraphDescriptors.BalabanJ(mol)
-
-    # Bertz complexity index
-    bertz = GraphDescriptors.BertzCT(mol)
-
-    # Chi indices (connectivity)
-    chi0 = GraphDescriptors.Chi0(mol)
-    chi1 = GraphDescriptors.Chi1(mol)
-
-    from rdkit.Chem import AllChem, Descriptors3D
-
-    # Generate 3D coordinates
-    mol_3d = Chem.AddHs(mol)
-    AllChem.EmbedMolecule(mol_3d, randomSeed=42)
-    AllChem.MMFFOptimizeMolecule(mol_3d)
-
-    # 3D descriptors
-    asphericity = Descriptors3D.Asphericity(mol_3d)
-    eccentricity = Descriptors3D.Eccentricity(mol_3d)
-    inertial_shape = Descriptors3D.InertialShapeFactor(mol_3d)
-    radius_of_gyration = Descriptors3D.RadiusOfGyration(mol_3d)
-
-    # Radius of gyration is a length, so its unit is Å (not Å²)
-    print(f"Radius of Gyration: {radius_of_gyration:.2f} Å")
-
-    def lipinski_rule_of_five(mol):
-        """
-        Estimate oral drug-likeness using Lipinski's rule of five.
-        Rules:
-        - MW <= 500
-        - LogP <= 5
-        - H-bond donors <= 5
-        - H-bond acceptors <= 10
-        """
-        mw = Descriptors.MolWt(mol)
-        logp = Crippen.MolLogP(mol)
-        hbd = Descriptors.NumHDonors(mol)
-        hba = Descriptors.NumHAcceptors(mol)
-
-        violations = 0
-        if mw > 500: violations += 1
-        if logp > 5: violations += 1
-        if hbd > 5: violations += 1
-        if hba > 10: violations += 1
-
-        return violations <= 1  # Allow 1 violation
-
-    is_druglike = lipinski_rule_of_five(mol)
-    print(f"Passes Lipinski's rule: {is_druglike}")
-
-
-    from rdkit.Chem import QED
-
-    qed_score = QED.qed(mol)
-    print(f"QED Score: {qed_score:.3f}")
-    # Range: [0, 1], higher is more drug-like
-    # Combines several molecular properties into a single score
-
-
-    # Synthetic accessibility score.
-    # Note: sascorer lives in RDKit's Contrib directory, which must be
-    # present in the installation (it ships with the standard conda build).
-    from rdkit.Chem import RDConfig
-    import sys, os
-    sys.path.append(os.path.join(RDConfig.RDContribDir, 'SA_Score'))
-    import sascorer
-
-    sa_score = sascorer.calculateScore(mol)
-    print(f"SA Score: {sa_score:.2f}")
-    # Range: [1, 10]
-    # 1: easy to synthesize
-    # 10: difficult to synthesize
-
-
-    def calculate_molecular_descriptors(selfies_str):
-        """
-        Comprehensive descriptor calculation from a SELFIES string.
-        """
-        # Convert SELFIES to SMILES, then to a molecule
-        smiles = sf.decoder(selfies_str)
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            return None
-
-        # Note: explicit hydrogens are not added here. The 2D descriptors
-        # below (MW, TPSA, H-bond counts, ring counts, QED, ...) already
-        # account for implicit hydrogens, so AddHs would not change them.
-
-        descriptors = {
-            # Physical
-            'MW': Descriptors.MolWt(mol),
-            'LogP': Crippen.MolLogP(mol),
-            'TPSA': Descriptors.TPSA(mol),
-            'MolMR': Crippen.MolMR(mol),
-
-            # Structural
-            'NumHDonors': Descriptors.NumHDonors(mol),
-            'NumHAcceptors': Descriptors.NumHAcceptors(mol),
-            'NumRotatableBonds': Descriptors.NumRotatableBonds(mol),
-            'NumHeteroatoms': Descriptors.NumHeteroatoms(mol),
-            'NumAromaticRings': Descriptors.NumAromaticRings(mol),
-            'NumSaturatedRings': Descriptors.NumSaturatedRings(mol),
-            'NumAliphaticRings': Descriptors.NumAliphaticRings(mol),
-            'RingCount': Descriptors.RingCount(mol),
-
-            # Complexity
-            'BertzCT': GraphDescriptors.BertzCT(mol),
-            'NumBridgeheadAtoms': Descriptors.NumBridgeheadAtoms(mol),
-            'NumSpiroAtoms': Descriptors.NumSpiroAtoms(mol),
-
-            # Surface area and charge (VSA) descriptors
-            'LabuteASA': Descriptors.LabuteASA(mol),
-            'PEOE_VSA1': Descriptors.PEOE_VSA1(mol),
-
-            # Counts
-            'NumCarbon': sum(atom.GetAtomicNum() == 6 for atom in mol.GetAtoms()),
-            'NumNitrogen': sum(atom.GetAtomicNum() == 7 for atom in mol.GetAtoms()),
-            'NumOxygen': sum(atom.GetAtomicNum() == 8 for atom in mol.GetAtoms()),
-            'NumHalogens': sum(atom.GetAtomicNum() in [9, 17, 35, 53] for atom in mol.GetAtoms()),
-
-            # Saturation
-            'FractionCsp3': Descriptors.FractionCSP3(mol),
-
-            # Drug-likeness
-            'QED': QED.qed(mol),
-        }
-
-        return descriptors
-
-    # Example usage - convert SMILES to SELFIES first
-    smiles_list = ["CCO", "CC(=O)Oc1ccccc1C(=O)O", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"]
+    # 1. Convert SMILES representations to SELFIES.
+    smiles_list = [
+        "CCO",                            # Ethanol
+        "CC(=O)Oc1ccccc1C(=O)O",         # Aspirin
+        "Cn1c(=O)c2c(ncn2C)n(C)c1=O",  # Caffeine
+    ]
     selfies_list = [sf.encoder(s) for s in smiles_list]
 
-    print("\nSELFIES representations:")
-    for smiles, selfies_str in zip(smiles_list, selfies_list):
-        print(f"SMILES:  {smiles}")
-        print(f"SELFIES: {selfies_str}")
-        print()
-
-    import pandas as pd
-
-    descriptor_list = [calculate_molecular_descriptors(s) for s in selfies_list]
-    df_descriptors = pd.DataFrame(descriptor_list)
-    df_descriptors['SELFIES'] = selfies_list
-    df_descriptors['SMILES'] = smiles_list  # Optional: keep original SMILES for reference
-
-    print(df_descriptors)
-
-    import networkx as nx
-
-    def mol_to_graph(selfies_str):
-        """Convert a SELFIES molecule to a NetworkX graph."""
-        smiles = sf.decoder(selfies_str)
-        mol = Chem.MolFromSmiles(smiles)
+    # 2. Decode the SELFIES strings and calculate descriptors.
+    rows = []
+    for original_smiles, selfies_string in zip(smiles_list, selfies_list):
+        decoded_smiles = sf.decoder(selfies_string)
+        mol = Chem.MolFromSmiles(decoded_smiles)
 
         if mol is None:
-            raise ValueError(f"Could not parse molecule from SELFIES: {selfies_str}")
+            raise ValueError(f"RDKit cannot parse: {decoded_smiles}")
 
-        G = nx.Graph()
+        rows.append({
+            "Original SMILES": original_smiles,
+            "SELFIES": selfies_string,
+            "Decoded SMILES": Chem.MolToSmiles(mol),
+            "Molecular weight": Descriptors.MolWt(mol),
+            "LogP": Descriptors.MolLogP(mol),
+            "QED": QED.qed(mol),
+        })
 
-        # Add nodes (atoms)
-        for atom in mol.GetAtoms():
-            G.add_node(
-                atom.GetIdx(),
-                atomic_num=atom.GetAtomicNum(),
-                symbol=atom.GetSymbol(),
-                degree=atom.GetDegree(),
-                formal_charge=atom.GetFormalCharge(),
-                num_h=atom.GetTotalNumHs(),
-                hybridization=str(atom.GetHybridization()),
-                is_aromatic=atom.GetIsAromatic()
-            )
+    print(pd.DataFrame(rows).to_string(index=False))
 
-        # Add edges (bonds)
-        for bond in mol.GetBonds():
-            G.add_edge(
-                bond.GetBeginAtomIdx(),
-                bond.GetEndAtomIdx(),
-                bond_type=str(bond.GetBondType()),
-                is_conjugated=bond.GetIsConjugated(),
-                is_aromatic=bond.GetIsAromatic()
-            )
+    # 3. Modify an ethanol SELFIES string by adding a carbon token.
+    ethanol_selfies = sf.encoder("CCO")
+    modified_selfies = ethanol_selfies + "[C]"
+    modified_smiles = sf.decoder(modified_selfies)
 
-        return G
-
-    # Example
-    selfies_ethanol = sf.encoder("CCO")
-    G = mol_to_graph(selfies_ethanol)
-    print(f"\nGraph from SELFIES: {selfies_ethanol}")
-    print(f"Nodes: {G.number_of_nodes()}")
-    print(f"Edges: {G.number_of_edges()}")
-    print(f"Node features: {G.nodes[0]}")
-
-    def get_adjacency_matrix(selfies_str, max_atoms=50):
-        """Get a padded adjacency matrix from a SELFIES string."""
-        smiles = sf.decoder(selfies_str)
-        mol = Chem.MolFromSmiles(smiles)
-
-        if mol is None:
-            raise ValueError(f"Could not parse molecule from SELFIES: {selfies_str}")
-
-        num_atoms = mol.GetNumAtoms()
-
-        if num_atoms > max_atoms:
-            raise ValueError( f"Molecule contains {num_atoms} atoms but max_atoms={max_atoms}")
-
-        # Initialize matrix
-        adj_matrix = np.zeros((max_atoms, max_atoms), dtype=int)
-
-        # Fill adjacency matrix
-        for bond in mol.GetBonds():
-            i = bond.GetBeginAtomIdx()
-            j = bond.GetEndAtomIdx()
-            adj_matrix[i, j] = 1
-            adj_matrix[j, i] = 1  # Symmetric
-
-        return adj_matrix, num_atoms
-
-    selfies_ethanol = sf.encoder("CCO")
-    adj, n_atoms = get_adjacency_matrix(selfies_ethanol)
-    print(f"\nAdjacency matrix from SELFIES: {selfies_ethanol}")
-    print(f"Adjacency matrix shape: {adj.shape}")
-    print(f"Actual atoms: {n_atoms}")
+    print("\nOriginal ethanol SELFIES:", ethanol_selfies)
+    print("Modified SELFIES:", modified_selfies)
+    print("Decoded modified molecule:", modified_smiles)
+    print("Valid RDKit molecule:",
+          Chem.MolFromSmiles(modified_smiles) is not None)
     ```
 
-## 7. Practical Example: A complete ML Pipeline
+The decoded SMILES may differ from the original text because several SMILES
+strings can describe the same molecular graph. For actual molecular generation,
+the model must learn which SELFIES sequences produce *desirable* molecules,
+and generated candidates still require chemical and experimental validation.
+
+## 7. Practical Example: A Complete ML Pipeline
 
 ### Task
 
@@ -3550,6 +3665,10 @@ In this example, we construct a complete machine learning workflow for predictin
 **aqueous solubility** from molecular descriptors.
 The dataset is the processed **Delaney ESOL dataset**, which contains molecular structures 
 represented as SMILES strings together with experimentally measured logarithmic aqueous solubilities.
+
+The Python blocks in this section form **one sequential example**: run them in
+order in the same notebook or Python session. Each step reuses variables defined
+in preceding steps, unlike the shorter standalone examples elsewhere in the module.
 
 The target property is
 
@@ -3711,7 +3830,8 @@ $$
 r_{xy} = \frac{ \operatorname{cov}(x,y) }{ \sigma_x \sigma_y }.
 $$
 
-Correlation measures linear association and should not be interpreted as a measure of causality or as a complete description of predictive importance.
+Correlation measures linear association and should not be interpreted as a
+measure of causality or as a complete description of predictive importance.
 
 ??? note "Example"
 
@@ -3736,19 +3856,8 @@ Correlation measures linear association and should not be interpreted as a measu
     print(f"Min:  {y.min():.3f}")
     print(f"Max:  {y.max():.3f}")
 
-    # Feature-target correlations
-    correlations = X.corrwith( y)
-    correlations = correlations.sort_values()
-
-    plt.figure( figsize=(10, 8))
-
-    correlations.plot( kind="barh")
-
-    plt.xlabel( "Pearson Correlation with Solubility")
-    plt.title( "Feature-Target Correlations")
-    plt.tight_layout()
-    plt.savefig( "feature_correlations.png", dpi=300, bbox_inches="tight")
-    plt.close()
+    # Feature-target correlations are calculated on the training set
+    # in Step 3, after the data have been split.
     ```
 
 A strong individual correlation may indicate that a descriptor contains 
@@ -3772,6 +3881,18 @@ The test set is kept separate until the final evaluation.
 
     print( f"\nTraining set size: " f"{len(X_train)}")
     print( f"Test set size: " f"{len(X_test)}")
+
+    # Examine correlations using only training samples.
+    # The held-out test set must not influence feature selection.
+    correlations = X_train.corrwith(y_train).sort_values()
+
+    plt.figure(figsize=(10, 8))
+    correlations.plot(kind="barh")
+    plt.xlabel("Pearson Correlation with Solubility")
+    plt.title("Training-Set Feature-Target Correlations")
+    plt.tight_layout()
+    plt.savefig("feature_correlations.png", dpi=300, bbox_inches="tight")
+    plt.close()
     ```
 
 This example uses a random train-test split for simplicity. In realistic QSAR applications, 
@@ -3947,14 +4068,15 @@ To make the workflow general, a separate search space is defined for each candid
         }
     }
 
-    # Tune the selected model
+    # Tune the selected model. Small search spaces need fewer trials.
     random_search = RandomizedSearchCV(
 
         estimator=models[ best_model_name ],
 
         param_distributions= search_spaces[ best_model_name ],
 
-        n_iter=20,
+        n_iter=(20 if best_model_name not in {"Ridge", "Lasso"}
+                else len(search_spaces[best_model_name]["model__alpha"])),
         cv=cv,
         scoring="r2",
         random_state=42,
@@ -3982,7 +4104,7 @@ The test set is still not used during this stage.
 After model selection and hyperparameter tuning, the optimized pipeline is 
 evaluated on the independent test set.
 Three common regression metrics are used: the **Mean Absolute Error (MAE)**, the
- **Root Mean Squared Error (RMSE)**, and the coefficient of determination (R^2).
+**Root Mean Squared Error (RMSE)**, and the coefficient of determination ($R^2$).
  
 ??? note "Example"
 
@@ -4094,8 +4216,8 @@ randomly shuffling one feature while leaving the others unchanged.
     ```python
     from sklearn.inspection import ( permutation_importance)
 
-    # Calculate permutation importance
-    # on the independent test set
+    # Analyze final-model importance on the independent test set.
+    # Do not use these results for further feature selection or tuning.
     result = permutation_importance(
         best_model,
         X_test,
@@ -4246,10 +4368,13 @@ This final step demonstrates how a trained QSAR model can be used to
 generate predictions for previously unseen molecular structures.
 
 
-## 8. Practical Example: QM9 dataset
+## 8. Practical Example: The QM9 Dataset
 
-QM9 is a standard quantum-chemistry benchmark of ~134,000 small organic molecules with
-DFT-computed properties. Here we predict the HOMO energy with a random forest.
+QM9 is a quantum-chemistry benchmark containing roughly 134,000 small organic
+molecules with properties calculated using density functional theory (DFT).
+This example predicts the energy of the highest occupied molecular orbital
+(HOMO) using Morgan-style fingerprints and a Random Forest. It provides a
+classical baseline; fingerprints do not explicitly describe 3D molecular geometry.
 
 ??? note "Example"
 
@@ -4267,7 +4392,10 @@ DFT-computed properties. Here we predict the HOMO energy with a random forest.
     from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
     # 1. Load QM9 dataset
-    tasks, datasets, transformers = dc.molnet.load_qm9( featurizer="ECFP", splitter="random")
+    tasks, datasets, transformers = dc.molnet.load_qm9(
+        featurizer="ECFP", splitter="random",
+        transformers=["normalization"]
+    )
 
     train_dataset, valid_dataset, test_dataset = datasets
 
@@ -4306,8 +4434,8 @@ DFT-computed properties. Here we predict the HOMO energy with a random forest.
     valid_r2 = r2_score(y_valid, y_valid_pred)
 
     print("\nValidation performance")
-    print(f"MAE:  {valid_mae:.4f}")
-    print(f"RMSE: {valid_rmse:.4f}")
+    print(f"MAE (normalized):  {valid_mae:.4f}")
+    print(f"RMSE (normalized): {valid_rmse:.4f}")
     print(f"R²:   {valid_r2:.4f}")
 
     # 5. Final test evaluation
@@ -4318,12 +4446,15 @@ DFT-computed properties. Here we predict the HOMO energy with a random forest.
     test_r2 = r2_score(y_test, y_test_pred)
 
     print("\nTest performance")
-    print(f"MAE:  {test_mae:.4f}")
-    print(f"RMSE: {test_rmse:.4f}")
+    print(f"MAE (normalized):  {test_mae:.4f}")
+    print(f"RMSE (normalized): {test_rmse:.4f}")
     print(f"R²:   {test_r2:.4f}")
 
     # 6. Compare true vs predicted values
-    results = pd.DataFrame({ "true_homo": y_test[:10], "predicted_homo": y_test_pred[:10] })
+    results = pd.DataFrame({
+        "true_homo_normalized": y_test[:10],
+        "predicted_homo_normalized": y_test_pred[:10],
+    })
 
     print("\nExample predictions:")
     print(results)
@@ -4344,42 +4475,45 @@ Two points are worth keeping in mind when interpreting these results:
   the Coulomb matrix, or 3D/graph neural network features) are generally far more suitable for
   electronic properties.
 
-## 8. Key Takeaways
+## 9. Key Takeaways
 
 ### Molecular Representations
 
 - **SMILES**: Compact text representation, requires careful handling
 - **Fingerprints**: Fixed-length vectors, good for similarity and ML
 - **Descriptors**: Interpretable features, require domain knowledge
-- **Graphs**: Natural representation, enables GNNs (Day 3)
+- **Graphs**: Represent atoms, bonds, and potentially geometric relationships
+- **Crystal representations**: Describe periodic lattices and atomic neighborhoods
 
 ### Traditional ML Methods
 
 - **Random Forests**: Robust baseline, handles non-linearity, provides feature importance
-- **SVMs**: Effective in high dimensions, requires scaling
-- **Gaussian Processes**: Provides uncertainty, excellent for active learning
-- **Gradient Boosting**: Often best performance, requires careful tuning
+- **Support vector methods**: Useful alternatives for structured numerical features;
+  scaling is usually important
+- **Gaussian processes**: Provide predictive uncertainty under modeling assumptions
+- **Gradient boosting**: Competitive nonlinear baseline that benefits from tuning
 
 ### Best Practices
 
 1. Always validate molecular structures
-2. Use scaffold-based splits for realistic evaluation
+2. Choose random, scaffold, grouped, or temporal splits based on the intended application
 3. Scale features appropriately for each algorithm
 4. Compare multiple representations (descriptors vs fingerprints)
 5. Report multiple metrics (RMSE, MAE, R²)
 6. Analyze feature importance for insights
-7. Check for data leakage in preprocessing
+7. Prevent data leakage during preprocessing, feature selection, and model tuning
+8. Record operating conditions and units for property measurements
 
 ### Common Pitfalls
 
-- Using random splits instead of scaffold splits
+- Choosing an evaluation split that does not match the intended prediction task
 - Forgetting to scale features for SVMs
 - Not handling invalid SMILES
 - Overfitting due to small datasets
-- Ignoring uncertainty in predictions
+- Ignoring uncertainty, measurement conditions, and applicability domains
 
 
-## 9. Resources and Further Reading
+## 10. Resources and Further Reading
 
 ### Software Libraries
 
@@ -4387,6 +4521,8 @@ Two points are worth keeping in mind when interpreting these results:
 - **scikit-learn**: Machine learning library - https://scikit-learn.org/
 - **Pandas**: Data manipulation - https://pandas.pydata.org/
 - **Matplotlib**: Visualization
+- **pymatgen**: Crystal structure representation - https://pymatgen.org/
+- **Matminer**: Materials data and descriptors - https://hackingmaterials.lbl.gov/matminer/
 
 ### Databases
 
@@ -4395,11 +4531,13 @@ Two points are worth keeping in mind when interpreting these results:
 - **ZINC**: https://zinc.docking.org/
 - **Materials Project**: https://materialsproject.org/
 - **QM9**: http://quantum-machine.org/datasets/
+- **Matbench**: https://matbench.materialsproject.org/
 
 ### Papers
 
 - "Molecular descriptors for chemoinformatics" - Todeschini & Consonni
-- "Machine Learning in Materials Informatics" - Butler et al., 2022
+- "Machine learning for molecular and materials science" - Butler et al.,
+  *Nature* **559**, 547–555 (2018)
 - "Deep Learning for Molecular Design" - Elton et al., 2019
 
 ### Tutorials
@@ -4409,3 +4547,4 @@ Two points are worth keeping in mind when interpreting these results:
 - DeepChem Tutorials  https://deepchem.io/
 - Daylight Theory Manual (SMILES reference) https://www.daylight.com/dayhtml/doc/theory/index.pdf 
 - Gaussian Processes playground https://infallible-thompson-49de36.netlify.app/
+
