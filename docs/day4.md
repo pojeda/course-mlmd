@@ -1,35 +1,45 @@
 # Deep Learning for Molecular Systems
 
+## Learning Objectives
+
+
+* Explain how neural networks learn molecular structure-property relationships.
+* Choose suitable architectures and loss functions for regression and classification.
+* Implement, train, and evaluate molecular models using PyTorch.
+* Identify data leakage, overfitting, and limitations of molecular representations.
+* Compare feedforward, convolutional, recurrent, and multi-task models.
+* Apply transfer learning and interpret predictions with appropriate caution.
+
 ## 1. Deep Learning Fundamentals
 
-### 1.1 Why deep learning for molecules?
+### 1.1 Why Deep Learning for Molecules?
 
-Deep learning has transformed molecular property prediction by enabling models to learn
-complex representations directly from raw molecular data. Unlike traditional machine
-learning methods, which rely heavily on hand-crafted descriptors, deep learning models can
-learn directly from molecular representations such as SMILES strings, molecular graphs, and
-3D atomic coordinates.
+Deep learning provides flexible models for learning relationships between molecular
+structure and measured or simulated properties. Unlike models that rely exclusively
+on hand-crafted descriptors, some neural architectures can learn useful features
+from SMILES tokens, molecular graphs, or 3D atomic coordinates. However, the choice
+of input representation and the quality of the training data remain essential.
 
 **Key advantages**
 
-* **Automatic feature learning:** Neural networks learn hierarchical representations directly
-from molecular structures, without the need for manual feature engineering.
-* **Complex pattern recognition:** Deep learning models can capture highly non-linear
-relationships and subtle structural patterns that influence molecular properties.
-* **Transfer learning:** Models pre-trained on large chemical datasets can be fine-tuned for
-specialized tasks, even when only limited labeled data are available.
-* **End-to-end learning:** These models map molecular representations to predicted properties
-within a single, unified framework.
-* **Multi-task learning:** A single model can predict several molecular properties at once,
-sharing learned representations across related tasks.
+* **Learned features:** Neural networks can learn useful representations from molecular
+  inputs, reducing—but not eliminating—the need for feature engineering.
+* **Nonlinear modeling:** Deep networks can capture interactions between molecular
+  features that may be difficult to express with simple linear models.
+* **Transfer learning:** Models pre-trained on large chemical datasets may be adapted
+  to related tasks with limited labeled data.
+* **End-to-end learning:** Suitable architectures can train feature extraction and
+  property prediction together.
+* **Multi-task learning:** One model can share representations across related
+  prediction tasks, potentially improving data efficiency.
 
-### Examples
+#### Motivating Examples
 
-#### Example 1: Solubility prediction
+##### Example 1: Solubility Prediction
 
-Traditional machine learning approaches typically require computing molecular descriptors such
-as LogP, molecular weight, and hydrogen-bond donor and acceptor counts. In contrast, deep
-learning models can learn these relationships directly from SMILES strings.
+Traditional models often use descriptors such as LogP, molecular weight, and
+hydrogen-bond counts. Sequence-based networks can instead learn statistical
+patterns from tokenized SMILES strings, provided enough suitable training data.
 
 ```text
 Input: "CC(=O)OC1=CC=CC=C1C(=O)O" (aspirin)
@@ -40,30 +50,32 @@ The model learns associations such as:
 - Carboxyl groups → polar regions
 - Overall polarity balance → solubility behavior
 
-Output: Predicted LogS = -1.5 (moderate solubility)
+Illustrative output: Predicted logS = -1.5 (not a measured result)
 ```
 
-#### Example 2: Toxicity prediction
+##### Example 2: Toxicity Prediction
 
-Deep learning models are particularly effective at identifying toxic substructures
-(toxicophores) without requiring explicitly programmed rules.
+Models can learn associations between molecular patterns and toxicity labels
+without explicitly programmed substructure rules. Such associations require
+careful validation because toxicity depends on endpoint and exposure conditions.
 
 ```text
-The model automatically learns patterns such as:
+Possible training-data associations include:
 
 - Aromatic amines → potential carcinogenicity
 - Epoxide groups → DNA reactivity
 - Nitro groups → mutagenicity risk
-- Combinations of substructures → synergistic toxic effects
+- Combinations of substructures → possible interactions between risk factors
 ```
 
-#### Example 3: Drug-likeness prediction
+##### Example 3: Drug-Likeness Prediction
 
-Rather than relying solely on heuristic rules such as Lipinski's rule of five, neural networks
-can learn the implicit patterns associated with drug-like molecules.
+Rather than using only heuristic filters such as Lipinski's Rule of Five, a model
+can learn patterns associated with selected development outcomes. However, drug
+approval reflects many factors beyond molecular structure, including clinical efficacy.
 
 ```text
-By training on FDA-approved drugs, the model learns:
+Potentially informative features include:
 
 - Favorable molecular weight ranges
 - Hydrogen-bonding patterns
@@ -72,19 +84,42 @@ By training on FDA-approved drugs, the model learns:
 - Features related to blood-brain barrier permeability
 ```
 
+##### Example 4: Crystalline Materials and Interatomic Potentials
+
+In materials science, neural networks can learn relationships between atomic arrangements
+and properties such as formation energy, band gap, or elastic response. Crystal models must
+account for periodic boundary conditions: atoms at opposite faces of a unit cell can be
+neighbors in the infinite crystal. Graph-based models can explicitly represent these
+periodic neighbor connections, unlike a simple fixed-length descriptor model.
+
+Machine-learned interatomic potentials approximate the potential energy as a function
+of atomic positions and species. When the learned energy is differentiable, forces are
+obtained by automatic differentiation:
+
+$$
+\mathbf{F}_i = -\nabla_{\mathbf{r}_i} E_{\theta}
+\left(\{\mathbf{r}_j,Z_j\}\right).
+$$
+
+Here, $\mathbf{r}_i$ is the position of atom $i$, $Z_j$ denotes atomic species,
+and $\theta$ represents the learned parameters. Molecular dynamics still requires
+numerical time integration; the model changes how energies and forces are evaluated.
+
 ### 1.2 Neural Network Basics
 
-A neural network is a computational model composed of interconnected layers of artificial neurons that learn to 
-transform input data into meaningful predictions through adjustable weights and biases (Rosenblatt, Psychological Review, 65, 386, 1958).
+A neural network consists of layers of units that apply mathematical operations
+to inputs using adjustable weights and biases. These parameters are learned by
+minimizing a loss function. Rosenblatt's perceptron (1958) was an important early
+development, although modern multilayer networks are substantially more flexible.
 
 ![neuron-perceptron](../images/neuron-perceptron.png){: style="width: 600px;"}
 
 A **feedforward neural network** processes information sequentially from the input layer to the output layer 
 without feedback connections or recurrent cycles.
 
-## Architecture Components
+#### Architecture Components
 
-### Input Layer
+##### Input Layer
 
 The input layer receives molecular representations such as fingerprints, molecular descriptors, embeddings, 
 or graph-based features.
@@ -92,7 +127,7 @@ or graph-based features.
 * Its size is determined by the dimensionality of the input features.
 * No activation function is typically applied at this stage.
 
-### Hidden Layers
+##### Hidden Layers
 
 Hidden layers perform non-linear transformations that enable the network to learn complex patterns and 
 hierarchical representations. Each neuron computes:
@@ -113,20 +148,24 @@ $$
 a = f(z)
 $$
 
-Using multiple hidden layers allows the network to progressively learn higher-level abstractions from molecular data.
+Multiple hidden layers can progressively learn increasingly abstract representations
+of molecular features.
 
-### Output Layer
+##### Output Layer
 
 The output layer generates the final prediction.
 
 * **Regression tasks:** typically use a single neuron with a linear activation function.
-* **Binary classification:** commonly uses a sigmoid activation function.
-* **Multi-class classification:** generally uses a softmax activation function.
+* **Binary classification:** typically uses one logit during training.
+* **Multiclass classification:** typically uses one logit per class.
+
+Logits are converted to probabilities using sigmoid or softmax at inference.
+In PyTorch, use raw logits with numerically stable classification losses.
 
 
-## Mathematical Foundation
+#### Mathematical Foundation
 
-### Single Neuron
+##### Single Neuron
 
 Given an input vector:
 
@@ -140,7 +179,7 @@ $$
 \mathbf{w} = [w_1, w_2, \dots, w_n]
 $$
 
-and a bias term (b), the neuron computes the linear transformation:
+and a bias term $b$, the neuron computes the affine transformation:
 
 $$
 z = w_1x_1 + w_2x_2 + \cdots + w_nx_n + b
@@ -161,7 +200,7 @@ $$
 where $f$ is a non-linear activation function.
 
 
-### Neural Network Layer
+##### Neural Network Layer
 
 For layer $l$, the computations are:
 
@@ -189,9 +228,11 @@ to features, so $\mathbf{A}^{[0]} = \mathbf{X}$ has shape (features, samples).
 ??? note "Example"
 
     ```python
-    # Simple 3-layer network
-    # Activation functions: relu, sigmoid, ...
+    # Forward pass through a network with two hidden layers.
     import numpy as np
+
+    def relu(x):
+        return np.maximum(0.0, x)
 
     def forward_propagation(X, parameters):
         """
@@ -214,28 +255,31 @@ to features, so $\mathbf{A}^{[0]} = \mathbf{X}$ has shape (features, samples).
         return A3, cache
     ```
 
-### Universal Approximation Theorem
+##### Universal Approximation Theorem
 
-The Universal Approximation Theorem is a foundational result in neural network theory. It 
-states that a feedforward neural network with a single hidden layer containing a sufficient 
-number of neurons and a non-linear activation function can approximate any continuous 
-function on a compact domain to arbitrary accuracy. Mathematically, for a continuous function 
-$f(x)$ and any error tolerance $\varepsilon > 0$, there exists a neural network $g(x)$ such 
-that $|f(x) - g(x)| < \varepsilon$ for all $x$ in the domain of interest. 
-A typical neural network approximation can be written as
+The Universal Approximation Theorem establishes the expressive capacity of certain
+neural networks. Under appropriate assumptions on the activation function, a
+feedforward network with one sufficiently wide hidden layer can approximate any
+continuous function on a compact domain to arbitrary accuracy. For a continuous
+function $f$ on a compact set $K$ and any $\varepsilon>0$, there exists a
+network $g$ such that
+
+$$
+\sup_{\mathbf{x}\in K}|f(\mathbf{x})-g(\mathbf{x})|<\varepsilon.
+$$
+
+A one-hidden-layer network can be written as
 
 $$
 g(x) = \sum_{i=1}^{N} a_i \, \sigma(\mathbf{w}_i^\top \mathbf{x} + b_i),
 $$
 
-where $\sigma$ is a non-linear activation function, $a_i$ are output weights, $\mathbf{w}_i$ i
-are input weights, and $b_i$ are biases. The theorem explains why neural networks are 
-highly expressive models, although it does not guarantee efficient 
-training, optimal architectures, or the number of neurons required for a given problem 
-[Math. Control, Signals, and Systems 2, 
-303-314 (1989); Neural Networks 4, 251-257 (1991)].
+where $\sigma$ is an appropriate nonlinear activation function, $a_i$ are output
+weights, $\mathbf{w}_i$ are input weights, and $b_i$ are biases. The theorem
+does not guarantee that such a network can be trained efficiently, nor that
+it will generalize to new molecular structures (Cybenko, 1989; Hornik, 1991).
 
-### 1.3 Activation functions
+### 1.3 Activation Functions
 
 Activation functions introduce non-linearity into neural networks, allowing them to learn
 complex and highly non-linear relationships in data. Without activation functions, a deep 
@@ -271,7 +315,8 @@ value $0$ is the conventional choice (the one adopted in the code below).
 
 ##### Disadvantages
 
-* Can suffer from the **dead ReLU problem**, where a neuron's permanently output zero
+* Can suffer from the **dead ReLU problem**, in which a neuron outputs zero
+  for most or all training inputs and may stop receiving useful gradients
 * Outputs are not zero-centered
 
 ```python
@@ -332,8 +377,8 @@ $$
 ##### Advantages
 
 * Mean activations closer to zero, which can speed up convergence
-* Smooth and differentiable everywhere for $\alpha > 0$
-* Negative saturation makes it more robust to noise than Leaky ReLU
+* Differentiable at zero when $\alpha=1$ (the common default)
+* Produces negative, saturating outputs rather than a constant zero
 
 ##### Disadvantages
 
@@ -539,8 +584,9 @@ y_i \log(\hat{y}_i)
 \right]
 $$
 
-The predictions $\hat{y}_i$ must be probabilities in $(0, 1)$, which is why this loss is paired
-with a sigmoid output.
+The predictions $\hat{y}_i$ are probabilities in $(0,1)$. In PyTorch,
+prefer the raw model logits with `nn.BCEWithLogitsLoss`, which combines the
+sigmoid transformation and binary cross-entropy in a numerically stable way.
 
 ##### Typical Use Cases
 
@@ -550,7 +596,7 @@ with a sigmoid output.
 
 ##### Common Output Activation
 
-* Sigmoid activation function
+* Sigmoid for converting inference-time logits to probabilities
 
 ```python
 def binary_crossentropy(y_true, y_pred):
@@ -582,8 +628,9 @@ where:
 * $y_{ij}$ is the true label indicator,
 * $\hat{y}_{ij}$ is the predicted probability for class $j$.
 
-The targets are assumed to be one-hot encoded, so that for each sample exactly one $y_{ij}$
-equals 1 and the inner sum reduces to the log-probability assigned to the correct class.
+The equation uses one-hot encoded targets: exactly one $y_{ij}$ equals 1 for
+each sample. PyTorch's `nn.CrossEntropyLoss` typically accepts integer class
+indices and raw logits, without an explicit softmax in the model.
 
 ##### Typical Use Cases
 
@@ -593,7 +640,7 @@ equals 1 and the inner sum reduces to the log-probability assigned to the correc
 
 ##### Common Output Activation
 
-* Softmax activation function
+* Softmax for converting inference-time logits to class probabilities
 
 ```python
 def categorical_crossentropy(y_true, y_pred):
@@ -604,7 +651,7 @@ def categorical_crossentropy(y_true, y_pred):
     return -np.sum(y_true * np.log(y_pred)) / y_true.shape[0]
 ```
 
-### Backpropagation
+#### Backpropagation
 
 Backpropagation is the algorithm used to train neural networks by computing the gradients of the
 loss function with respect to all model parameters.
@@ -633,7 +680,7 @@ through the network.
 
 * Update parameters using gradient descent or an optimization algorithm such as Adam
 
-#### Mathematical formulation
+#### Mathematical Formulation
 
 For layer $l$:
 
@@ -737,12 +784,9 @@ and a linear output layer.
         A1, A2, A3 = cache['A1'], cache['A2'], cache['A3']
         Z1, Z2 = cache['Z1'], cache['Z2']
 
-        # Output layer gradient
-        # Linear output with MSE loss. This expression assumes the
-        # L = (1 / 2m) * sum((A3 - Y) ** 2) convention; with the
-        # L = (1 / m) * sum(...) convention it carries a factor of 2,
-        # which is equivalent to rescaling the learning rate
-        dZ3 = A3 - Y
+        # Output gradient for MSE averaged over samples and outputs.
+        # dW3 below divides by the batch size m, so include 2/n_outputs.
+        dZ3 = 2.0 * (A3 - Y) / A3.shape[0]
 
         dW3 = (1 / m) * np.dot(dZ3, A2.T)
         db3 = (1 / m) * np.sum(dZ3, axis=1, keepdims=True)
@@ -1943,6 +1987,18 @@ for why this matters.
         y_val
     )
 
+    # Evaluate once on the held-out molecules after selecting the model.
+    test_dataset = MolecularDataset(smiles_test, y_test)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+    device = next(model.parameters()).device
+    test_loss, test_rmse, test_mae, test_r2 = validate(
+        model, test_loader, nn.MSELoss(), device
+    )
+    print(
+        f"Held-out test results: MSE={test_loss:.3f}, "
+        f"RMSE={test_rmse:.3f}, MAE={test_mae:.3f}, R²={test_r2:.3f}"
+    )
+
 
     plt.figure(figsize=(12, 4))
 
@@ -1979,7 +2035,8 @@ training loop, but it is not a realistic benchmark: the network only needs to le
 from a few dozen distinct fingerprints to their molecular weights. What the code does avoid,
 deliberately, is letting a molecule appear in more than one split — that would be exactly the
 data leakage described in Section 2.3, and it would make the validation metrics meaningless.
-When adapting this pipeline to real data, use a scaffold split rather than a random one.
+When adapting this pipeline to real data, choose a split that matches the intended use:
+random splits assess similar compounds, while scaffold splits test new structural cores.
 
 ### 2.3 Practical Recommendations and Training Guidelines
 
@@ -2413,11 +2470,10 @@ torch.save({
 Reloading:
 
 ```python
-# Since PyTorch 2.6, torch.load defaults to weights_only=True, which
-# refuses to unpickle arbitrary Python objects. A checkpoint containing
-# a history dictionary therefore requires weights_only=False.
-# Only do this for checkpoints from a trusted source.
-checkpoint = torch.load("best_model.pth", weights_only=False)
+# Load a trusted checkpoint while restricting deserialization to
+# tensors and ordinary Python containers. A history dict of lists
+# and numbers does not require unrestricted pickle loading.
+checkpoint = torch.load("best_model.pth", weights_only=True)
 
 model.load_state_dict(
     checkpoint["model_state_dict"]
@@ -3255,10 +3311,14 @@ emits logits, classification metrics require converting them to probabilities wi
                 mask = ~np.isnan(true)
                 pred, true = pred[mask], true[mask]
 
+                if len(true) == 0:
+                    results[task_name] = None
+                    continue
+
                 results[task_name] = {
                     "RMSE": np.sqrt(mean_squared_error(true, pred)),
                     "MAE": mean_absolute_error(true, pred),
-                    "R2": r2_score(true, pred)
+                    "R2": r2_score(true, pred) if len(true) > 1 else None
                 }
 
             elif task_type == "binary_classification":
@@ -3267,6 +3327,10 @@ emits logits, classification metrics require converting them to probabilities wi
 
                 mask = ~np.isnan(true)
                 logits, true = logits[mask], true[mask].astype(int)
+
+                if len(true) == 0:
+                    results[task_name] = None
+                    continue
 
                 probabilities = 1.0 / (1.0 + np.exp(-logits))
                 pred_binary = (probabilities >= 0.5).astype(int)
@@ -3308,6 +3372,10 @@ emits logits, classification metrics require converting them to probabilities wi
 
                 pred_class = np.argmax(pred, axis=1)[mask]
                 true = true[mask]
+
+                if len(true) == 0:
+                    results[task_name] = None
+                    continue
 
                 results[task_name] = {
                     "Accuracy": accuracy_score(true, pred_class),
@@ -3504,10 +3572,9 @@ For example:
 "CC(=O)O"
 ```
 
-contains:
-
-* `"C=O"` → carbonyl group
-* `"CO"` → alcohol/ester connectivity
+contains the substring `"(=O)"`, which marks a carbonyl oxygen attached
+through a double bond. The complete string represents acetic acid. Individual
+SMILES substrings do not always identify a functional group without context.
 
 A 1D CNN learns filters that automatically detect these recurring molecular motifs.
 
@@ -3612,6 +3679,12 @@ where $f$ is typically a ReLU activation.
             x shape: (batch_size, sequence_length)
             """
 
+            if x.size(1) < max(conv.kernel_size[0] for conv in self.convs):
+                raise ValueError("Sequence is shorter than a convolution kernel.")
+
+            # A window is valid only if all its tokens are non-padding.
+            valid_tokens = (x != 0).float().unsqueeze(1)
+
             # (batch_size, seq_len) -> (batch_size, seq_len, embedding_dim)
             x = self.embedding(x)
 
@@ -3625,14 +3698,19 @@ where $f$ is typically a ReLU activation.
                 # Convolution + ReLU
                 conv_out = F.relu(conv(x))
 
-                # Global max pooling: retains the strongest activation
-                # from each filter, anywhere in the sequence
-                pooled = F.max_pool1d(
-                    conv_out,
-                    kernel_size=conv_out.shape[2]
-                )
+                # Exclude convolution windows containing padding.
+                width = conv.kernel_size[0]
+                valid_windows = F.avg_pool1d(
+                    valid_tokens, kernel_size=width, stride=1
+                ) >= (1.0 - 1e-6)
+                conv_out = conv_out.masked_fill(~valid_windows, float("-inf"))
 
-                pooled = pooled.squeeze(2)
+                # A short molecule may have no complete window for a
+                # large kernel. Set that branch's pooled features to zero.
+                pooled = conv_out.amax(dim=2)
+                pooled = torch.where(
+                    torch.isfinite(pooled), pooled, torch.zeros_like(pooled)
+                )
                 conv_outputs.append(pooled)
 
             # Concatenate filter outputs
@@ -3650,12 +3728,11 @@ where $f$ is typically a ReLU activation.
             return self.fc2(features)
     ```
 
-Two practical points about this architecture. First, `padding_idx=0` gives the padding token a
-zero embedding that is never updated, but the convolution bias still produces a nonzero response
-at padded positions, which global max pooling can then select. For short sequences in a batch
-padded to a long `max_length`, masking the padded positions to $-\infty$ before pooling is more
-correct. Second, because the model uses `nn.BatchNorm1d`, the training `DataLoader` should set
-`drop_last=True` to avoid a final batch of size 1.
+This implementation masks convolution windows containing padding so that the
+network cannot mistake padding artifacts for molecular patterns. A filter wider
+than a particular molecule receives an all-zero pooled representation for that
+molecule. Because the model uses batch normalization, avoid single-sample
+training batches; choose an appropriate batch size or use `drop_last=True`.
 
 #### SMILES tokenization
 
@@ -3678,7 +3755,7 @@ Correct tokenization matters because some tokens consist of multiple characters:
 * `@@`
 
 Matching two-character tokens before single characters is therefore essential: otherwise `Cl`
-would be read as chlorine followed by an unknown token, and `@@` as two separate chirality marks.
+could be misread as carbon followed by an unknown token, and `@@` as two chirality marks.
 
 #### Tokenizer implementation
 
@@ -3777,9 +3854,10 @@ would be read as chlorine followed by an unknown token, and `@@` as two separate
 This tokenizer is deliberately simple and has known limitations. It does not cover two-letter
 elements such as `Si` or `Se`, aromatic multi-character tokens such as `se` and `as`, isotope
 labels, or ring-closure indices above 9 (written as `%10`, `%11`, and so on). The `<START>` and
-`<END>` tokens are defined but unused; they become necessary for generative models that produce
+`<END>` tokens are defined but unused; they can be useful for generative models that produce
 SMILES autoregressively, where the model must learn when a string terminates. For production
-work, the regular expression tokenizer of Schwaller et al. is the usual reference implementation.
+work, use a validated tokenizer that handles bracket atoms and multi-character ring labels.
+Avoid silently truncating molecules whose SMILES exceed `max_length`, as this loses information.
 
 #### Dataset implementation
 
@@ -4051,7 +4129,7 @@ def smiles_to_image(smiles, size=(224, 224), normalize=True):
     mol = Chem.MolFromSmiles(smiles)
 
     if mol is None:
-        return np.zeros((3, size[1], size[0]), dtype=np.float32)
+        raise ValueError(f"Cannot render invalid SMILES: {smiles}")
 
     img = Draw.MolToImage(mol, size=size)
 
@@ -4074,7 +4152,7 @@ Different CNN approaches are useful for different molecular learning problems.
 | Method                | Advantages                       | Limitations                  | Best applications                    |
 | --------------------- | -------------------------------- | ---------------------------- | ------------------------------------ |
 | 1D CNN on SMILES      | Fast, simple, scalable           | Sensitive to SMILES ordering | Property prediction, screening       |
-| 2D CNN on images      | Captures spatial layout          | Loses graph topology         | Structure visualization              |
+| 2D CNN on images      | Captures depiction layout        | Depends on image rendering   | Image-based molecular prediction     |
 | Graph neural networks | Natural molecular representation | More computationally complex | Quantum chemistry, molecular physics |
 
 The sensitivity of 1D CNNs to SMILES ordering can be mitigated with SMILES enumeration: training
@@ -4160,7 +4238,8 @@ baseline before being adopted.
 
 ## 5. Recurrent Neural Networks
 
-Recurrent Neural Networks (RNNs) are designed for sequential data (text, SMILES strings, protein sequences, etc.). Unlike feedforward networks,
+Recurrent Neural Networks (RNNs) process sequential data such as SMILES strings and protein
+sequences. Unlike feedforward networks,
 they process one token at a time while maintaining a hidden state that carries information from
 previous positions in the sequence.
 
@@ -4280,9 +4359,16 @@ Molecular property prediction
                 Prediction tensor with shape (batch_size, output_dim)
             """
 
-            embedded = self.embedding(x)
+            # Packing prevents the recurrent layers from processing padding.
+            lengths = (x != self.embedding.padding_idx).sum(dim=1).cpu()
+            if (lengths == 0).any():
+                raise ValueError("Each SMILES sequence needs at least one token.")
 
-            lstm_output, (hidden, cell) = self.lstm(embedded)
+            embedded = self.embedding(x)
+            packed = nn.utils.rnn.pack_padded_sequence(
+                embedded, lengths, batch_first=True, enforce_sorted=False
+            )
+            _, (hidden, _) = self.lstm(packed)
 
             # hidden has shape (num_layers * num_directions, batch, hidden_dim).
             # For a bidirectional network, the last two entries are the final
@@ -4302,13 +4388,10 @@ Molecular property prediction
             return output
     ```
 
-One caveat applies to this model as written. Because the sequences are padded to a fixed length,
-the final hidden state summarizes the network after it has consumed all 100 positions, including
-the trailing padding tokens. The forward direction is therefore reading the state *after* the
-padding rather than at the last real token. For correct handling, wrap the embedded sequence with
-`nn.utils.rnn.pack_padded_sequence` using the true lengths before passing it to the LSTM; PyTorch
-then stops each sequence at its real end. This is omitted above for readability, but it is
-recommended in practice, and it matters more the more heavily the batch is padded.
+This implementation uses `pack_padded_sequence` so the LSTM processes only the real SMILES
+tokens. Its final hidden states therefore correspond to the ends of the unpadded sequences,
+including the backward direction of a bidirectional LSTM. The tokenizer must use the same
+padding index as the model (zero by default), and empty sequences must be excluded.
 
 Example:
 
@@ -4508,8 +4591,18 @@ padding index and applies this mask.
             # Mask marking real (non-padding) positions
             mask = (x != self.padding_idx)  # (batch, seq_len)
 
+            lengths = mask.sum(dim=1).cpu()
+            if (lengths == 0).any():
+                raise ValueError("Each SMILES sequence needs at least one token.")
+
             embedded = self.embedding(x)
-            lstm_output, _ = self.lstm(embedded)
+            packed = nn.utils.rnn.pack_padded_sequence(
+                embedded, lengths, batch_first=True, enforce_sorted=False
+            )
+            packed_output, _ = self.lstm(packed)
+            lstm_output, _ = nn.utils.rnn.pad_packed_sequence(
+                packed_output, batch_first=True, total_length=x.size(1)
+            )
 
             attention_scores = self.attention(lstm_output)  # (batch, seq_len, 1)
 
@@ -4582,10 +4675,17 @@ than an LSTM of the same hidden size while often performing comparably.
             )
 
         def forward(self, x):
+            lengths = (x != self.embedding.padding_idx).sum(dim=1).cpu()
+            if (lengths == 0).any():
+                raise ValueError("Each SMILES sequence needs at least one token.")
+
             embedded = self.embedding(x)
+            packed = nn.utils.rnn.pack_padded_sequence(
+                embedded, lengths, batch_first=True, enforce_sorted=False
+            )
 
             # GRU returns only a hidden state, not a cell state
-            _, hidden = self.gru(embedded)
+            _, hidden = self.gru(packed)
 
             if self.bidirectional:
                 final_hidden = torch.cat([hidden[-2], hidden[-1]], dim=1)
@@ -5131,13 +5231,17 @@ bits.
 
         dataset = TensorDataset(x, x)
 
-        # drop_last=True avoids a final batch of size 1, which would make
-        # nn.BatchNorm1d raise an error in training mode.
+        if len(dataset) < 2:
+            raise ValueError("At least two valid molecules are needed for pre-training.")
+
+        batch_size = min(batch_size, len(dataset))
+
+        # Discard only a final singleton batch (BatchNorm1d needs two samples).
         dataloader = DataLoader(
             dataset,
             batch_size=batch_size,
             shuffle=True,
-            drop_last=True
+            drop_last=(len(dataset) % batch_size == 1)
         )
 
         model = MolecularAutoencoder(
@@ -5219,6 +5323,7 @@ where:
             super().__init__()
 
             self.encoder = pretrained_autoencoder.encoder
+            self.freeze_encoder = freeze_encoder
 
             if freeze_encoder:
                 for parameter in self.encoder.parameters():
@@ -5231,16 +5336,22 @@ where:
                 nn.Linear(128, output_dim)
             )
 
+        def train(self, mode=True):
+            super().train(mode)
+            if self.freeze_encoder:
+                # Also freeze BatchNorm running statistics.
+                self.encoder.eval()
+            return self
+
         def forward(self, x):
             features = self.encoder(x)
             prediction = self.prediction_head(features)
             return prediction
     ```
 
-A subtle point when freezing the encoder: the encoder contains `BatchNorm1d` layers, whose
-running statistics continue to update in training mode even when the weights are frozen. If the
-encoder is meant to be held completely fixed, call `self.encoder.eval()` so that batch
-normalization uses its stored statistics rather than adapting to the downstream batches.
+The `train` override also keeps the encoder's `BatchNorm1d` statistics fixed when its weights
+are frozen. Otherwise these statistics would continue changing during downstream training,
+even though the encoder parameters have `requires_grad=False`.
 
 ### 6.4 Fine-tuning workflow
 
@@ -5349,11 +5460,16 @@ Typical strategies:
             y_val
         )
 
+        if len(train_dataset) < 2:
+            raise ValueError("At least two training molecules are required.")
+
+        batch_size = min(batch_size, len(train_dataset))
+
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
             shuffle=True,
-            drop_last=True
+            drop_last=(len(train_dataset) % batch_size == 1)
         )
 
         val_loader = DataLoader(
@@ -5516,6 +5632,7 @@ the pre-trained features.
                 model.encoder,
                 not phase["freeze_encoder"]
             )
+            model.freeze_encoder = phase["freeze_encoder"]
 
             optimizer = optim.AdamW(
                 filter(lambda p: p.requires_grad, model.parameters()),
@@ -5641,9 +5758,8 @@ $$
         """
         Fine-tune ChemBERTa on a molecular regression task.
 
-        For regression, standardize y_train (zero mean, unit variance)
-        before training and invert the transformation on predictions;
-        transformer fine-tuning is sensitive to the target scale.
+        Standardize regression targets using training statistics.
+        Returns the model and the statistics needed to invert predictions.
         """
 
         if device is None:
@@ -5661,8 +5777,18 @@ $$
             return_tensors="pt"
         )
 
+        y_array = np.asarray(y_train, dtype=np.float32)
+        if not np.isfinite(y_array).all():
+            raise ValueError("Training targets must be finite.")
+
+        target_mean = float(y_array.mean())
+        target_std = float(y_array.std())
+        if target_std < 1e-8:
+            target_std = 1.0
+
         labels = torch.tensor(
-            np.asarray(y_train, dtype=np.float32)
+            (y_array - target_mean) / target_std,
+            dtype=torch.float32
         ).view(-1, 1)
 
         dataset = TensorDataset(
@@ -5720,9 +5846,11 @@ $$
                 f"Loss: {total_loss / total_samples:.4f}"
             )
 
-        return model
+        return model, target_mean, target_std
     ```
 
+The returned model predicts standardized targets; recover physical units with
+`prediction = standardized_prediction * target_std + target_mean`.
 Transformer fine-tuning has a few conventions that differ from training a small model from
 scratch. The learning rate is small (typically $2 \times 10^{-5}$ to $5 \times 10^{-5}$), and a
 short linear warmup followed by decay is standard; the `transformers` library provides
@@ -5827,14 +5955,20 @@ Practical recommendations:
 
 **Background:**
 
-Blood-Brain Barrier (BBB) permeability is crucial for CNS drugs. We'll predict log(BB), the logarithm of the brain-to-blood concentration ratio.
+Blood–brain barrier (BBB) penetration is relevant to central nervous system drug discovery.
+Here, we predict logBB, the logarithm of the brain-to-blood concentration ratio at equilibrium.
+This concentration ratio is not the same as a direct permeability coefficient.
 
 **Dataset:**
-- Training: 1,500 molecules
-- Validation: 300 molecules
-- Test: 200 molecules
-- Features: SMILES strings
-- Target: log(BB) values (continuous, range: -3 to 2)
+
+* Input: SMILES strings converted into Morgan fingerprints.
+* Target: continuous logBB values, or synthetic values when no CSV is available.
+* Split: approximately 70% training, 15% validation, and 15% test by unique SMILES.
+
+**Important:** The built-in synthetic dataset repeatedly samples only 20 distinct molecules.
+It illustrates the programming workflow but cannot establish predictive performance on
+unseen chemical space. For a scientific study, use measured values, more unique structures,
+and a split that matches the intended application (for example, scaffold-based validation).
 
 ### 7.2 Full Pipeline
 
@@ -5854,12 +5988,14 @@ Blood-Brain Barrier (BBB) permeability is crucial for CNS drugs. We'll predict l
     import torch.optim as optim
     from torch.utils.data import Dataset, DataLoader
 
-    from sklearn.model_selection import train_test_split
+    from sklearn.model_selection import GroupShuffleSplit
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
     from rdkit import Chem
-    from rdkit.Chem import AllChem, Descriptors
+    from rdkit.Chem import Descriptors
+    from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
+    from rdkit import DataStructs
     from tqdm import tqdm
 
 
@@ -5956,15 +6092,23 @@ Blood-Brain Barrier (BBB) permeability is crucial for CNS drugs. We'll predict l
         if not required_columns.issubset(df.columns):
             raise ValueError("Dataset must contain columns: SMILES and logBB")
 
+        # Convert malformed or missing target values to NaN before filtering.
+        df["logBB"] = pd.to_numeric(df["logBB"], errors="coerce")
+
         valid_rows = []
 
         for _, row in df.iterrows():
             mol = Chem.MolFromSmiles(str(row["SMILES"]))
 
             if mol is not None and np.isfinite(row["logBB"]):
-                valid_rows.append(row)
+                valid_row = row.copy()
+                valid_row["SMILES"] = Chem.MolToSmiles(mol)
+                valid_rows.append(valid_row)
 
         df = pd.DataFrame(valid_rows).reset_index(drop=True)
+
+        if df.empty:
+            raise ValueError("No molecules have both valid SMILES and finite logBB.")
 
         print(f"Loaded {len(df)} valid molecules")
         print(f"logBB range: [{df['logBB'].min():.2f}, {df['logBB'].max():.2f}]")
@@ -5981,20 +6125,18 @@ Blood-Brain Barrier (BBB) permeability is crucial for CNS drugs. We'll predict l
             (number_of_molecules, n_bits)
         """
 
+        generator = GetMorganGenerator(radius=radius, fpSize=n_bits)
         fingerprints = []
 
         for smiles in tqdm(smiles_list, desc="Computing fingerprints"):
             mol = Chem.MolFromSmiles(str(smiles))
 
             if mol is None:
-                fp_array = np.zeros(n_bits, dtype=np.float32)
-            else:
-                fp = AllChem.GetMorganFingerprintAsBitVect(
-                    mol,
-                    radius,
-                    nBits=n_bits
-                )
-                fp_array = np.asarray(fp, dtype=np.float32)
+                raise ValueError(f"Invalid SMILES during fingerprinting: {smiles}")
+
+            fp = generator.GetFingerprint(mol)
+            fp_array = np.zeros(n_bits, dtype=np.float32)
+            DataStructs.ConvertToNumpyArray(fp, fp_array)
 
             fingerprints.append(fp_array)
 
@@ -6082,10 +6224,16 @@ Blood-Brain Barrier (BBB) permeability is crucial for CNS drugs. We'll predict l
         train_dataset = BBBDataset(X_train, y_train)
         val_dataset = BBBDataset(X_val, y_val)
 
+        if len(train_dataset) < 2:
+            raise ValueError("At least two training examples are needed for BatchNorm.")
+
+        batch_size = min(batch_size, len(train_dataset))
+
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
-            shuffle=True
+            shuffle=True,
+            drop_last=(len(train_dataset) % batch_size == 1)
         )
 
         val_loader = DataLoader(
@@ -6123,6 +6271,7 @@ Blood-Brain Barrier (BBB) permeability is crucial for CNS drugs. We'll predict l
         for epoch in range(num_epochs):
             model.train()
             train_loss = 0.0
+            train_samples = 0
 
             for batch_x, batch_y in train_loader:
                 batch_x = batch_x.to(device)
@@ -6138,8 +6287,9 @@ Blood-Brain Barrier (BBB) permeability is crucial for CNS drugs. We'll predict l
                 optimizer.step()
 
                 train_loss += loss.item() * batch_x.size(0)
+                train_samples += batch_x.size(0)
 
-            train_loss /= len(train_loader.dataset)
+            train_loss /= train_samples
 
             model.eval()
             val_loss = 0.0
@@ -6379,17 +6529,32 @@ Blood-Brain Barrier (BBB) permeability is crucial for CNS drugs. We'll predict l
 
         print("\n2. Splitting data...")
 
-        train_df, temp_df = train_test_split(
-            df,
-            test_size=0.3,
-            random_state=42
-        )
+        if df["SMILES"].nunique() < 3:
+            raise ValueError("Three data splits require at least three unique molecules.")
 
-        val_df, test_df = train_test_split(
-            temp_df,
-            test_size=0.5,
-            random_state=42
+        # Group by canonical SMILES to prevent the same structure from
+        # appearing in both training and held-out data.
+        first_split = GroupShuffleSplit(
+            n_splits=1, test_size=0.30, random_state=42
         )
+        train_idx, temp_idx = next(
+            first_split.split(df, groups=df["SMILES"])
+        )
+        train_df = df.iloc[train_idx]
+        temp_df = df.iloc[temp_idx]
+
+        second_split = GroupShuffleSplit(
+            n_splits=1, test_size=0.50, random_state=42
+        )
+        val_idx, test_idx = next(
+            second_split.split(temp_df, groups=temp_df["SMILES"])
+        )
+        val_df = temp_df.iloc[val_idx]
+        test_df = temp_df.iloc[test_idx]
+
+        assert set(train_df["SMILES"]).isdisjoint(val_df["SMILES"])
+        assert set(train_df["SMILES"]).isdisjoint(test_df["SMILES"])
+        assert set(val_df["SMILES"]).isdisjoint(test_df["SMILES"])
 
         print(f"  Train: {len(train_df)} molecules")
         print(f"  Validation: {len(val_df)} molecules")
@@ -6601,6 +6766,7 @@ Gradients addresses this directly.
 
         avg_importance = np.mean(importance, axis=0)
 
+        top_k = min(top_k, len(avg_importance))
         top_indices = np.argsort(avg_importance)[-top_k:][::-1]
         top_scores = avg_importance[top_indices]
 
@@ -6660,9 +6826,9 @@ where:
 * $\mathbf{x}'$ is a baseline input,
 * $\alpha$ interpolates between the baseline and the input.
 
-For molecular fingerprints, the natural baseline is the all-zero fingerprint. With this choice,
-the path from baseline to input corresponds to switching on each present bit, so IG measures how
-much turning on each substructure contributes to the prediction.
+For molecular fingerprints, an all-zero vector is a convenient computational baseline, but it
+does not necessarily represent a chemically valid molecule. Attributions therefore describe
+changes relative to this reference; they do not measure causal substructure contributions.
 
 Integrated Gradients satisfies the **completeness** axiom: the attributions sum to the difference
 in model output between the input and the baseline,
@@ -6671,8 +6837,9 @@ $$
 \sum_i IG_i(\mathbf{x}) = f(\mathbf{x}) - f(\mathbf{x}').
 $$
 
-This gives a free correctness check. If the attributions do not sum to roughly $f(\mathbf{x}) -
-f(\mathbf{x}')$, the number of interpolation steps is too small and should be increased.
+The equality holds for exact integration under the required smoothness conditions. Numerical
+approximations may differ; a large discrepancy suggests checking the implementation, model
+output selection, baseline, or number of integration steps.
 
 #### Integrated gradients function
 
@@ -7191,13 +7358,17 @@ Typical workflow:
         train_dataset = BBBDataset(X_train, y_train)
         val_dataset = BBBDataset(X_val, y_val)
 
-        # drop_last=True avoids a final batch of size 1, which would make
-        # BatchNorm1d raise an error in training mode.
+        if len(train_dataset) < 2:
+            raise ValueError("At least two training examples are required.")
+
+        batch_size = min(config["batch_size"], len(train_dataset))
+
+        # Avoid only a final singleton batch when using BatchNorm1d.
         train_loader = DataLoader(
             train_dataset,
-            batch_size=config["batch_size"],
+            batch_size=batch_size,
             shuffle=True,
-            drop_last=True
+            drop_last=(len(train_dataset) % batch_size == 1)
         )
 
         val_loader = DataLoader(
@@ -7228,7 +7399,7 @@ Typical workflow:
 
                 optimizer.zero_grad()
                 predictions = model(batch_x)
-                loss = criterion(predictions.squeeze(), batch_y.squeeze())
+                loss = criterion(predictions, batch_y)
                 loss.backward()
                 optimizer.step()
 
@@ -7244,7 +7415,7 @@ Typical workflow:
                     batch_y = batch_y.to(device)
 
                     predictions = model(batch_x)
-                    loss = criterion(predictions.squeeze(), batch_y.squeeze())
+                    loss = criterion(predictions, batch_y)
 
                     val_loss += loss.item() * batch_x.size(0)
                     val_samples += batch_x.size(0)
@@ -7326,6 +7497,11 @@ since the validation set is no longer needed for model selection at this stage.
     ```python
     best_config = study.best_params
 
+    import numpy as np
+    from sklearn.metrics import mean_absolute_error, r2_score
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     final_model = MolecularFNN(
         input_dim=X_train.shape[1],
         hidden_dims=[
@@ -7335,12 +7511,50 @@ since the validation set is no longer needed for model selection at this stage.
         ],
         output_dim=1,
         dropout_rate=best_config["dropout_rate"]
-    )
+    ).to(device)
 
-    # 1. Retrain final_model on X_train (or on X_train + X_val combined)
-    #    using best_config["learning_rate"], ["weight_decay"], ["batch_size"].
-    # 2. Evaluate ONCE on the held-out test set to obtain an unbiased
-    #    estimate of performance.
+    # Refit using all development data after hyperparameter selection.
+    X_fit = np.concatenate([X_train, X_val], axis=0)
+    y_fit = np.concatenate([y_train, y_val], axis=0)
+    fit_dataset = BBBDataset(X_fit, y_fit)
+    fit_batch_size = min(best_config["batch_size"], len(fit_dataset))
+    if fit_batch_size < 2:
+        raise ValueError("At least two fitting samples are required.")
+
+    fit_loader = DataLoader(
+        fit_dataset,
+        batch_size=fit_batch_size,
+        shuffle=True,
+        drop_last=(len(fit_dataset) % fit_batch_size == 1)
+    )
+    optimizer = optim.AdamW(
+        final_model.parameters(),
+        lr=best_config["learning_rate"],
+        weight_decay=best_config["weight_decay"]
+    )
+    criterion = nn.MSELoss()
+
+    # A fixed epoch budget is shown for simplicity. A separate
+    # validation procedure is needed to choose the optimal epoch count.
+    for epoch in range(50):
+        final_model.train()
+        for batch_x, batch_y in fit_loader:
+            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+            optimizer.zero_grad()
+            loss = criterion(final_model(batch_x), batch_y)
+            loss.backward()
+            optimizer.step()
+
+    # Evaluate the selected configuration ONCE on the untouched test set.
+    final_model.eval()
+    with torch.no_grad():
+        test_features = torch.tensor(
+            X_test, dtype=torch.float32, device=device
+        )
+        test_pred = final_model(test_features).cpu().numpy().ravel()
+
+    print(f"Test MAE:  {mean_absolute_error(y_test, test_pred):.4f}")
+    print(f"Test R²:   {r2_score(y_test, test_pred):.4f}")
     ```
 
 #### Practical hyperparameter guidelines
@@ -7444,7 +7658,7 @@ A five-minute diagnostic check can save hours of debugging.
 
             optimizer.zero_grad()
             output = model(batch_x)
-            loss = criterion(output.squeeze(), batch_y.squeeze())
+            loss = criterion(output.reshape_as(batch_y), batch_y)
             loss.backward()
 
             print(f"  Loss: {loss.item():.6f}")
@@ -7559,7 +7773,7 @@ class of bugs before any long run.
         for step in range(steps):
             optimizer.zero_grad()
             output = model(batch_x)
-            loss = criterion(output.squeeze(), batch_y.squeeze())
+            loss = criterion(output.reshape_as(batch_y), batch_y)
             loss.backward()
             optimizer.step()
 
@@ -7616,7 +7830,7 @@ of a single update.
 
         # Loss
         print("\n3. Loss")
-        loss = criterion(output.squeeze(), batch_y.squeeze())
+        loss = criterion(output.reshape_as(batch_y), batch_y)
         print(f"  Loss: {loss.item():.6f}")
 
         # Backward pass
@@ -7639,7 +7853,7 @@ of a single update.
         model.eval()
         with torch.no_grad():
             new_output = model(batch_x)
-            new_loss = criterion(new_output.squeeze(), batch_y.squeeze())
+            new_loss = criterion(new_output.reshape_as(batch_y), batch_y)
 
         print(f"  Previous loss: {loss.item():.6f}")
         print(f"  New loss:      {new_loss.item():.6f}")
@@ -7798,54 +8012,54 @@ interpretable.
 
 ### 1. **Deep Learning Advantages for Molecules**
 
-   - Automatic feature learning from raw molecular representations
-   - Captures complex non-linear relationships
-   - Enables transfer learning and multi-task learning
-   - State-of-the-art performance on many molecular property prediction tasks
+   - Learns useful representations from suitable molecular inputs
+   - Models complex nonlinear relationships between structure and properties
+   - Supports transfer learning and multi-task learning
+   - Can be effective when reliable, representative training data are available
 
 ### 2. **Model Selection Guidelines**
 
-   - **Feedforward NN**: Best for general-purpose molecular property prediction with fingerprints
-   - **1D CNN**: Excellent for SMILES when local patterns (functional groups) matter
-   - **LSTM/GRU**: Best for sequence modeling and when order matters in SMILES
-   - **Multi-Task**: Use when predicting multiple related properties
-   - **Transfer Learning**: Critical when data is limited (<5K samples)
+   - **Feedforward NN**: Useful for molecular descriptors and fixed-length fingerprints
+   - **1D CNN**: Learns local patterns in tokenized SMILES strings
+   - **LSTM/GRU**: Models sequential dependencies in SMILES strings
+   - **Multi-task learning**: Shares information across related endpoints
+   - **Transfer learning**: May help when labeled data are limited
 
 ### 3. **Architecture Best Practices**
 
-   - Start simple (2-3 layers) and add complexity only if needed
-   - Use ReLU activation for hidden layers
-   - Apply batch normalization and dropout for regularization
-   - Use Adam optimizer with learning rate 1e-3 as default
-   - Implement early stopping (patience=15-20)
+   - Begin with a simple architecture and increase capacity only when justified
+   - Consider ReLU or related activations in hidden layers
+   - Use dropout, weight decay, or normalization when helpful
+   - Use Adam or AdamW as reasonable starting optimizers; tune the learning rate
+   - Monitor validation performance and consider early stopping
 
 ### 4. **Training Strategies**
 
-   - Always split data into train/val/test (70/15/15)
-   - Normalize inputs for faster convergence
-   - Use learning rate scheduling (ReduceLROnPlateau)
-   - Monitor multiple metrics (RMSE, MAE, R²)
-   - Save best model based on validation loss
+   - Define independent train, validation, and test sets before fitting preprocessing
+   - Choose random, grouped, temporal, or scaffold splits based on the application
+   - Standardize continuous features and regression targets when appropriate
+   - Monitor task-specific metrics and use learning-rate scheduling if beneficial
+   - Select checkpoints using validation data; reserve test data for final evaluation
 
 ### 5. **Performance Optimization**
 
-   - Deep learning typically provides 10-20% improvement over Random Forest
-   - Transfer learning can improve performance by 15-30% with limited data
-   - Multi-task learning helps when tasks are related
-   - Ensemble methods (combining multiple models) can add another 5-10%
+   - Compare neural networks with simple baselines, such as Random Forests
+   - Report measured improvements; no universal percentage gain is guaranteed
+   - Transfer and multi-task learning can help, but can also cause negative transfer
+   - Repeat experiments across seeds or splits when possible to assess variability
 
 ### 6. **Hyperparameter Importance Ranking**
 
-   1. Learning rate (most critical)
+   1. Learning rate (often influential)
    2. Batch size
    3. Number of layers and neurons
    4. Dropout rate
-   5. Optimizer choice (Adam usually best)
+   5. Optimizer choice (Adam and AdamW are useful starting points)
 
 ### 7. **Common Pitfalls to Avoid**
 
    - Training without validation set
-   - Not normalizing inputs
+   - Fitting preprocessing on validation or test data
    - Ignoring overfitting signs
    - Using too large learning rate
    - Not checking for data leakage
@@ -7854,21 +8068,21 @@ interpretable.
 ### 8. **Model Interpretation Matters**
 
    - Use gradient-based methods for feature importance
-   - Integrated gradients provide better attributions
-   - Attention mechanisms add interpretability
-   - Always validate interpretations with domain knowledge
+   - Integrated gradients provide baseline-dependent attributions
+   - Attention weights do not automatically establish causal explanations
+   - Evaluate interpretation claims against chemistry and independent evidence
 
 ### 9. **Production Considerations**
 
    - Save model architecture and weights separately
    - Version control for models and data
    - Monitor model performance degradation over time
-   - Implement confidence scoring for predictions
+   - Estimate uncertainty and flag out-of-distribution inputs where practical
    - Document training procedures and hyperparameters
 
 ### 10. **Research Directions**
 
-    - Graph Neural Networks for molecular graphs (Day 3)
+    - Graph Neural Networks for molecular and periodic crystal graphs
     - 3D conformation-based models
     - Active learning for efficient data collection
     - Uncertainty quantification
@@ -7889,7 +8103,8 @@ interpretable.
 
 **Architecture-Specific:**
 6. Gómez-Bombarelli, R., et al. (2018). "Automatic chemical design using a data-driven continuous representation of molecules." *ACS Central Science*, 4(2), 268-276.
-7. Zheng, S., et al. (2020). "Identifying structure–property relationships through SMILES syntax analysis with self-attention mechanism." *Journal of Chemical Information and Modeling*, 59(2), 914-923.
+7. Zheng, S., et al. (2019). "Identifying structure–property relationships through SMILES syntax
+   analysis with self-attention mechanism." *Journal of Chemical Information and Modeling*, 59(2), 914–923.
 8. Chithrananda, S., et al. (2020). "ChemBERTa: Large-scale self-supervised pretraining for molecular property prediction." *arXiv preprint* arXiv:2010.09885.
 
 **Transfer Learning:**
@@ -7951,5 +8166,3 @@ interpretable.
 
 7. **ESOL (Solubility)**: 1K molecules with measured solubility
    - https://pubs.acs.org/doi/10.1021/ci034243x
-
-
