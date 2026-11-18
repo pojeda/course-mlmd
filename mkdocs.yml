@@ -34,11 +34,13 @@ nav:
     - Machine Learning Concepts: day2.md
   - Module 1 (III): 
     - ML for Molecular Systems: day3.md
-  - Module 2 (II):
+  - Module 2 (I):
     - Neural Networks: day4.md  
-  - Module 2 (III):
+  - Module 2 (II):
     - Generative Models: day5.md 
-    - MLPs: day8.md
+    - MLPs: day6.md
+  - Module 2 (III):
+    - AI Policies: day7.md
 #  - Day 5:
 #    - Graph Neural Networks: dayx.md 
 #  - Day 6:
